@@ -1,0 +1,137 @@
+name: AlphaTanks CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [16.x, 18.x, 20.x]
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run ESLint
+      run: npm run lint
+      
+    - name: Run tests
+      run: npm test
+      
+    - name: Run tests with coverage
+      run: npm test -- --coverage
+      
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      if: matrix.node-version == '20.x'
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Verify all files are present
+      run: |
+        test -f index.html
+        test -f game-engine.js
+        test -f tank-ai.js
+        test -f evolution-engine.js
+        test -f asi-arch-modules.js
+        
+    - name: Test application startup
+      run: |
+        # Simple test to ensure HTML loads without errors
+        python3 -c "
+        import http.server
+        import socketserver
+        import threading
+        import time
+        import requests
+        
+        # Start server in background
+        PORT = 8000
+        Handler = http.server.SimpleHTTPRequestHandler
+        with socketserver.TCPServer(('', PORT), Handler) as httpd:
+            server_thread = threading.Thread(target=httpd.serve_forever)
+            server_thread.daemon = True
+            server_thread.start()
+            
+            time.sleep(2)  # Wait for server to start
+            
+            # Test that index.html loads
+            response = requests.get(f'http://localhost:{PORT}')
+            assert response.status_code == 200
+            assert 'AlphaTanks' in response.text
+            
+            print('✅ Application startup test passed')
+        "
+        
+  security:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Run security audit
+      run: npm audit --audit-level=moderate
+      
+    - name: Check for vulnerabilities
+      run: npm audit --audit-level=high
+      
+  release:
+    runs-on: ubuntu-latest
+    needs: [test, build, security]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        
+    - name: Create Release Archive
+      run: |
+        zip -r AlphaTanks-release.zip . \
+          -x "node_modules/*" \
+          -x ".git/*" \
+          -x "*.log" \
+          -x ".github/*"
+          
+    - name: Upload Release Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: AlphaTanks-Release
+        path: AlphaTanks-release.zip
