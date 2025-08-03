@@ -1,0 +1,35 @@
+CITATION.cff
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+authors:
+- family-names: "AlphaTanks Development Team"
+title: "AlphaTanks: ASI-ARCH Tank Evolution Demonstration"
+version: 1.0.0
+doi: 10.5281/zenodo.1234567
+date-released: 2025-08-03
+url: "https://github.com/YOUR_USERNAME/AlphaTanks"
+repository-code: "https://github.com/YOUR_USERNAME/AlphaTanks"
+abstract: >-
+  AlphaTanks is an implementation of the ASI-ARCH (Artificial Superintelligence 
+  for AI Research) methodology demonstrating autonomous AI evolution through 
+  competitive tank battle simulation. The system showcases how AI can conduct 
+  independent research, discovering novel combat tactics through computational 
+  research scaling principles.
+keywords:
+  - artificial-intelligence
+  - evolution
+  - genetic-algorithm
+  - asi-arch
+  - autonomous-research
+  - competitive-coevolution
+  - red-queen-race
+license: MIT
+references:
+  - type: article
+    authors:
+    - family-names: "ASI-ARCH Research Team"
+    title: "Artificial Superintelligence for AI Research (ASI-ARCH): A Framework for Computational Research Scaling"
+    journal: "arXiv preprint arXiv:2507.18074v1"
+    year: 2024
+    url: "https://arxiv.org/abs/2507.18074v1"
