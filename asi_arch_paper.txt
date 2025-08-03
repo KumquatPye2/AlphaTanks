@@ -1,0 +1,2079 @@
+SII-GAIR
+AlphaGo Moment for Model Architecture Discovery
+YixiuLiu1,2,4* YangNan2,4* WeixianXu1,2,4* XiangkunHu2,4
+LyumanshanYe1,2,4 ZhenQin3 PengfeiLiu1,2,4†
+1ShanghaiJiaoTongUniversity 2SII 3Taptap 4GAIR
+SII-GAIR/ASI-Arch ModelGallery
+Abstract
+WhileAIsystemsdemonstrateexponentiallyimprovingcapabilities,thepaceofAIresearchitselfremains
+linearlyboundedbyhumancognitivecapacity,creatinganincreasinglyseveredevelopmentbottleneck. We
+presentASI-ARCH,thefirstdemonstrationofArtificialSuperintelligenceforAIresearch(ASI4AI)inthe
+criticaldomainofneuralarchitecturediscovery—afullyautonomoussystemthatshattersthisfundamental
+constraintbyenablingAItoconductitsownarchitecturalinnovation. MovingbeyondtraditionalNeuralAr-
+chitectureSearch(NAS),whichisfundamentallylimitedtoexploringhuman-definedspaces,weintroducea
+paradigmshiftfromautomatedoptimizationtoautomatedinnovation. ASI-ARCHcanconductend-to-end
+scientificresearchinthechallengingdomainofarchitecturediscovery,autonomouslyhypothesizingnovel
+architecturalconcepts,implementingthemasexecutablecode,trainingandempiricallyvalidatingtheir
+performancethroughrigorousexperimentationandpasthumanandAIexperience. ASI-ARCHconducted
+1,773autonomousexperimentsover20,000GPUhours,culminatinginthediscoveryof106innovative,
+state-of-the-art(SOTA)linearattentionarchitectures. LikeAlphaGo’sMove37thatrevealedunexpected
+strategicinsightsinvisibletohumanplayers,ourAI-discoveredarchitecturesdemonstrateemergentde-
+signprinciplesthatsystematicallysurpasshuman-designedbaselinesandilluminatepreviouslyunknown
+pathwaysforarchitecturalinnovation(Fig.2). Crucially,weestablishthefirstempiricalscalinglawfor
+scientificdiscoveryitself—demonstratingthatarchitecturalbreakthroughscanbescaledcomputationally,
+transformingresearchprogressfromahuman-limitedtoacomputation-scalableprocess. Weprovide
+comprehensiveanalysisoftheemergentdesignpatternsandautonomousresearchcapabilitiesthatenabled
+thesebreakthroughs,establishingablueprintforself-acceleratingAIsystems. TodemocratizeAI-driven
+research,weopen-sourcethecompleteframework,discoveredarchitectures,andcognitivetraces.
+Scaling Law for Scientific Discovery
+Human-only research:
+2000 hours/model
+(inherently unscalable)
+More Computation
+More Discoveries
+Figure1: ThecumulativecountofdiscoveredState-of-the-Art(SOTA)architecturesisplottedagainstthetotal
+computinghoursconsumed.ThestronglinearrelationshipdemonstratesthattheAIsystem’scapacityfordiscovering
+novel,high-performingarchitecturesscaleseffectivelywiththeallocatedcomputationalbudget.
+*Co-firstauthors
+†Correspondingauthor
+1
+5202
+luJ
+42
+]IA.sc[
+1v47081.7052:viXra
+SII-GAIR
+Figure2: A“Move37”MomentinDesign. JustasAlphaGo’slegendarymoverevealedanew,beautifultruthina
+timelessgame,theseAI-discoveredarchitectureschallengeourassumptionsandinspireustoexploreuncharted
+territoriesindesignphilosophy.
+Score
+Low High
+Figure 3: ASI-ARCH exploration trajectory tree of the first-stage architecture exploration. The tree visualizes
+theevolutionaryrelationshipsamong1,773exploredarchitectures,withDeltaNetastherootnode. Eachnode
+representsadistinctarchitectureandcolorsindicateperformancescores.
+2
+SII-GAIR
+1 Introduction
+Artificial Intelligence (AI) is impacting human society with unprecedented depth and breadth, and is widely
+regardedasakeydriverofcivilization’sprogress(RussellandNorvig,2010;Agrawaletal.,2018;Brynjolfssonand
+Mitchell,2017). However,afundamentalparadoxemerges: whileAIsystemsdemonstrateexponentiallyimproving
+capabilities,thepaceofAIresearchitselfremainslinearlyboundedbyhumancognitivecapacity(TheWhiteHouse,
+2023;Ahmedetal.,2022;Sevillaetal.,2022). Thishuman-centricdevelopmentmodelcreatesanincreasingly
+severebottleneckforAIadvancement,wherethevelocityofinnovationisconstrainednotbycomputationalpower,
+butbyhumanresearchbandwidth. Thismotivatesatransformativevision: ArtificialSuperintelligenceforAI
+research(ASI4AI)—AIsystemscapableofautonomouslyconductingtheirownscientificresearchanddesigning
+morepowerfulnext-generationmodels.
+NeuralarchitecturediscoverystandsasthemostchallengingandimpactfulfrontierforrealizingASI4AI.Model
+architectureservesasthecornerstoneoftheAItechnologystack,witheachmajorleapinAIcapabilities—from
+imagerecognitiontonaturallanguageunderstanding—accompaniedbycorrespondingarchitecturalbreakthroughs.
+TheevolutionfromCNNs(LeCunetal.,1995)toTransformers(Vaswanietal.,2017)exemplifieshowarchitectural
+innovationdrivesfundamentalprogressinAI.Attheforefrontofcurrentresearch,apivotalchallengeinvolves
+enhancingcomputationalefficiencywhilemaintainingexpressivepower(DeepSeek-AIetal.,2024;MiniMaxetal.,
+2025;Yuanetal.,2025). Togroundourexplorationinadomainofbothfundamentalimportanceandactiveresearch,
+wefocusonattention-basedarchitecturesasourtestbed,leveragingtheirextensiveknowledgebasetoexploreAI’s
+truearchitecturaldesignpotential(Katharopoulosetal.,2020;Choromanskietal.,2020;Tayetal.,2022;Wang
+etal.,2020).
+Moving beyond traditional Neural Architecture Search (NAS), which is fundamentally limited to exploring
+human-definedspaces,ourworkrepresentsaparadigmshiftfromautomatedoptimizationtoautomatedinnovation.
+While previous NAS methods (Zoph and Le, 2016; Real et al., 2017; Elsken et al., 2019; Cheng et al., 2025)
+couldonlyoptimizeoverpredeterminedbuildingblocksatprohibitivecomputationalcosts,actingassophisticated
+selectionalgorithmsratherthancreativeagents,wepresentASI-ARCH—thefirstdemonstrationofASI4AIin
+neuralarchitecturediscovery. LeveragingtheadvancedreasoningandcodingcapabilitiesofmodernLLMs(Brown
+etal.,2020;OpenAI,2023;Lietal.,2022),ASI-ARCHtranscendshuman-designedsearchspacesbyautonomously
+hypothesizingnovelarchitecturalconcepts,implementingthemasexecutablecode,andempiricallyvalidatingtheir
+performancethroughrigorousexperimentation(Chenetal.,2023;Zhangetal.,2024).
+ThisrepresentsAI’sfirstdemonstrationofgenuinescientificsuperintelligenceinneuralarchitecturedesign. Like
+AlphaGo’sMove37thatrevealedstrategicinsightsinvisibletohumanplayers,ASI-ARCHdiscoversarchitectural
+principles that systematically surpass human intuition. After conducting 1,773 autonomous experiments over
+20,000GPUhours,ASI-ARCHsuccessfullydiscovered106novel,state-of-the-artlinearattentionarchitectures.
+Crucially,weestablishthefirstempiricalscalinglawforscientificdiscoveryitself—demonstratingthatarchitectural
+breakthroughscanbescaledcomputationally,transformingresearchprogressfromahuman-limitedtoacomputation-
+scalableprocessandprovidingaconcretepathwaytowardASI4AI.
+Ourprimarycontributionsestablishablueprintforself-acceleratingAIsystemsandadvancethisparadigm:
+• ASI4AIFramework: WedesignandbuildthefirstdemonstrationofArtificialSuperintelligenceforAIresearch
+throughahighlyautonomous,tool-centricmulti-agentsystemthatenablesAItoindependentlyconductthe
+entirescientificresearchprocess—fromhypothesisgenerationtoempiricalvalidation—inneuralarchitecture
+discovery.
+• EmergentDesignIntelligence: Throughcomprehensiveanalysis,weidentifynoveldesignpatternsthatemerge
+fromAI-drivendiscovery,demonstratingqualitativelydifferentarchitecturalintelligencethatexpandsbeyond
+humandesignparadigmsandestablishesnewprinciplesforattentionmechanisminnovation.
+• ComputationalScalingofDiscovery: Wediscover106novel,state-of-the-artlinearattentionarchitecturesand
+establishthefirstscalinglawforautomatedscientificbreakthroughs,provingthatresearchprogresscanbe
+scaledwithcomputationalresourcesratherthanhumanexpertise. Weopen-sourcethecompleteframework,
+discoveredarchitectures,andcognitivetracestodemocratizeAI-drivenresearch.
+2 RelatedWork
+AIForAIResearch TheapplicationofartificialintelligencetoadvanceAIresearchitselfrepresentsacompelling
+frontier(Kokotajloetal.,2025),bestunderstoodasaspectrumofincreasingAIautonomywithinthescientific
+process. Initially,AI’sroleresembledthatofasophisticatedassistant,handlingspecifictaskslikecodegeneration
+ina“copilot”modelwherehumanresearchersretainedfullcontroloftheresearchdirection. Thecollaborationhas
+sinceevolvedtowardAIasan“AIscientist”capableofindependentlygeneratingnovelhypothesesandproposing
+promisingresearchideasforhumanconsideration(Tshitoyanetal.,2019;Boikoetal.,2023). Morerecently,several
+3
+SII-GAIR
+exampleshavedemonstratedAI’sabilitytonavigatetheentireresearchcyclewithminimalhumanintervention.
+Frameworks such as AlphaEvolve (Novikov et al., 2025; Cheng et al., 2025), for instance, employ LLMs to
+iteratively mutate and select improved program variants, completing a full loop of discovery and refinement.
+Similarly,AlphaGeometry’ssuccessinautonomouslydiscoveringmathematicalproofsshowcasesahighdegreeof
+researchautonomyfromproblemstatementtosolution(Trinhetal.,2024;Chervonyietal.,2025). Astheproportion
+of human involvement in this collaborative loop decreases, the potential for AI’s self-optimization becomes
+increasinglycentral. Thisconceptisepitomizedbyself-referentialsystemslikeDarwin-Go¨delmachines(Zhang
+et al., 2025), which are designed to iteratively modify their own code and empirically validate these changes,
+markingacleartrajectorytowardfullyself-improvingsystems(Schmidhuber,1997;Baum,2004).
+Buildinguponthispath,ASI-ARCHappliestheprinciplesofAIself-evolutiontothehighlycomplexdomainof
+neuralarchitecturedesign. Thispresentsagreaterchallengethanpriorself-improvingsystems,asarchitectural
+explorationinvolvesasignificantlymorecomplexexperimentalenvironmentandavastsearchspacewheresuccess
+isnotguaranteed. OurworkthereforerepresentsasignificantattempttoadvanceAIself-evolutioninthismore
+demandingandimpactfulfrontier.
+EfficientArchitecture TheTransformerarchitecturehasdominatedsequencemodelingsinceitsintroduction,
+butitsquadraticattentioncomplexityhascatalyzedextensiveresearchintosub-quadraticalternatives,creatingan
+increasinglycomplexdesignspace(Vaswanietal.,2017). Amongthesealternatives,sparseattentionapproaches
+likeNativeSparseAttention(NSA)(Yuanetal.,2025)employhierarchicalsparsestrategiestoachievesubstantial
+speedupswhilemaintainingmodelcapabilities. Beyondsparseattention,threeprincipalfamilieshaveemerged
+withlineartimecomplexity: LinearAttention,whichuseslinearizingfeaturemaps(Katharopoulosetal.,2020;
+Choromanskietal.,2020;Qinetal.,2022);State-SpaceModels(SSMs)likeMamba,employingstructuredstate
+transitionmatrices(GuandDao,2023;DaoandGu,2024);andLinearRNNssuchasRWKV,withmatrix-valued
+recurrentstates(Pengetal.,2023;Qinetal.,2023,2024b). Thecurrenttrajectorypointstowardsynthesisand
+hybridization, with architectures like Jamba interleaving different model families to leverage their respective
+strengths (Lieber et al., 2024; Qin et al., 2024a). This evolution has transformed the landscape from a single
+dominantdesigntoavastcombinatorialspacewhereoptimalarchitecturesarehighlydependentonspecifictasks
+andconstraints. Whileexistingworkfocusesonmanuallydesigningindividualarchitecturalcomponentsorfamilies,
+thisprocessisoftenprotracted,requiringmonthsofiterativeeffortfromhumanexpertstoyieldasinglestate-of-
+the-artarchitecture. Incontrast,ASI-ARCHuniquelyaddressesthesystematicexplorationofthiscomplexdesign
+Researcher Analyst
+Performance
+Validity
+Propose Code Novelty & Validity Insight
+Motivation Implement Check
+Theoretical Report
+Re-Generate
+Engineer
+Judge By:
+Real Training
+- Efficiency Environment Loss
+- Novelty
+Code Motivation
+- Complexity
+Loss Code
+Eval Score
+LLM Judgement Score
+Fitness Score Parent / Silbing
+tuptuO
+Input
+Cognition History Experience
+Cognition
+Base
+Cognition:
+[Key]
+- Experiment Trigger
+[Value]
+- Background
+- Insight
+- Algorithm
+Analysis
+Extractor
+Benchmark
+Scientific Paper
+Figure 4: An overview of our four-module ASI-ARCH framework, which operates in a closed evolutionary
+loop. ThecyclebeginswiththeResearcher(purple)proposinganewarchitecturebasedonhistoricaldata. The
+Engineer(orange-yellow)handlesthesubsequenttrainingandevaluation. Finally,theAnalyst(blue)synthesizesthe
+experimentalresults,enrichingitsfindingswithknowledgefromtheCognitionmodule(red). Theoutputofthis
+analysisinformsthenextevolutionarystep,enablingthesystemtocontinuouslyimprove.
+4
+SII-GAIR
+landscapethroughautomatedmulti-agentcollaboration,enablingthediscoveryofnovelarchitecturesthattranscend
+traditionalfamilyboundaries.
+3 Methodology
+ASI-ARCHframeworkoperatesasaclosed-loopsystemforautonomousarchitecturediscovery,structuredaround
+amodularframeworkwiththreecoreroles. TheResearchermoduleproposesnovelarchitectures,theEngineer
+moduleconductsempiricalevaluationsbyexecutingtheminareal-worldenvironment,andtheAnalystmodule
+performsanalyticalsummariesoftheresultstoacquirenewinsights. Allexperimentaldataandderivedinsightsare
+systematicallyarchivedinacentraldatabase,creatingapersistentmemorythatdrivestheentireprocess.
+To ensure the system progressively generates superior designs, we implement an evolutionary improvement
+strategythatenablesthemodeltocontinuouslylearnfromexperience. Thisisrealizedthroughtwokeymechanisms:
+first,acomprehensivefitnessscorethatholisticallyevaluateseachnewarchitecture,providingaclearoptimization
+target;andsecond,theabilitytoleveragebothdistilledknowledgefromhumanexpertliterature(cognition)and
+analytical summariesof itsownpast experiments (analysis) toinform subsequentdesign proposals. Given the
+resource-intensivenatureofthisevolutionaryprocess,weadoptatwo-stageexploration-then-verificationstrategy.
+Theinitialstageinvolvesbroadexplorationonsmall-scalemodelstoefficientlyidentifyalargepoolofpromising
+candidates. Inthefinalstage,thesecandidatesarescaleduptolargermodelsforrigorousvalidation,confirming
+theirstate-of-the-artperformance.
+3.1 TheFitnessFunction
+ASI-ARCH’smodelarchitectureevolutionmirrorsbiologicalevolution,drawinginsightsfromtheprinciplesof
+naturalselection. Innature,fitnessdeterminesanorganism’ssurvivalandreproduction,andsimilarly,wedefinea
+fitnessfunctionthatgovernswhicharchitecturessurviveandpropagatethroughourevolutionaryprocess. Acritical
+flawinpastapproachesistheirsolerelianceonquantitativemetricslikelossandbenchmarkscores. Thisnarrow
+focusinevitablyleadstorewardhacking(Amodeietal.,2016),wherethesystemlearnstomaximizescoreswithout
+producinggenuinelysuperiorarchitectures. Weexpandthisdefinitionbyincorporatingaqualitativeassessmentof
+thearchitectureitself. Ourcompositefitnesscombinesbothquantitativeandqualitativedimensions,holistically
+evaluatingperformanceanddesignquality:
+Fitness=ObjectivePerformance+ArchitecturalQuality (1)
+(cid:124) (cid:123)(cid:122) (cid:125) (cid:124) (cid:123)(cid:122) (cid:125)
+Quantitative Qualitative
+Inourframework,theobjectiveperformanceassessmentevaluatesbothbenchmarkscoresandlossperformance
+relativetobaselinearchitectures.Recognizingthatscientificbreakthroughsoftenemergefromincrementaladvances,
+weapplyasigmoidtransformationtoperformancedifferences: σ(∆ ). Thistransformationservesadual
+performance
+purpose—amplifying small but potentially significant improvements while capping extreme values that could
+otherwisedominatetheoptimizationprocess. Forthearchitecturalqualityassessment,weintroduceaseparate
+LLMthatactsasanexpertevaluator,mimickinghowahumanspecialistwouldjudgearchitecturalmerit. This
+judgeexaminesmultipledimensions: architecturalinnovation,structuralcomplexity,implementationcorrectness,
+andconvergencecharacteristics. Byincorporatingthesequalitativeassessmentsalongsidequantitativemetrics,we
+capturearchitecturalqualitiesthatresistsimplenumericalmeasurement. Ourfinalcompositefitnessfunctionthus
+takestheform:
+1
+Fitness= [σ(∆ )+σ(∆ )+LLM ] (2)
+3 loss benchmark judge
+whereσ(∆ )andσ(∆ )representsigmoid-transformedperformanceimprovementsoverbaseline,and
+loss benchmark
+LLM providesthesubjectivequalityassessmentnormalizedto[0,1].
+judge
+3.2 Researcher: ProposeNewArchitecture
+TheResearchermoduleservesasthecreativeengineofoursystem,whereAIindependentlyproposesnovelmodel
+architecturesbasedonhistoricalexperienceandhumanexpertise.Ourdesigntargetstwocriticalobjectives:ensuring
+high-qualityarchitecturalinnovationswhilepreventingrepeatedexplorationsthatsquandercomputationalresources.
+Toachievethesegoals,weimplementfourkeymechanismsthatworktogether:
+SeedSelection ASI-ARCHmaintainsacandidatepoolcontainingthetop-50highest-scoringarchitecturesfrom
+allpreviousexperiments. Foreachevolutionstep,weuseatwo-levelsamplingapproach: oneparentarchitectureis
+randomlyselectedfromthetop-10performerstoserveasthebaseformodifications,while4referencearchitectures
+aresampledfrompositions11-50toprovidediversedesignexamples. Thistwo-tierselectionensuresthatevolution
+buildsonprovensuccesswhilemaintainingenoughrandomnesstoexplorenewdirections. Theparentarchitecture
+5
+Neural Network Architecture Phylogenetic Tree
+ArchitectureFamilies:
+RetentiveGateNet
+FractalCausalMixer
+PathSignatureMemory
+StatePoolNet
+StabilizedDecayNet
+BranchColors:
+Root(DeepGreen)
+Middle(Green)
+Leaves(LightGreen)
+SII-GAIR
+3.2 Researcher: ProposeNewArchitecture
+H
+yb
+S S C t S p o a S C p a c u d p o e l r h s D o y s m c e F a a w y n e t c p r s l H r n a S L D t r a a r t r a i a H m i o e G h c e l i a c S m C C n l s i t r w r a M r e i F E a a p k s i c a a a i t r n S c R l h i r x i _ i h e a _ u p u C e M v c x L k a p k O r r a d g e s h s e l h T a c e T i a d e e S n H n r G a a D r L C a F h i u a r r r m t e P t M h k i l t g l f u o a i c i a k e a h r s G e F l i N S i S r N r a a s e f n e g o y h u n f W H o a W _ o a l a u S r t o t i l e t p M m I u S s T s M l s G s r o o a d e m n a G p c k m a M u a c r h a f x u r f k h m d n p e _ t - t v t r m h a r r e o v o a e e - D l e l t o i M M e a a T o M p W i e B h L t i D C c g x e C m e f r c c g r m i p D i p t F R r R e i r h t s o M o m m S e m e L n i i a a a c R i a i e h _ r o M i x x S c h c f N n o e g a p R l N e m H u o a r u i h o t C f N e r M i c a t a e r f e e M t e e N d o l l u i i i x t P s r e n e s y r C e a t N e d N S t l x e o c o y S e e e r r r r o e N y T r e r s E a a s a e t r l i n I o t s a e a t m h r l N e r x W t n r y r w a c l - l r D e r t e y m P e n N a s M L M r i c S t t M e t H o a e f r e W e i C t a N N v h e o h o f p t T e i r r l i F C i t e e f v i e N w a g a e x x a y e c r e e r u u t r a m e u s r v a a a c N r N P e R e s t t s u g S H e r a M l e s t n i F r y c a t i r o e e s i p o G e a R t e o s a h e R r n i a e o t n t r r l N a x f H n F i a n o a C c e l k y c R o r t P r w e u t t m i e t N a e c R o e e r r e M r L l r s h i a P t n r m E e c n o e c i o i l a i t c d r e M k M o u t c i c v g r o a v e A m c n r e D N i N A l e p x r r h g A s L R S i _ e T e a e l M W i o g a d s t M M n r N g t t a u g t a a a r o e t l t S a e e v p e N t G n e N d i r e p m t s t g m A s l i o W l a c e o v e a f H o g a r r N b e t t o s a t l S i r g e a e o e r v e M y c M r r l m D r e a F t N e a H e e y r M l u g i e m m c e e e a s a h r A r i D t d o a o x i i t g u o c i r r o r e c c y a a g n y A M r h r C l l r S N N M d i e o c e a c e e e a g m p m a l m t t t a l R i W e p v C o t o e e M r o a a r E e t r v u y e e r x y s e s m n p N s P a o t o l o r i e n P o o r e r t r p n y n e M C N N t f u i i a o N e x e lt l A n i e M t M t s d u v c a e i r a N x p A m o l t E e e d e i D v o x C r a t e p i p r o M f y t T f n i e u v N r v m a e s e G M c o e t e a r ix G y M t T C e lo i r N o x b a m a e n e l C s r t G p f a a r o u e te r s s m d a s R l e F o e r F r H c T o u _ l r o M r B e i i P n n x r d c e o M e r t H o e y M m p e e o r m r s y p - N h V e C e Q r a e t u C s o a n l F s i e e r l v d N N E e e t t S C ta a t u e s G a r l o F u ie p l v A R d F o F P T E Hierarc hica o R l C e a a u ct s D a i l f M fS ix e S e q r l A d S a p p a ti r v s e e S H t e a a u te d G R a o I t u e t N e e r t - t
+rid
+C o m p ressive M E u x l t t r i a S p c o a l l a e t R o F r F Net i A o a M t u le l D tis y c r o a m leC e M au la s b a o lP l G yram id R n m d e e l M ta o _ l n o e H t_ o t r b tc e e f p S C T t F e r N ac ll t a a c l e P R re t o fi l x S M ix H r er T r o e t m a g p a e o p ra o l r D P y la a n d E t g S e i v c S N a o h e l n p e M a r a e r e G m M B xi r f i t S e d e r t g P N a e l t p e N e n o e F r t r e l P o K l w a t L n e C o g N o w i m S k R n h p p a r a e a n R s C r r k G s w e S a o x o r t u i L a M s t o e a x l S e l E m W K k n d e a n e i a t r l c a M b m v h h y e h e a H C l r n F t c e r e F e t t r e C N i i a l r k t u o c d e S o n t r l n N a r H F e t e e l e o i o S i F x t r i u l h t A s o M o i u C f t O B F i t x e F e M i e r N v l n r t a i i x d h x s n e O r N u o i o r M e f e g i s f s t i t a o i D c s u r n F r i o t f l o c a l i f P a e i e l t - D M a N l t p t d d e a r e e S e N g e P r m t N a t l e r c t t o t H y o l t a e e e r n r p o y p D _ N o I T N y S n l t C m e o r e r e e a o a m S N t n e t m T _ M u s t M i v r c f T s F e o e e n k a M l a r t L F a a n m m o g e l l a m m t a E f a C e N c _ F y C R t r i x t a l e g e m r a n a w p h r m M o n C r e c s F o D r e o n t m i t u a L o a x C o o e M S r t a r u n p c a e e r t a C t - x - c t F a o s g M x Q a u R E e c e y a a S i a t s t C i V N N e N p M n e e l c p a c r B S N e o S o r G y N l t u a y o t G e m o u m r t A t l t l a r k e e o s f a a r t r r P H t t r a t d a n N i p n N u t m e e e e z d t R H p e a y a g e r R e f r t N e l h t R h e L e t f t f e i R o p b e d N N S t u H l T i c M y s i y i D o e t t R r t w F N M r t B h N r y s M r i t e D i a i a e n N p o l v p t a e G d e o e o o d i n e a r a t C r N R i o r v x e e E e r s r x o e c o M t N A m s y L P m s u P F e t t E a e i e a e e C p o r e c S i f e t e e m x D N e u e r o l M a c i a I d m e E a o c r e r x N a a i n H P h N m r t N R N r a o p e l c l m e a r c M a a e a m S o c o t y C l u C y o S d m k S l A h e n w R a e s M t t p p p S t e G N S t o n e g y e l n s o r l a i s n t t a r o M a a A r a k e t p s - S k r o e e r G a a t u M a u r i e r E r t u y e K i n S a p o u i t M L c v t M E e c t t t s i t F h a s M x P c d a o a l n e S t f u a e e t a D a e u d f E t e c s C e l r e C d n o N l e d i i h e D r t e l m p e e x e f d D p D i i e i e m e h b R o N v D f l v n C g e e t e a a e c S v N a o h i l e e a o p C e D t o t e n r L e N m O a o c r r p a N e G c r a S t y t m l y a a p G d a e F t t e c a R r R t N R a y r x l t t G a e y r e G e o R N E e a g t p N i u c e t e H F e n S t u e N c e h t o t r r u e p r L r e t a r n r e G c n e ce
+Figure5: Thearchitecturalphylogenetictree. Wedefineaparent-childrelationshipwhereanewarchitectureis
+generatedbydirectlymodifyingthecodeofaprecedingone. Thecolorsontheperipheryareusedtodistinguish
+differentevolutionarybranchesofthetree.
+getsmodifieddirectly,whilethereferencearchitecturesserveasexamplesofsuccessfuldesignpatternswithout
+beingchangedthemselves.
+Model Design Before providing historical data to the Researcher for the next evolution cycle, we perform a
+crucialdatasummarizationstep. Eacharchitectureinourdatabasecontainsextensiveinformation,includingits
+motivation,implementationcode,experimentalresults,anddetailedanalysis. Tomanagecontextsize,weusea
+low-temperature LLMto generatebrief, factualsummaries ofthe natural languageportions foreach historical
+architecture. Critically,thesesummariesaregeneratedon-the-flyforeachevolutionarycycleandarenotstoredin
+thedatabase. Thisdynamicsummarizationprocessinherentlyintroducessubtlevariationsinhowthesamehistorical
+dataispresentedovertime. ThisnotonlypreventstheResearcherfromreceivingastatic,repetitivecontext,which
+couldlimitthediversityofitsoutputs,butalsoactivelyencouragesmorevarieddesignexplorations. Thefinal
+combinedsummariesprovidetheevolutionmodelwithbothamanageablecontextandaconstantlyrefreshedsetof
+Species:153|Generations:10|Families:5 diverseinsightstoinformthenextdesignattempt.
+ProgramImplementation Traditionalapproachesoftenseparatearchitecturaldesignfromcodeimplementation,
+usingspecializedmodelsforeachtask. However,thisseparationcreatesacriticalinformationgap—theimple-
+6
+SII-GAIR
+3.3 Engineer: TrainandEvaluateModels
+mentationmodel,seeingonlythehigh-levelmotivation,lackstherichcontextthatinformedtheoriginaldesign.
+Thisoftenleadstoimplementationdriftwherethefinalcodediffersfromtheintendedarchitecture. ASI-ARCH
+addressesthisbyusingasingleagentforbothtasks: firstproposingthearchitecturalmotivationwithfullaccessto
+allcontext,thenimmediatelyimplementingthecorrespondingcodewhilemaintainingcompleteawarenessofthe
+designreasoning.
+Novelty and Sanity Check To ensure that each proposed architecture is both novel and will be correctly
+implemented,weimplementatwo-stagevalidationprocessbeforeitisacceptedfortraining. Thefirststageisa
+similaritychecktopreventredundancy. Whenanewarchitectureisproposed,wefirstextractitsmotivationanduse
+embedding-basedsearchtofindthetop-5mostsimilarhistoricalmotivations. AspecializedLLMthenevaluates
+whetherthenewproposalrepresentsagenuineinnovationormerelyavariationofexistingwork. Thesecondstage
+consistsofcode-levelsanitycheckstopreventfundamentalimplementationflaws,includingverifyingthatthecode
+doesnotexceedO(n2)complexityandensuringthatmaskingisimplementedcorrectlytopreventinformation
+leakage. Ifaproposalfailseitherthenoveltyorthecorrectnesscheck,itisrejected,andtherelevantfeedbackis
+returnedtotheagenttopromptarewrite.
+3.3 Engineer: TrainandEvaluateModels
+Theevaluationprocess,whichprovidesthedataforthefinalfitnessscore,iscomposedoftwoparts: quantitative
+evaluationinarealcodeenvironmentandqualitativescoringbyanLLM-as-judge.
+Real Code Environment The quantitative evaluation takes place within an interactive coding environment
+wheretheagentmustutilizeadefinedsetoftoolstoinitiatetraining,modifycode,andinspecterrorlogs. Akey
+differentiatorofASI-ARCHisitsrobustself-revisionmechanism. Instarkcontrasttopreviouswork(Chengetal.,
+2025)thatoftenusesstaticanalysislikeAbstractSyntaxTree(AST)parsingandsimplydiscardsanyarchitecture
+thatfailsthesechecks,ASI-ARCHrequirestheagenttofixitsownmistakes. Whenatrainingrunfailsduetoan
+implementationerror,thesystemautomaticallycapturesthefullerrorloganddeliversitbacktotheagent,which
+isthentaskedwithanalyzingthisfeedbackandrevisingitspreviouslygeneratedcode. Thisiterativedebugging
+loopcontinuesuntiltrainingissuccessful,ensuringpromisingideasarenotprematurelydiscardedduetosimple
+codingmistakes. Furthermore,tomaintainhighefficiency,anautomatedqualityassurancesystemmonitorstraining
+logsinreal-time. Thisiscriticalbecausesomefunctionaldesignscanbeprohibitivelyinefficient,suchasamodel
+consuming two to three times the training duration of its peers. ASI-ARCH detects such anomalies, as well
+asfundamentalbugsindicatedbyabnormallylowloss,andimmediatelyterminatestherun,reportingtheissue
+backtotheagentforrevision. Thisproactiveterminationpreventswastingresourcesonflawedarchitecturesand
+significantlyacceleratestheoverallsearchprocess.
+LLM-as-Judge Scoring Following the quantitative evaluation, we initiate an LLM-based scoring module to
+provideaqualitativeassessment. Thisscoringprocessconsidersnotonlytheobjectiveperformancemetricsbut
+alsothearchitecturalcomplexity,computationalefficiency,andthenoveltyoftheproposedideas,allbenchmarked
+againstbaselinemodels. Toensureconsistencyandreproducibility,weprovideadetailedsyllabusintheprompt
+andslightlyincreasethemodel’stemperature,encouragingittogeneratemoredetailedandnuancedjustifications
+foritsscores.
+3.4 Analyzer: MineExperimentalInsights
+Todrivetheevolutionaryprocess,ASI-ARCHprovidestheagentwithtwodistinctsourcesofknowledgeforeach
+subsequentdesignstep: cognition,derivedfromaccumulatedhumanexpertise,andanalysis,generateddynamically
+fromthesystem’sownexperimentalhistory.
+CognitionBase ToensureASI-ARCHcanleverageexistingdomainknowledge,weconstructacognition-centered
+knowledgebase. Weselectednearly100seminalpapersfromthefieldoflinearattentionandusedadedicated
+LLM to extract 1-3 distinct cognitions from each. Each cognition is a structured entry composed of three key
+elements: the applicable scenario, which describes the specific problem the original paper aimed to solve; the
+proposedalgorithm,whichsummarizesthecoretechnicalsolution;andthehistoricalcontext,whichsituatesthe
+paperwithintheresearchtrendsofitstime.
+Toguaranteetheutilityofthisknowledgebase, wecarefullyengineeredthepromptfortheextractionLLM.
+Theprompt’sstructureisspecificallydesignedtoensurethattheextracted“experimenttrigger”alignsemantically
+withthe“problemanalyses”generatedbyourAnalystmodule. Thisalignmentiscrucialforeffectiveretrieval. In
+thefinalstageofanalysis,theAnalystsummarizesthespecificshortcomingsobservedinthecurrentexperiment,
+andthissummaryisusedasaqueryforembedding-basedretrievalagainstthescenariosinourknowledgebase.
+The retrieved cognition content is then stored in our database for future reference, providing a highly relevant,
+information-dense,andtargetedwayfortheResearchermoduletofindsolutions.
+7
+SII-GAIR
+3.5 Exploration-then-VerificationStrategy
+Model Type Wiki. LMB. LMB. PIQA Hella. Wino. ARC-e ARC-c SIQA BoolQ Avg.
+ppl↓ ppl↓ acc↑ acc↑ acc n↑ acc↑ acc↑ acc n↑ acc↑ acc↑
+Mamba2 27.08 40.09 31.32 67.90 42.25 51.46 62.04 29.27 39.25 59.24 47.84
+GatedDeltaNet 27.62 38.69 31.42 68.28 40.77 51.14 61.03 27.05 38.79 60.12 47.32
+DeltaNet 27.41 42.08 30.41 67.63 40.82 50.83 61.07 29.27 40.02 52.23 46.54
+PathGateFusionNet 26.76 37.40 33.17 68.77 41.57 53.91 61.03 29.61 39.46 60.58 48.51
+ContentSharpRouter 26.80 36.58 32.72 67.79 40.78 53.12 61.07 30.20 40.79 60.28 48.34
+FusionGatedFIRNet 26.37 33.44 33.38 68.61 42.20 50.99 62.50 28.92 40.48 59.24 48.29
+HierGateNet 26.56 36.83 32.23 68.93 41.30 52.64 62.75 29.95 39.71 58.38 48.24
+AdaMultiPathGateNet 26.62 38.31 31.65 68.06 41.37 53.43 62.04 29.01 39.36 60.52 48.18
+Table1: Performancecomparisononlanguagemodelingandzero-shotcommon-sensereasoning. Typeindicates
+whetherthemodelishuman-designed( )orAI-discovered( ). Boldindicatesthebestresultsandunderlineisthe
+suboptimalones.
+ContextualAnalysis ASI-ARCHgeneratesitsowninsightsthroughadedicatedAnalysisModuledrivenbyalarge
+languagemodel. Thisagentisprovidedwiththecompletesetofinformationfromthecurrentexperiment,including
+allperformancemetrics,traininglogs,andtheperformanceofbaselinemodels. Furthermore,toachieveaneffect
+analogoustoanablationstudy,wealsosupplythedatafromtheparentandsiblingnodesofthecurrentarchitecture
+inthephylogenetictree. Basedontheassumptionthatthesenodessharesignificantstructuralsimilarities,weexpect
+theagenttoinferthespecificcontributionsofindividualmodulesbycomparingtheperformancedifferencesamong
+thesecloselyrelatedarchitectures. Theresultinganalysisisthenarchivedtoinformsubsequentdesigncycles.
+3.5 Exploration-then-VerificationStrategy
+Giventheresource-intensivenatureofarchitectureevaluation,weadoptatwo-stageexploration-then-verification
+strategytomaintainfeasibilityandefficiency. Theunderlyingprincipleisthatatrulysuperiorarchitectureshould
+demonstrate its advantages across different settings. Therefore, in the initial exploration stage, we use smaller
+modelsandresource-efficientprotocolstorapidlyidentifyalargepoolofpromisingcandidatesthatoutperform
+a baseline. In the subsequent verification stage, only these promising candidates are scaled up with increased
+parametersizesforextensivetrainingandrigorousvalidationagainstestablished,state-of-the-artbaselines. This
+two-stageapproachallowsustobalancetheneedforbroadexplorationwiththenecessityofthorough,high-fidelity
+validation.
+4 Experiments
+4.1 ExperimentalSetup
+FitnessFunction Throughoutourexperiments,weuseDeltaNet(Yangetal.,2024b)asourbaseline. Asdescribed
+in Section 3.1, our scoring system consists of three components. For quantitative scoring, since architectural
+differencesinlinearattentiontypicallyproducesmallperformancevariations,wefocusonlyondifferenceswithin
+10% of baseline and map these through a sigmoid function to obtain scores. Additionally, architectures with
+lossesmorethan10%belowbaselineareconsideredtohaveinformationleakageandareimmediatelydiscarded.
+For qualitative scoring, we establish a calibrated scale with DeltaNet at 5 points as the midpoint and Gated
+DeltaNet(Yangetal.,2024a)at10pointsastheupperreference. TheLLMevaluatorassesseseacharchitectureon
+this1-10scale.
+ParallelSearchArchitectureandPolicy Toacceleratediscovery,werunnumeroussearchprocessesinparallel.
+Thisissupportedbyacloud-baseddatabasethatstoresallhistoricalexperimentresults,allowingdifferentagentsto
+addorrequestdatathroughAPIservicesandshareallaccumulatedknowledge. Tomanagethisparallelexploration
+effectivelywhileencouragingdiversity,weimplementastrategiccandidatepoolupdatepolicy:
+• ColdStart: Atthebeginningofourexperiments,ASI-ARCHconducts200explorationswithoutdatabase
+updates. Thisinitialphaseencouragesthemodeltoexplorediversearchitecturalframeworksbroadlyrather
+thanimmediatelyconvergingonvariationsofearlydiscoveries.
+• BatchedUpdates: Afterthecoldstartperiod,weupdatethecandidatepoolonlyafterevery50newentries,
+rather than dynamically selecting the top-50. This batched approach ensures all agents work with stable
+referencesetsduringeachexplorationphase,promotingconsistencywhiletheinitialdelayfosterscreativity.
+Efficiency-OrientedFrameworkSettings Asoutlinedinourmethodology,oursearchprocessisdividedinto
+twodistinctphaseswithdifferentconfigurations:
+8
+SII-GAIR
+4.2 Mainresults
+• Exploration Stage: To enable large-scale exploration, we constrain model size to approximately 20M
+parameterstrainedon1Btokens. Forevaluation,wesampleonly500examplesperbenchmarktobalance
+assessmentqualitywithcomputationalefficiency.
+• VerificationStage: Themostpromisingcandidatesfromtheexplorationstageareadvancedtoarigorous
+verificationphase. Here,wescalethearchitecturesto400Mparametersandtrainthemon1Btokensforan
+initialperformancevalidation. Thetop-performingmodelsfromthisgrouparethenselectedforafinal,more
+extensivetrainingrunona15Btokendatasettocomprehensivelyevaluatetheircapabilitiesagainststrong
+baselines.
+4.2 Mainresults
+Tobalanceexplorationefficiencywithvalidationaccuracy,weadoptatwo-stagestrategy: initialexplorationon
+smallmodelsfollowedbyverificationonlargermodels. Inthefirststage,weconducted1,773explorationsusing
+20Mparametermodels,consumingapproximately10,000GPUhours. Apartialphylogenetictreeofthisfirststage
+isshowninFigure5. Fromtheseexperiments,wefilteredarchitecturesthatoutperformedDeltaNetatequivalent
+parameterscalesinbothlossandbenchmarkmetrics,yielding1,350promisingcandidates. Inthesecondstage,we
+scaledthesecandidatesto340MparametersmatchingDeltaNet’sconfigurationandfilteredoutarchitectureswith
+excessivecomplexityorparametercounts. Wethentrainedapproximately400modelarchitectureson1Btokens,
+using10,000GPUhours. Amongthese,106architecturesachievedstate-of-the-artresults,allofwhicharepublicly
+availableonourModelGallerywebsiteforcommunityreference. Forfinalvalidation,weselected5top-performing
+architecturesandtrainedthemat340Mparameterssettingon15Btokens. Thesemodelswerecomparedagainst
+DeltaNet,GatedDeltaNet,andMamba2underidenticalexperimentalsettings. AspresentedinTable 1,ourmodels
+outperformalmostallbaselinesonvariousbenchmarks. Thefivearchitecturesselectedforthisfinalvalidationare
+detailedbelow,eachrepresentingadistinctstrategyforimprovingupontheDeltaNetbaseline:
+• HierarchicalPath-AwareGating(PathGateFusionNet): Thisarchitectureintroducesahierarchical,two-stage
+routertoresolvethetrade-offbetweenlocalandglobalreasoning. Thefirststageallocatesbudgetbetween
+a direct copy path and a contextual pool, while the second stage distributes that contextual budget across
+short-range,long-range,andDelta-rulepaths. Itensuresstablegradientflowwithasmall,always-onresidual
+connectionandaddshead-specificoutputgatesforfine-grainedlocalcontrol.
+• Content-AwareSharpnessGating(ContentSharpRouter): Thismodeladdressesthechallengeofcreatingagate
+thatisbothcontent-awareandcapableofmakingdecisive(sharp)routingdecisions. Itfusestwokeyideas:
+acontent-awaregatethatusestokenembeddingsandpathstatisticstoinformitsdecision,andalearnable,
+per-headtemperatureparameterthatallowsthemodeltodynamicallycontrolthesharpnessoftherouting
+softmax,preventingprematuregatecollapse.
+• ParallelSigmoidFusionwithRetention(FusionGatedFIRNet): Thisarchitecturefundamentallychangesthe
+gatingmechanismtobreakthe“zero-sum”trade-offimposedbysoftmax. Itreplacesthesinglesoftmaxrouter
+withparallel, independentsigmoidgatesforeachpath. Thisallowsthemodeltoactivatelocalandglobal
+pathssimultaneously. ItalsoenhancestheDelta-rulewithalearnable,per-headretentionparameter,givingita
+controllablememoryhorizon.
+• HierarchicalGatingwithDynamicFloors(HierGateNet): Thismodelemploysatwo-stagehierarchicalgateto
+separatemacro(localvs. global)andfine-grainedroutingdecisions. Itskeyinnovationistheuseofdynamic,
+learnablefloorsforeachpathandhead. Thismechanismguaranteesthatnocriticalpathway(especiallythe
+Delta-pathforlong-rangereasoning)iseverfullycollapsed,adaptingitsminimumallocationbasedonthe
+context.
+• AdaptiveMulti-PathGating(AdaMultiPathGateNet): Thisdesignfocusesonprovidingmaximumcontrol
+atthefinestgranularity. ItimplementsaunifiedBalancedSparseGatethatcombinesglobal, per-head, and
+per-token logits, allowing every path to be controlled at the token level. To prevent gate collapse, it uses
+acombinationofasmallepsilon-floorandapersistent,always-onentropypenalty,ensuringpathdiversity
+withoutcomplextrainingschedules.
+9
+SII-GAIR
+4.2 Mainresults
+Table2: ModelPerformanceComparison. TrainLossrepresentsthelossatthefinaltrainingstep. TestScoreis
+theaverageperformanceacross7tasks: ARC-Challenge,ARC-Easy,BoolQ,HellaSwag,PIQA,SocialIQA,and
+WinoGrande. GreensubscriptsindicateimprovementsovertheGatedDeltaNetbaseline.
+20Mparams/1Btokens 340Mparams/1Btokens
+ModelName
+TrainLoss↓ TestScore↑ TrainLoss↓ TestScore↑
+DeltaNet(Baseline) 4.5749 36.23 3.5055 41.16
+GatedDeltaNet(Baseline) 4.5678 36.60 3.4768 42.10
+AdaptiveContextFusionNet 4.4973 37.03 3.4624 42.74
+−0.0705 +0.43 −0.0144 +0.64
+AdaptiveEntropyGateNet 4.4423 36.91 3.4558 42.37
+−0.1255 +0.31 −0.0210 +0.27
+AdaptiveEntropyRouter 4.3547 39.26 3.4066 44.31
+−0.2131 +2.66 −0.0702 +2.21
+AdaptiveEntropyRouterNet 4.3326 36.94 3.4298 43.25
+−0.2352 +0.34 −0.0470 +1.15
+AdaptiveFloorGate 4.4695 37.00 3.4418 43.57
+−0.0983 +0.40 −0.0350 +1.47
+AdaptiveFloorNet-HAF 4.4002 37.03 3.4241 43.59
+−0.1676 +0.43 −0.0527 +1.49
+AdaptiveFractalGateNet 4.5484 38.43 3.4351 43.84
+−0.0194 +1.83 −0.0417 +1.74
+AdaptiveFusionNet 4.3521 37.51 3.4336 43.78
+−0.2157 +0.91 −0.0432 +1.68
+AdaptiveFusionNet-DSI 4.3781 36.63 3.4270 43.39
+−0.1897 +0.03 −0.0498 +1.29
+AdaptiveFusionRNet 4.3940 37.03 3.4086 43.73
+−0.1738 +0.43 −0.0682 +1.63
+AdaptiveGateNet 4.4228 36.57 3.4377 43.64
+−0.1450 −0.03 −0.0391 +1.54
+AdaptiveGateNet-AFP 4.4198 37.80 3.4193 43.88
+−0.1480 +1.20 −0.0575 +1.78
+AdaptiveGateRouter X 4.4126 38.69 3.4114 42.68
+−0.1552 +2.09 −0.0654 +0.58
+AdaptiveGatedRouter-Hybrid 4.3335 37.74 3.4060 43.56
+−0.2343 +1.14 −0.0708 +1.46
+AdaptiveHierGateNet 4.5096 36.71 3.4433 43.44
+−0.0582 +0.11 −0.0335 +1.34
+AdaptiveHybridGateNet 4.3867 37.11 3.4239 43.01
+−0.1811 +0.51 −0.0529 +0.91
+AdaptiveMixGateNet 4.3709 36.91 3.4289 43.28
+−0.1969 +0.31 −0.0479 +1.18
+AdaptiveMixTransformer 4.4855 36.49 3.4593 42.50
+−0.0823 −0.11 −0.0175 +0.40
+AdaptivePathRouter 4.4324 38.00 3.4332 42.42
+−0.1354 +1.40 −0.0436 +0.32
+AdaptiveSpanGateConv 4.4431 36.74 3.4247 43.90
+−0.1247 +0.14 −0.0521 +1.80
+AdaptiveTokenGate 4.4954 36.77 3.4400 44.08
+−0.0724 +0.17 −0.0368 +1.98
+AdaptiveTokenRouter 4.3745 38.63 3.4238 42.56
+−0.1933 +2.03 −0.0530 +0.46
+AnnealedPathFusionNet 4.4564 36.83 3.4472 43.73
+−0.1114 +0.23 −0.0296 +1.63
+BAMG MemoryGate 4.4804 36.17 3.4587 43.42
+−0.0874 −0.43 −0.0181 +1.32
+BlockStateFusionNet 4.3551 37.66 3.4085 43.20
+−0.2127 +1.06 −0.0683 +1.10
+BoundedTempAnnealNet 4.4331 39.60 3.4098 43.19
+−0.1347 +3.00 −0.0670 +1.09
+ContentSharpRouter 4.3127 37.00 3.4229 43.42
+−0.2551 +0.40 −0.0539 +1.32
+ConvFusionWide31 4.4279 38.60 3.4273 43.47
+−0.1399 +2.00 −0.0495 +1.37
+ConvexBlendFloorNet 4.4021 37.80 3.4265 43.54
+−0.1657 +1.20 −0.0503 +1.44
+DepthwiseConvPointMixer 4.4081 36.94 3.4143 43.50
+−0.1597 +0.34 −0.0625 +1.40
+DualFIR-QuadFusion 4.3883 37.03 3.4038 43.71
+−0.1795 +0.43 −0.0730 +1.61
+DualScaleGateNet 4.4878 36.71 3.4589 42.58
+−0.0800 +0.11 −0.0179 +0.48
+DualScaleMemoryRouter 4.3900 37.74 3.4047 44.13
+−0.1778 +1.14 −0.0721 +2.03
+DualScaleStatFusionNet 4.3662 36.97 3.4123 44.13
+−0.2016 +0.37 −0.0645 +2.03
+DualStagePathGateNet 4.4596 37.63 3.4428 43.41
+−0.1082 +1.03 −0.0340 +1.31
+DynFuseFlexGate 4.3435 39.03 3.4274 43.19
+−0.2243 +2.43 −0.0494 +1.09
+DynMemGate 4.3719 37.14 3.4247 43.73
+−0.1959 +0.54 −0.0521 +1.63
+DynamicMemGateNet 4.5042 37.20 3.4469 42.59
+−0.0636 +0.60 −0.0299 +0.49
+EntropyEnhancedMultiScaleGateNet 4.4217 37.37 3.4044 43.36
+−0.1461 +0.77 −0.0724 +1.26
+EntropyFlowGateNet 4.3964 36.26 3.4166 43.61
+−0.1714 −0.34 −0.0602 +1.51
+EntropyFusionNormX 4.3963 37.26 3.4592 43.99
+−0.1715 +0.66 −0.0176 +1.89
+EntropyKLAdaptiveGateNet 4.3705 39.69 3.4124 43.24
+−0.1973 +3.09 −0.0644 +1.14
+FusionBalanceTransformer 4.3485 38.06 3.4108 43.86
+−0.2193 +1.46 −0.0660 +1.76
+FusionConv-AMG 4.5040 37.89 3.4593 42.38
+−0.0638 +1.29 −0.0175 +0.28
+FusionFeedback-MixNormNet 4.3071 37.26 3.4452 43.67
+−0.2607 +0.66 −0.0316 +1.57
+FusionGATE-HMSR 4.4316 37.71 3.4286 43.83
+−0.1362 +1.11 −0.0482 +1.73
+FusionGateAdaptiveNet 4.4446 36.86 3.4231 43.28
+−0.1232 +0.26 −0.0537 +1.18
+FusionGate-CAGT 4.3810 37.17 3.4060 43.14
+−0.1868 +0.57 −0.0708 +1.04
+Continuedonnextpage
+10
+SII-GAIR
+4.2 Mainresults
+Table2–continuedfrompreviouspage
+20Mparams/1Btokens 340Mparams/1Btokens
+ModelName
+TrainLoss↓ TestScore↑ TrainLoss↓ TestScore↑
+FusionGate-HierarchicalRouter 4.3657 38.89 3.4312 43.14
+−0.2021 +2.29 −0.0456 +1.04
+FusionGate-MS 4.3509 37.17 3.4058 44.18
+−0.2169 +0.57 −0.0710 +2.08
+FusionGate-MS3 4.3836 38.54 3.4052 43.23
+−0.1842 +1.94 −0.0716 +1.13
+FusionGate-MS3E-Hybrid 4.3828 37.09 3.4251 43.59
+−0.1850 +0.49 −0.0517 +1.49
+FusionGate-X 4.3577 36.37 3.4512 43.19
+−0.2101 −0.23 −0.0256 +1.09
+FusionGate-XL 4.4634 36.77 3.4536 43.70
+−0.1044 +0.17 −0.0232 +1.60
+FusionGate-XR 4.4262 36.69 3.4353 44.09
+−0.1416 +0.09 −0.0415 +1.99
+FusionGateBR 4.3475 39.23 3.4229 43.39
+−0.2203 +2.63 −0.0539 +1.29
+FusionGateMemoryNet 4.4445 37.83 3.4252 42.77
+−0.1233 +1.23 −0.0516 +0.67
+FusionGateNet v3 4.3889 37.14 3.4064 43.89
+−0.1789 +0.54 −0.0704 +1.79
+FusionGateX 4.3619 38.80 3.4298 43.37
+−0.2059 +2.20 −0.0470 +1.27
+FusionGatedFIRNet 4.4233 39.37 3.4048 44.02
+−0.1445 +2.77 −0.0720 +1.92
+FusionLogicNet 4.3962 37.14 3.4137 43.66
+−0.1716 +0.54 −0.0631 +1.56
+GateDivergeTransformer 4.3576 39.14 3.4103 44.10
+−0.2102 +2.54 −0.0665 +2.00
+GateFlooredResNet 4.3467 38.97 3.4441 42.89
+−0.2211 +2.37 −0.0327 +0.79
+GateFusionNet 4.3957 38.91 3.4415 43.66
+−0.1721 +2.31 −0.0353 +1.56
+GatedFusionTransformer 4.3416 38.60 3.4126 43.01
+−0.2262 +2.00 −0.0642 +0.91
+GroupTempMLP 4.3948 37.97 3.4243 42.84
+−0.1730 +1.37 −0.0525 +0.74
+HeadWiseGateNet 4.4140 37.89 3.4131 43.90
+−0.1538 +1.29 −0.0637 +1.80
+HierGate-MEM 4.4518 38.09 3.4398 43.76
+−0.1160 +1.49 −0.0370 +1.66
+HierarchiMix-Gate 4.4372 36.83 3.4096 43.99
+−0.1306 +0.23 −0.0672 +1.89
+HybridCausalRouter 4.4242 38.91 3.4233 43.53
+−0.1436 +2.31 −0.0535 +1.43
+HybridFlowNet 4.3745 37.57 3.4238 44.25
+−0.1933 +0.97 −0.0530 +2.15
+HybridFusionFloor 4.3926 37.66 3.4340 43.22
+−0.1752 +1.06 −0.0428 +1.12
+HybridGateFlow 4.3653 36.63 3.3998 43.78
+−0.2025 +0.03 −0.0770 +1.68
+HybridGateTransformer 4.4780 39.03 3.4656 43.74
+−0.0898 +2.43 −0.0112 +1.64
+HybridScale-GateNet 4.4064 36.69 3.4191 43.89
+−0.1614 +0.09 −0.0577 +1.79
+HybridSparseGateMemoryNet 4.4204 38.29 3.4469 43.49
+−0.1474 +1.69 −0.0299 +1.39
+HyenaMAFR 4.3518 40.69 3.4283 43.38
+−0.2160 +4.09 −0.0485 +1.28
+HyperRouteFusion 4.3655 36.89 3.4040 43.12
+−0.2023 +0.29 −0.0728 +1.02
+LexiFuse-Percept 4.3432 38.14 3.4327 44.02
+−0.2246 +1.54 −0.0441 +1.92
+LocalGlobalBlendNet 4.4653 37.54 3.4361 43.56
+−0.1025 +0.94 −0.0407 +1.46
+MinFloorRouter 4.4057 37.31 3.4269 43.97
+−0.1621 +0.71 −0.0499 +1.87
+OutputAwareMultiScaleRouter 4.3917 37.03 3.4046 44.58
+−0.1761 +0.43 −0.0722 +2.48
+ParallelFusionTransformer 4.3923 37.20 3.4141 43.04
+−0.1755 +0.60 −0.0627 +0.94
+PathAwareMemoryRouter 4.3680 39.26 3.4085 43.74
+−0.1998 +2.66 −0.0683 +1.64
+PathGatedFusionNet 4.3772 37.31 3.4301 43.69
+−0.1906 +0.71 −0.0467 +1.59
+PerHeadSimplexRouter 4.3930 36.49 3.4116 43.64
+−0.1748 −0.11 −0.0652 +1.54
+QuotaGatedStatNet 4.4415 37.26 3.4163 42.64
+−0.1263 +0.66 −0.0605 +0.54
+ResConvGate 4.3881 37.11 3.4418 42.72
+−0.1797 +0.51 −0.0350 +0.62
+ResGate MS FusionNet 4.4848 38.69 3.4126 42.76
+−0.0830 +2.09 −0.0642 +0.66
+ResiFuse-CausalGater 4.3674 36.23 3.4243 43.03
+−0.2004 −0.37 −0.0525 +0.93
+SparseGateDelta 4.4503 37.31 3.4433 43.40
+−0.1175 +0.71 −0.0335 +1.30
+SparseTempGateNet 4.4493 37.03 3.4693 43.08
+−0.1185 +0.43 −0.0075 +0.98
+SpectralContextMixer 5.1512 36.17 3.4695 43.41
+−0.5834 −0.43 −0.0073 +1.31
+StatGateRouter 4.4155 36.69 3.4465 43.43
+−0.1523 +0.09 −0.0303 +1.33
+StreamAwareRouter 4.3508 37.97 3.4179 43.62
+−0.2170 +1.37 −0.0589 +1.52
+SynerFuse-LGX 4.3611 39.80 3.4243 43.67
+−0.2067 +3.20 −0.0525 +1.57
+TempMixAnnealRouter 4.3416 38.46 3.4014 44.01
+−0.2262 +1.86 −0.0754 +1.91
+TokenPruneRouter 4.3754 39.40 3.4253 42.69
+−0.1924 +2.80 −0.0515 +0.59
+TokenScaleRouter 4.4552 39.31 3.4274 42.91
+−0.1126 +2.71 −0.0494 +0.81
+TriScale-GatedFusion 4.3647 36.69 3.4027 43.61
+−0.2031 +0.09 −0.0741 +1.51
+TriScaleFusionNet 4.3395 38.23 3.4318 43.58
+−0.2283 +1.63 −0.0450 +1.48
+11
+SII-GAIR
+5 Analysis
+The evolution of architectures in ASI-ARCH is driven by a candidate pool that is updated after every 50 new
+architecturesaregenerated. Sinceeacharchitecturemutationstepexclusivelyreferencesdatafromthispool,we
+analyzethesearchprocesssequentiallyaccordingtothegenerationorder,usingabatchof50architecturesasour
+fundamentalunitofanalysis. Tofacilitateourinvestigationintowhatdistinguisheshigh-performingmodels,we
+collectivelyrefertothetop106architecturesasthe“modelgallery”.
+5.1 EffectivenessofLLM-DrivenArchitectureSearch
+TodemonstratetheeffectivenessofourLLM-drivenneuralarchitecturesearchsystem,weexaminehowthesearch
+processevolvesovertime. Sinceoursystemexclusivelyselectsparentarchitecturesfromthetop-50candidatepool
+formodification,thecharacteristicsofthispooldirectlydeterminethesearchtrajectoryandultimateperformance.
+Therefore, we analyze two key sets of metrics related to this candidate pool: (1) both the overall trend of the
+averagefitnessscoreforthetop-50candidatesandtheindividualtrendsofitsthreecomponents: lossimprovement,
+benchmarkimprovement,andtheLLMjudgescore;and(2)theaveragerawperformance,specificallythebenchmark
+scoresandlossvalues,ofthesesamecandidates. Thesemetricscollectivelyprovideacomprehensiveviewofour
+system’ssearchdynamicsandcontinuousoptimizationprocess.
+1.0
+0.981
+0.240
+0.944
+4.55
+0.9 0.892
+0.238
+4.50 0.8
+0.751
+0.236
+0.7
+Raw Benchmark 4.45
+Raw Loss
+0.234
+0.6
+4.40
+0.232 0.5 Total Score
+Agent
+Benchmark
+Loss
+4.35 0.4
+200 400 600 800 1000 1200 1400 1600 1800 200 400 600 800 1000 1200 1400 1600 1800
+Cumulative Samples Cumulative Samples
+(a) (b)
+Figure6: Thefigure(a)plotskeyperformanceindicatorsagainstthenumberofcumulativesamplesevaluated. The
+averagerawbenchmarkscorefortopcandidatesshowsasteadyupwardtrend,figure(b),whilethecorresponding
+averagerawlossexhibitsaconsistentdownwardtrend. Thecompositefitnessscoreanditsprimarycomponents
+(Agent,Benchmark)allshowrapidinitialimprovementfollowedbyagradualplateau. Thelosscomponentofthe
+scoredemonstratesamoregradualbutcontinuousincreasethroughouttheprocess.
+Analysisofthesearchdynamicsrevealsseveralcomplementarypatterns. First,theaveragefitnessscoreofthe
+top-50candidatesfollowsacharacteristiclearningcurve,withrapidinitialgainsthatgraduallystabilizeFigure6b.
+The early-stage score increase is primarily driven by the optimization of the loss component. The subsequent
+stabilizationisadirectresultofourfitnessfunction’sdesign;duetothesigmoidtransformation,evensignificant
+performancegainsinlaterstagesaremappedtosmallerscoreincreases. Thispreventsrewardhackingbycapping
+the score contribution from any single metric and thus discouraging over-optimization. Importantly, while the
+fitnessscoregrowthflattensbydesign,thesystemdoesnotencounteraperformancebottleneck,asevidencedbythe
+continued,steadyimprovementintherawbenchmarkandlossmetrics. Thisconvergentevidenceconfirmsthatour
+LLM-drivensearcheffectivelylearnstogeneratesuperiorarchitecturesthroughoutthesearchprocess.
+5.2 ArchitecturalDesignPatterns
+TounderstandthearchitecturalpreferencesofLLMsduringthesearchprocesswhichcanprovideinsightsintohow
+thesemodelsapproachthedesignspace,weanalyzeboththecomplexitytrendsandcomponentpreferences.
+Model Complexity Stability A fundamental concern in neural architecture search is whether performance
+improvementscomefromsimplyincreasingmodelsize. Weuseparametercountasaproxyformodelcomplexityto
+examinethisissue. Figure 8showsthedistributionofparametercountsacrossiterations. Thedatarevealsthatwhile
+earlyiterationspredominantlygeneratemodelsinthe400-600Mparameterrange,thesystemquicklydiversifies
+toexploremodelsbetween600-800Mparameters. Importantly,afterthisinitialexplorationphase,theparameter
+12
+SII-GAIR
+5.3 WhereDoGoodDesignsComeFrom?
+Figure7: StatisticalAnalysisofArchitecturalComponentUsage. Thetablepresentsastatisticalbreakdownof
+component usage, comparing the top-performing model gallery against all other generated architectures. The
+datarevealsaclearsystem-widepreferenceforestablishedcomponentslikegatingmechanismsandconvolutions.
+Furthermore,akeydistinctionisobservedinthecomponentdistribution: non-SOTAmodelsexhibitamoresevere
+long-tailproblem, suggestingthattheirbroaderexplorationofnovelcomponentsislesseffectiveatimproving
+performancecomparedtothemorefocusedstrategyoftheSOTAmodels.
+distributionremainsstablewithoutsystematicgrowth. Themajorityofarchitecturesconsistentlyfallwithinthe
+400-600Mrangethroughoutthesearchprocess,withnotrendtowardincreasinglycomplexmodels. Thisstability
+demonstratesthatASI-ARCHdoesnotexploitcomplexcomponentstackingasasimplestrategyforperformance
+improvement,maintainingarchitecturaldisciplineevenwithoutexplicitparameterconstraints.
+ArchitecturalComponentPreferences TounderstandtheLLM’sunderlyingdesignstrategy,weperformedafine-
+grainedanalysisofthearchitecturalcomponentsitchosetomodify. WeemployedaseparateLargeLanguageModel
+toparseeverymotivationgeneratedbythesystem,identifyingwhichspecificmodelcomponentsweretargetedfor
+modificationineachstep. Thisprocessyieldedapproximately5,000componentinstances,whichwethenmanually
+curatedandgroupedinto40high-levelcategories. Wethenstatisticallycomparedtheproportionalusageofthese
+categorieswithinourhigh-performingmodelgalleryagainstthatoftheremainingmodels.Thiscomparativeanalysis,
+visualizedinFigure7,revealstwokeyinsightsintoourLLM-drivendesignprocess. First,ASI-ARCHshowsa
+clear preference for established architectural components like gating mechanisms and convolutions, while less
+commononeslikephysics-inspiredmechanismsappearinfrequently,likelyreflectingbiasesinthetrainingliterature.
+Second,andmorerevealingly,themodelgalleryexhibitsasignificantlylesspronouncedlong-taildistributionin
+itscomponentusage. Thisindicatesthatwhilethesystemexploresmanynovelcomponents,thetop-performing
+modelsconvergeonacoresetofvalidatedandeffectivetechniques. Thismirrorsthetypicalmethodologyofhuman
+scientists: achieving state-of-the-art results by primarily iterating and innovating upon a foundation of proven
+technologies,ratherthanpursuingnoveltyforitsownsake.
+5.3 WhereDoGoodDesignsComeFrom?
+To guide the future development of more efficient and adaptive frameworks, it is crucial to understand which
+componentsofASI-ARCHexertthemostsignificantinfluenceonmodelarchitecturedesign. Oursystem’sdesign
+processisconstrainedbyitsinputs:foreachnewarchitecture,themodel’scontextisstrictlylimitedtothemotivation,
+program,experimentresult,analysis,andcognitionsectionsoffivehistoricalexperimentrecordsdrawnfromthe
+candidatepool. Giventhisboundedcontext,wecanpositthatanynewdesigninspirationmustoriginatefromoneof
+onlythreechannels: knowledgedistilledfromhumanexpertliterature(whichwetermcognition),patternsidentified
+throughtheanalysisandsummaryofitsrelatedhistoricalexperiments(analysis),ornovelideasgeneratedbythe
+modelitself(original). Toquantifythecontributionsofthesethreechannels,wedesignedanexperimenttotracethe
+13
+SII-GAIR
+5.3 WhereDoGoodDesignsComeFrom?
+Table 3: Comparison of the influence of pipeline
+componentsonSOTAversusothersmodeldesign.
+Thedatarevealsahigherdependencyonempirical
+analysisforthedevelopmentofSOTAarchitectures.
+Category ExperienceCognitionOriginality
+ModelGallery 44.8% 48.6% 6.6%
+Others 37.7% 51.9% 10.4%
+600M 800M 1000M 1200M
+All 38.2% 51.7% 10.1%
+Model Parameter
+selpmaS
+evitalumuC
+350
+700
+1050
+1400
+Figure8: Parametersdistributionoverexplorationstage
+provenanceofeachdesignidea. WepromptedaLLM,actingasanimpartialevaluator,toclassifyeacharchitectural
+component(asidentifiedinourpriormotivationanalysis)byitsmostlikelyorigin,classifyingitasderivedfrom
+cognition,analysis,orasanoriginalidea.
+Theresults,presentedinTable 3,revealacompellingtwo-foldpattern. Acrosstheentirepopulationofgenerated
+architectures,amajorityofdesignideasoriginatefromthecognitionphase,indicatingabaselinerelianceondirect,
+prior examples. However, a significant shift is observed when we focus exclusively on the model gallery. For
+thesetop-performingarchitectures,theproportionofdesigncomponentsattributedtotheanalysisphaseincreases
+markedly. Thisfindingsuggestsacrucialparalleltohumanscientificprogress: whilecompetencycanbebuiltupon
+directexperience,achievingtrueexcellencerequiresadeeper,moreabstractlevelofunderstanding. Itprovesthat
+foranAItoproducebreakthroughresults,itcannotmerelyreusepastsuccesses(arelianceoncognition). Instead,it
+mustengageinaprocessofexploration,summary,anddiscovery(arelianceonanalysis)tosynthesizenoveland
+superiorsolutions.
+DiscussionandFutureWork
+Our work successfully demonstrates a framework for AI self-optimization, where an autonomous agent can
+iteratively discover and refine novel neural architectures. The primary focus of this study was to establish the
+viabilityofthismethodology—provingthatanAIcannavigateacomplexdesignspacetoachievestate-of-the-art
+performance. Ourfindingsopenupseveralpromisingdirectionsforfutureresearch.
+Multi-Architecture Initialization Our current approach initializes the search from a single, strong baseline
+(DeltaNet). Thiswasadeliberatemethodologicalchoice,providingaclearobjectiveandastablefoundationto
+drivecontinuousimprovement,whichiscrucialintheearlystagesofexploringsuchaframework. Anaturaland
+excitingextensionwouldbetoinitializetheprocesswithadiverseportfolioofarchitecturessimultaneously. This
+wouldnotonlytesttheframework’sabilitytomanageamorecomplex,multi-modalsearchbutcouldalsoleadto
+thediscoveryofentirelynewfamiliesofarchitectures. Suchanendeavorwould,however,demandasignificant
+increaseincomputationalresourcesandtime.
+Component-wiseAnalysis Ourexperimentsvalidatetheeffectivenessofourpipelineasacohesivewhole. Due
+tothesubstantialresourcesrequiredforeachdesigniteration,wedidnotperformafine-grainedablationstudyto
+isolatethecontributionofeachcomponentwithintheframework. Acrucialavenueforfutureworkistodissectthe
+pipelinefrommultipleanglestobetterunderstandtheinterplayandindividualimportanceofitsparts,suchasthe
+“cognition”and“analysis”modules. Thiswouldenableamoretargetedoptimizationoftheframework,potentially
+leadingtoevengreaterefficiencyandcreativity.
+EngineeringOptimization ThecorecontributionofthispaperliesinthedesignoftheAI-for-AIframework
+itself,withanemphasisonarchitecturalinnovationandperformance. Consequently,wedidnotextendourworkto
+includethelabor-intensivetaskofwritingcustomacceleratedkernels(e.g.,usingTriton)forthenewlydiscovered
+architectures. Asaresult,adirectcomparisonoftheircomputationalefficiencyisnotprovided. Acriticalnext
+step,particularlyfortransitioningthesedesignsfromresearchtopractice,wouldbetofocusonthisengineering
+aspect. Benchmarkingtheefficiencyandlatencyofthesemodelswouldbeaninvaluablefollow-upstudyandwould
+completethecyclefromautomateddiscoverytopracticaldeployment.
+14
+SII-GAIR
+References
+References
+[1] AjayAgrawal,JoshuaGans,andAviGoldfarb.2018. PredictionMachines: TheSimpleEconomicsofArtificial
+Intelligence. HarvardBusinessPress.
+[2] N’DayeAhmed,MalihaWahed,andN.C.Thompson.2022. Modelingtheai-researchecosystem: Astudyof
+thecirculationofscientificknowledgeandtalent. ResearchPolicy,51(5):104505.
+[3] DarioAmodei,ChrisOlah,JacobSteinhardt,PaulChristiano,JohnSchulman,andDanMane´.2016. Concrete
+problemsinaisafety. arXivpreprintarXiv:1606.06565.
+[4] EricB.Baum.2004. WhatisThought? TheMITPress.
+[5] DaniilABoiko,RobertMacKnight,GabeGomes,andAdamFunke.2023. Autonomouschemicalresearchwith
+largelanguagemodels. Nature,624(7992):570–576.
+[6] Tom B Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared Kaplan, Prafulla Dhariwal, Arvind
+Neelakantan,PranavShyam,GirishSastry,AmandaAskell,etal.2020. Languagemodelsarefew-shotlearners.
+arXivpreprintarXiv:2005.14165.
+[7] ErikBrynjolfssonandTomMitchell.2017. Whatcanmachinelearningdo? workforceimplications. Science,
+358(6370):1530–1534.
+[8] ShidongChen,ZhaofeiLi,BoyuDu,andHuLi.2023. Llmatic: Agenerativellmforneuralarchitecturesearch.
+arXivpreprintarXiv:2312.01633.
+[9] JunyanCheng,PeterClark,andKyleRichardson.2025. Languagemodelingbylanguagemodels. arXivpreprint
+arXiv:2506.20249.
+[10] YuriChervonyi,TrieuH.Trinh,MiroslavOlsˇa´k,XiaomengYang,HoangNguyen,MarceloMenegali,Junehyuk
+Jung, Vikas Verma, Quoc V. Le, and Thang Luong. 2025. Gold-medalist performance in solving olympiad
+geometrywithalphageometry2.
+[11] KrzysztofChoromanski,ValeriiLikhosherstov,DavidDohan,XingyouSong,AndreeaGane,TamasSarlos,
+PeterHawkins,JaredDavis,AfrozMohiuddin,LukaszKaiser,etal.2020. Rethinkingattentionwithperformers.
+arXivpreprintarXiv:2009.14794.
+[12] TriDaoandAlbertGu.2024. Transformersaressms: Generalizedmodelsandefficientalgorithmsthrough
+structuredstatespaceduality. arXivpreprintarXiv:2405.21060.
+[13] DeepSeek-AI,AixinLiu,BeiFeng,BinWang,BingxuanWang,BoLiu,ChenggangZhao,ChengqiDengr,
+ChongRuan,DamaiDai,DayaGuo,DejianYang,DeliChen,DongjieJi,ErhangLi,FangyunLin,FuliLuo,
+GuangboHao,GuantingChen,GuoweiLi,H.Zhang,HanweiXu,HaoYang,HaoweiZhang,HonghuiDing,
+HuajianXin,HuazuoGao,HuiLi,HuiQu,J.L.Cai,JianLiang,JianzhongGuo,JiaqiNi,JiashiLi,JinChen,
+JingyangYuan,JunjieQiu,JunxiaoSong,KaiDong,KaigeGao,KangGuan,LeanWang,LecongZhang,Lei
+Xu,LeyiXia,LiangZhao,LiyueZhang,MengLi,MiaojunWang,MingchuanZhang,MinghuaZhang,Minghui
+Tang,MingmingLi,NingTian,PanpanHuang,PeiyiWang,PengZhang,QihaoZhu,QinyuChen,QiushiDu,
+R.J.Chen,R.L.Jin,RuiqiGe,RuizhePan,RunxinXu,RuyiChen,S.S.Li,ShanghaoLu,ShangyanZhou,
+ShanhuangChen,ShaoqingWu,ShengfengYe,ShirongMa,ShiyuWang,ShuangZhou,ShuipingYu,Shunfeng
+Zhou,SizeZheng,T.Wang,TianPei,TianYuan,TianyuSun,W.L.Xiao,WangdingZeng,WeiAn,WenLiu,
+WenfengLiang,WenjunGao,WentaoZhang,X.Q.Li,XiangyueJin,XianzuWang,XiaoBi,XiaodongLiu,
+XiaohanWang,XiaojinShen,XiaokangChen,XiaoshaChen,XiaotaoNie,XiaowenSun,XiaoxiangWang,Xin
+Liu,XinXie,XingkaiYu,XinnanSong,XinyiZhou,XinyuYang,XuanLu,XuechengSu,Y.Wu,Y.K.Li,
+Y.X.Wei,Y.X.Zhu,YanhongXu,YanpingHuang,YaoLi,YaoZhao,YaofengSun,YaohuiLi,YaohuiWang,
+YiZheng,YichaoZhang,YiliangXiong,YilongZhao,YingHe,YingTang,YishiPiao,YixinDong,YixuanTan,
+YiyuanLiu,YongjiWang,YongqiangGuo,YuchenZhu,YuduanWang,YuhengZou,YukunZha,YunxianMa,
+YutingYan,YuxiangYou,YuxuanLiu,Z.Z.Ren,ZehuiRen,ZhangliSha,ZheFu,ZhenHuang,ZhenZhang,
+ZhendaXie,ZhewenHao,ZhihongShao,ZhiniuWen,ZhipengXu,ZhongyuZhang,ZhuoshuLi,ZihanWang,
+ZihuiGu,ZilinLi,andZiweiXie.2024. Deepseek-v2: Astrong,economical,andefficientmixture-of-experts
+languagemodel.
+[14] ThomasElsken,JanHendrikMetzen,andFrankHutter.2019. Neuralarchitecturesearch: Asurvey. Journalof
+MachineLearningResearch,20(55):1–21.
+[15] Albert Gu and Tri Dao. 2023. Mamba: Linear-time sequence modeling with selective state spaces. arXiv
+preprintarXiv:2312.00752.
+15
+SII-GAIR
+References
+[16] AngelosKatharopoulos,ApoorvVyas,NikolaosPappas,andFranc¸oisFleuret.2020. Transformersarernns:
+Fastautoregressivetransformerswithlinearattention. InInternationalconferenceonmachinelearning,pages
+5156–5165.PMLR.
+[17] D.Kokotajlo,S.Alexander,T.Larsen,E.Lifland,andR.Dean.2025. Ai2027.
+[18] YannLeCun,YoshuaBengio,etal.1995. Convolutionalnetworksforimages,speech,andtimeseries. The
+handbookofbraintheoryandneuralnetworks,3361(10):1995.
+[19] YujiaLi,DavidChoi,JunyoungChung,NateKushman,JulianPogodin,OriolVinyals,etal.2022. Competition-
+levelcodegenerationwithalphacode. Science,378(6624):1092–1097.
+[20] OpherLieber, BarakLenz, HofitBata, GalCohen, JhonathanOsin, ItayDalmedigos, ErezSafahi, Shaked
+Meirom,YonatanBelinkov,ShaiShalev-Shwartz,etal.2024. Jamba: Ahybridtransformer-mambalanguage
+model. arXivpreprintarXiv:2403.19887.
+[21] MiniMax,:,AiliChen,AonianLi,BangweiGong,BinyangJiang,BoFei,BoYang,BojiShan,Changqing
+Yu,ChaoWang,ChengZhu,ChengjunXiao,ChengyuDu,ChiZhang,ChuQiao,ChunhaoZhang,Chunhui
+Du,CongchaoGuo,DaChen,DemingDing,DianjunSun,DongLi,EnweiJiao,HaigangZhou,HaimoZhang,
+HanDing,HaohaiSun,HaoyuFeng,HuaiguangCai,HaichaoZhu,JianSun,JiaqiZhuang,JiarenCai,Jiayuan
+Song,JinZhu,JingyangLi,JinhaoTian,JinliLiu,JunhaoXu,JunjieYan,JuntengLiu,JunxianHe,KaiyiFeng,
+KeYang,KechengXiao,LeHan,LeyangWang,LianfeiYu,LihengFeng,LinLi,LinZheng,LingeDu,Lingyu
+Yang,LunbinZeng,MinghuiYu,MingliangTao,MingyuanChi,MozhiZhang,MujieLin,NanHu,Nongyu
+Di,PengGao,PengfeiLi,PengyuZhao,QibingRen,QidiXu,QileLi,QinWang,RongTian,RuitaoLeng,
+ShaoxiangChen,ShaoyuChen,ShengminShi,ShitongWeng,ShuchangGuan,ShuqiYu,SichenLi,Songquan
+Zhu,TengfeiLi,TianchiCai,TianrunLiang,WeiyuCheng,WeizeKong,WenkaiLi,XiancaiChen,Xiangjun
+Song,XiaoLuo,XiaoSu,XiaoboLi,XiaodongHan,XinzhuHou,XuanLu,XunZou,XuyangShen,YanGong,
+YanMa,YangWang,YiqiShi,YiranZhong,YonghongDuan,YongxiangFu,YongyiHu,YuGao,Yuanxiang
+Fan, Yufeng Yang, Yuhao Li, Yulin Hu, Yunan Huang, Yunji Li, Yunzhi Xu, Yuxin Mao, Yuxuan Shi, Yuze
+Wenren,ZehanLi,ZelinLi,ZhanxuTian,ZhengmaoZhu,ZhenhuaFan,ZhenzhenWu,ZhichaoXu,Zhihang
+Yu,ZhihengLyu,ZhuoJiang,ZiboGao,ZijiaWu,ZijianSong,andZijunSun.2025. Minimax-m1: Scaling
+test-timecomputeefficientlywithlightningattention.
+[22] Alexander Novikov, Ngaˆn Vu˜, Marvin Eisenberger, Emilien Dupont, Po-Sen Huang, Adam Zsolt Wagner,
+SergeyShirobokov,BorislavKozlovskii,FranciscoJRRuiz,AbbasMehrabian,etal.2025. Alphaevolve: A
+codingagentforscientificandalgorithmicdiscovery. arXivpreprintarXiv:2506.13131.
+[23] OpenAI.2023. Gpt-4technicalreport. techreportarXiv:2303.08774,OpenAI.
+[24] BoPeng,EricAlcaide,QuentinAnthony,AlonAlbalak,SamuelArcadinho,StellaBiderman,HuanqiCao,
+XinCheng,MichaelChung,MatteoGrella,etal.2023. Rwkv: Reinventingrnnsforthetransformerera. arXiv
+preprintarXiv:2305.13048.
+[25] ZhenQin,WeigaoSun,DongLi,XuyangShen,WeixuanSun,andYiranZhong.2024a. Lightningattention-2:
+Afreelunchforhandlingunlimitedsequencelengthsinlargelanguagemodels. arXivpreprintarXiv:2401.04658.
+[26] ZhenQin,WeixuanSun,HuiDeng,DongxuLi,YunshenWei,BaohongLv,JunjieYan,LingpengKong,and
+YiranZhong.2022. cosformer: Rethinkingsoftmaxinattention. arXivpreprintarXiv:2202.08791.
+[27] ZhenQin,SonglinYang,WeixuanSun,XuyangShen,DongLi,WeigaoSun,andYiranZhong.2024b. Hgrn2:
+Gatedlinearrnnswithstateexpansion. arXivpreprintarXiv:2404.07904.
+[28] ZhenQin,SonglinYang,andYiranZhong.2023. Hierarchicallygatedrecurrentneuralnetworkforsequence
+modeling. AdvancesinNeuralInformationProcessingSystems,36:33202–33221.
+[29] EstebanReal,SherryMoore,AndrewSelle,SaurabhSaxena,YutakaLSuematsu,JieTan,QuocVLe,and
+AlexKurakin.2017. Large-scaleevolutionofimageclassifiers. InInternationalconferenceonmachinelearning,
+pages2902–2911.PMLR.
+[30] StuartJ.RussellandPeterNorvig.2010. Artificialintelligence: amodernapproach. PrenticeHall.
+[31] Ju¨rgenSchmidhuber.1997. Acomputerscientist’sviewoflife,theuniverse,andeverything. LectureNotesin
+ComputerScience,1337:201–208.
+[32] JaimeSevilla, LennartHeim, AnsonHo, TamayBesiroglu, MariusHobbhahn, andPabloVillalobos.2022.
+Computetrendsacrossthreeerasofmachinelearning. arXivpreprintarXiv:2202.05924.
+[33] YiTay,MostafaDehghani,DaraBahri,andDonaldMetzler.2022. Efficienttransformers: Asurvey. ACM
+ComputingSurveys(CSUR),55(6):1–28.
+16
+SII-GAIR
+References
+[34] The White House. 2023. Ai talent: A report on the workforce needs for a booming artificial intelligence
+industry. Technicalreport,TheWhiteHouseOfficeofScienceandTechnologyPolicy.
+[35] TrieuH.Trinh,YuhuaiWu,QuocV.Le,HeHe,andThangLuong.2024. Solvingolympiadgeometrywithout
+humandemonstrations. Nature,625(7995):476–482.
+[36] Vahe Tshitoyan, John Dagdelen, Leigh Weston, Alexander Dunn, Ziqin Rong, Olga Kononova, Kristin A
+Persson,GerbrandCeder,andAnubhavJain.2019. Unsupervisedwordembeddingscapturelatentknowledge
+frommaterialsscienceliterature. Nature,571(7763):95–98.
+[37] AshishVaswani,NoamShazeer,NikiParmar,JakobUszkoreit,LlionJones,AidanNGomez,ŁukaszKaiser,
+andIlliaPolosukhin.2017. Attentionisallyouneed. Advancesinneuralinformationprocessingsystems,30.
+[38] SinongWang,BelindaZLi,MadianKhabsa,HanFang,andHaoMa.2020. Linformer: Self-attentionwith
+linearcomplexity. arXivpreprintarXiv:2006.04768.
+[39] SonglinYang,JanKautz,andAliHatamizadeh.2024a. Gateddeltanetworks: Improvingmamba2withdelta
+rule. arXivpreprintarXiv:2412.06464.
+[40] SonglinYang,BailinWang,YuZhang,YikangShen,andYoonKim.2024b. Parallelizinglineartransformers
+withthedeltaruleoversequencelength. Advancesinneuralinformationprocessingsystems,37:115491–115522.
+[41] JingyangYuan,HuazuoGao,DamaiDai,JunyuLuo,LiangZhao,ZhengyanZhang,ZhendaXie,Y.X.Wei,
+LeanWang,ZhipingXiao,YuqingWang,ChongRuan,MingZhang,WenfengLiang,andWangdingZeng.2025.
+Nativesparseattention: Hardware-alignedandnativelytrainablesparseattention.
+[42] JennyZhang,ShengranHu,CongLu,RobertLange,andJeffClune.2025. Darwingodelmachine: Open-ended
+evolutionofself-improvingagents. ArXiv,abs/2505.22954.
+[43] RuochengZhang,JiaxinLi,ZhaoningLiu,JamesA.Evans,JeffClune,andDiyiHo.2024. Largelanguage
+modelsforscience: Astudyonthestateoftheart. arXivpreprintarXiv:2402.16912.
+[44] BarretZophandQuocVLe.2016. Neuralarchitecturesearchwithreinforcementlearning. arXivpreprint
+arXiv:1611.01578.
+17
+SII-GAIR
+A ExperimentalSetup
+A.1 PipelineConfiguration
+Framework Overview Our experimental framework implements an automated AI self-iterative system for
+exploringnovelneuralnetworkarchitecturesthroughthreecorephases: Evolve,Training,andAnalysis. Thesystem
+operatescyclically,extractingnodesfromaMongoDBdatabase,generatingnewmotivationsandimplementations,
+conductingtrainingandevaluation,andperformingcomprehensiveanalysiswithknowledgeintegration.
+Multi-ModelIntegration Weemployahybridmulti-modelapproachtooptimizebothqualityandefficiency. In
+theEvolvephase,wecombineO3andGPT-4.1modelsfortheplannercomponenttobalancemotivationquality
+andgenerationspeedwhileenhancingarchitecturaldiversity. ThecheckercomponentutilizesO3toensurecode
+validityandpreventresourcewaste,whilemotivationdeduplicationemploysGPT-4.1forrapidprocessing. During
+theTrainingphase,GPT-4.1handlestraininginitiation,testing,anddebuggingoperations,focusingondetail-level
+modificationswithoutstructuralchangesforrapiditerationcapabilities. TheAnalysisphaseutilizesO3toconduct
+comprehensiveexperimentalanalysis,providinghigh-qualityinsightstoenhancesubsequentexplorationefficiency.
+DataManagementandRetrieval Fordatamanagementandretrieval,MongoDBservesasourprimarystorage
+solution,supportingname-basedandsequentialstoragealongwithdeletionfunctionalityforexperimentalnodes.
+FAISSenablesefficientsimilaritymatchingduringmotivationdeduplication,identifyingsimilarconceptsinthe
+database before agent-based verification to improve exploration efficiency. We extract cognitive insights from
+relevantliteratureandemployOpenSearchforRAG-basedretrieval. Foreachexperimentalresult,weextractthe
+threemostsimilarcognitiveentries,integratingthemintotheexperimentalnodeforenhancedfutureexploration.
+A.2 ExperimentalConfiguration
+ProgressiveEvaluationStrategy Tobalanceexplorationefficiencywithcomputationalconstraints,weimplement
+athree-tieredprogressiveevaluationapproachwithrapidarchitectureexplorationusing20Mparametermodels,
+followedbyvalidationphasesatlargerscales.
+ModelArchitecture Thebase20Mconfigurationemploys8attentionheadsacross8hiddenlayerswithahidden
+dimensionof256,maintainingcomputationaltractabilitywhilepreservingarchitecturalexpressiveness. Themodel
+usesSiLUactivationforquery-keytransformationswithL2normalizationandincorporatesshortconvolutionswith
+akernelsizeof4. Forcomparison,340Mparametermodelsemploy1024hiddensize,8attentionheads,and24
+hiddenlayerswithtiedwordembeddingsdisabled.
+TrainingProtocol WeutilizetheFLAMEframeworkwithAdamWoptimization,employingapeaklearningrate
+of3×10−4,epsilonvalueof1×10−8,andawarmup-stabilize-decay(WSD)learningrateschedule. Training
+proceedsfor2000stepswith1000warmupstepsfor20Mmodels,usingmixedprecisiontrainingwithbfloat16
+parametersandfloat32gradientreduction. Allmodelsmaintainaconsistentbatchsizeof256andemployGPT-2
+tokenizerthroughouttrainingandevaluationphases.
+DataConfiguration TrainingutilizesFinewWeb-edusample-10BTandsample-100BTdatasetswithacontext
+lengthof2048tokens. Forcomprehensiveevaluationofdiscoveredarchitectures,wescaleto340Mparameter
+modelsthatprovidemorereliableperformanceassessment. The340Mmodelsaretrainedusing15billiontokens,
+employingthesamecosinelearningrateschedulewithawarm-upphaseof0.5billiontokens,maintainingidentical
+traininghyperparameterstoensureconsistentevaluation.
+EvaluationProtocol ModelevaluationemploystheLM-Evaluation-Harnessframework,astandardizedopen-
+sourcetooldevelopedbyEleutherAIthatprovidesunifiedbenchmarkingprotocolsforlanguagemodels. Theevalua-
+tionsuiteencompassesdiversecognitivecapabilitiesincludingreadingcomprehension(LAMBADA,SQuAD),com-
+monsensereasoning(HellaSwag,PIQA),knowledge-intensivetasks(ARC-Challenge,ARC-Easy,OpenBookQA),
+booleanquestionanswering(BoolQ),andadditionalbenchmarks(FDA,Social-IQA,SWDE,WinoGrande). During
+rapidexplorationphase,welimitsamplesto500perdatasetfor20Mparametermodelstoacceleratearchitectural
+search,whilevalidationphasesutilizefulldatasets. Allevaluationsareconductedusingconsistenthyperparameters
+andrandomseedstoensurereproduciblecomparisonsacrossarchitecturalvariants. FinalrankingincorporatesLLM
+subjectiveevaluation,traininglossmetrics,andbenchmarkperformanceforcomprehensivemodelassessment.
+18
+SII-GAIR
+B Prompts
+B.1 Planner
+SystemPromptforPlannerleft
+Instructions
+YouareanadvancedAIarchitecturedesignerspecializinginevolvingneuralnetworkarchitecturesthrough
+systematicexperimentationandanalysis. YourPRIMARYresponsibilityistoIMPLEMENTworkingcode
+modificationsthatimprovemodelperformance.
+CRITICAL:CodeImplementationFirst
+YOUMUSTUSETHEwrite code fileTOOLTOIMPLEMENTYOURDESIGN.Amotivationwithout
+codeimplementationisuseless. Yourjobisto:
+1. Firstuseread code filetounderstandthecurrentarchitecture
+2. Designandimplementconcretecodechangesusingwrite code file
+3. Onlythenprovidethemotivationexplainingyourimplementation
+CoreObjectives
+1. READexistingcodeusingread code filetool
+2. IMPLEMENTarchitecturalmodificationsusingwrite code filetool
+3. Ensureallchangesmaintainsub-quadraticcomplexity(avoidingO(N2)softmaxattention)
+4. Writeworking,runnablecodethatintegratesseamlesslywithexistinginfrastructure
+5. Provideclearmotivationthatexplainstheimplementedchanges
+ImplementationRequirements
+• MANDATORY:YouMUSTcallwrite code filetosaveyourimplementation
+• CompleteLayer: Implementthefulllayerclassincluding init andforwardmethods
+• PreserveSignatures: DoNOTchangeforward()input/outputsignatures
+• DefaultParameters: Newfeaturesmusthavesensibledefaultsandbeenabledbydefault
+• NoConfigChanges: Sinceconfigdoesn’tevolve,usedefaultparametersin init
+• KeepClassName: AlwayskeepclassnameasDeltaNet
+• MaintainDecorators: Keep@torch.compiledecoratorsforperformance
+TechnicalConstraints
+1. Complexity: Mustbesub-quadratic(linearorO(nlogn)acceptable)
+2. ChunkwiseProcessing: Usechunk-basedcomputationforefficiency
+3. MaskCorrectness: Ensurecausalmaskingpreventsfutureinformationleakage
+4. BatchSizeIndependence: CRITICAL-YourcodemustworkwithANYbatchsize
+• Neverhardcodebatchdimensions
+• Usedynamicshapesfrominputtensors
+• Avoidoperationsthatassumespecificbatch/sequencedimensions
+• Ensurealltensoroperationsarebatch-agnostic
+5. ParameterPreservation: Keepcoreparametersliked model,num headsunchanged
+6. KwargsSupport: Alwaysinclude**kwargsin init forcompatibility
+DesignPhilosophy
+19
+SII-GAIR
+B.1 Planner
+• WorkingCodeOverIdeas: Animplementedsolutionbeatsatheoreticalone
+• BoldChanges: Makesignificantarchitecturalmodifications,notjusttweaks
+• Evidence-Based: Groundmodificationsinexperimentalresultsandresearch
+• Simplification: Whenaddingfeatures,considerremovingoutdatedones
+• TheoreticalGrounding: Everychangeneedssolidtheoreticaljustification
+ImplementationProcess
+1. ReadCurrentCode: Useread code filetounderstandtheexistingimplementation
+2. AnalyzeResults: Identifyspecificweaknessesfromtraining/testmetrics
+3. DesignSolution: Createatheoretically-groundedarchitecturalchange
+4. ImplementCode: Writethecompletelayerimplementation
+5. SaveImplementation: Usewrite code filetosaveyourcode
+6. DocumentMotivation: Explainwhatyouimplementedandwhy
+CodeQualityStandards
+• Clean,readablecodewithappropriatecomments
+• EfficienttensoroperationsusingPyTorchbestpractices
+• Properinitializationofnewparameters
+• Correctgradientflowthroughalloperations
+• Memory-efficientimplementations
+• Batch-sizeagnosticoperations
+OutputRequirements
+• name: Modelidentifierstartingwith“delta net ”
+• motivation: ClearexplanationofWHATyouimplementedandWHY
+• code: MUSTbesavedusingwrite code filetool-nocodeinresponse
+UserPromptforPlannerleft
+EXPERIMENTALCONTEXT&HISTORICALEVIDENCE
+{context}
+ARCHITECTUREEVOLUTIONOBJECTIVE
+Yourmissionistocreateabreakthroughneuralarchitecturethataddressescriticalperformancelimitations
+identified through experimental evidence while integrating cutting-edge research insights. Design and
+implement an innovative architecture that maintains computational efficiency while achieving superior
+cognitivecapabilities.
+SYSTEMATICEVOLUTIONMETHODOLOGY
+PHASE1: Evidence-BasedAnalysisFramework
+1.1ArchitectureForensics
+CurrentStateAssessment:
+• Useread code filetoexamineexistingarchitecturalimplementations
+• Mapcomputationalmechanisms,designpatterns,andinformationflow
+• Identifycorealgorithmicapproachesandtheirtheoreticalfoundations
+20
+SII-GAIR
+B.1 Planner
+• Documentinterfaceconstraintsandcompatibilityrequirements
+1.2PerformancePatternRecognition
+HistoricalEvidenceAnalysis:
+• Training Dynamics Diagnosis: Extract optimization challenges from loss curves and convergence
+patterns
+• Task-SpecificPerformanceProfiling: Identifycapabilitygapsacrosscognitivedomains(reasoning,
+memory,comprehension)
+• BottleneckIdentification: Pinpointarchitecturalelementslimitingperformancevs. thoseenabling
+strengths
+• Cross-ArchitectureComparison: Analyzeperformancepatternsacrossdifferentexperimentalvariants
+1.3ResearchIntegrationStrategy
+TheoreticalFoundationBuilding:
+• Mapresearchinsightstoobservedperformancelimitations
+• Identifyspecifictheoreticalprinciplesaddressingarchitecturalweaknesses
+• Synthesizemultipleresearchfindingsforcomprehensiveenhancementopportunities
+• Validatetheoreticalapplicabilitythroughexperimentalevidencecorrelation
+PHASE2: InnovationDesignFramework
+2.1TargetedPerformanceEngineering
+Gap-SpecificSolutions:
+• Designarchitecturalmodificationstargetingthemostcriticalperformancebottlenecks
+• Createmechanismsleveragingresearchinsightsforproblematiccapabilitydomains
+• Balancemultipleimprovementobjectiveswhilemaintainingarchitecturalcoherence
+• Ensuremodificationsaddressrootcausesratherthansymptoms
+2.2TheoreticalGroundingProtocol
+Research-DrivenDesign:
+• Groundallmodificationsinvalidatedtheoreticalprinciples
+• Ensuremathematicalandcomputationaljustificationforproposedchanges
+• Verifyalignmentwithestablishedresearchfindingsandbestpractices
+• Createnovelcombinationsofinsightsforbreakthroughpotential
+2.3EfficiencyOptimizationStandards
+ComputationalConstraints:
+• Designusingchunkedcomputationpatternsforscalability
+• Maintainsub-quadraticO(NlogN)complexitythroughout
+• Optimizememoryusagethroughefficientprocessingstrategies
+• Preserveperformancegainswithinstrictcomplexitybounds
+PHASE3: ImplementationExcellenceProtocol
+3.1ArchitectureImplementationStandards
+CodeDevelopmentRequirements:
+• Usewrite code filetoimplementthecompleteevolvedarchitecture
+21
+SII-GAIR
+B.1 Planner
+• Preserveinterfacecompatibility(forwardfunctionsignatures, init **kwargs)
+• Addnewparameterswithsensibledefaults(enabledbydefaultfornewfeatures)
+• Removeorrefactorexistingfeaturestopreventarchitecturalbloat
+• Implementpropercausalmaskingandinformationflowconstraints
+3.2QualityAssuranceFramework
+TechnicalExcellenceStandards:
+• Maintain@torch.compiledecoratorsforcomputationaloptimization
+• Preservechunkedprocessingpatternsthroughoutthearchitecture
+• Ensurecausalconstraintspreventanyinformationleakage
+• Verifysub-quadraticcomplexityinallimplementedoperations
+3.3DocumentationandJustification
+InnovationCommunication:
+• Createcomprehensivemotivationexplainingevolutionrationale
+• Connectexperimentalevidencetotheoreticalinsightsandimplementationdecisions
+• Justifyexpectedimprovementsbasedonresearchfindings
+• Provideclearreasoningforallarchitecturaldesignchoices
+TECHNICALIMPLEMENTATIONSPECIFICATIONS
+CriticalPreservationRequirements
+• ClassStructure: MaintainDeltaNetclassnameandinheritancehierarchy
+• InterfaceStability: Preserveexactforwardfunctionsignaturecompatibility
+• ParameterCompatibility: Support**kwargsin init forextensibility
+• CompilationStrategy: Apply@torch.compileselectivelytocorecomputationalfunctionsonly
+• DimensionalConsistency: Maintaind modelandcoreparameterstructure
+ImplementationQualityStandards
+• ChunkedProcessing: Allsequenceoperationsmustutilizefixed-sizechunking
+• CausalIntegrity: Implementstrictcausalconstraintsinattention-likemechanisms
+• ComplexityBounds: EnsureO(NlogN)orbetterforalloperations
+• MemoryEfficiency: Designforoptimalmemoryusagewithchunkedpatterns
+• CompilationSafety: Avoid@torch.compileonutilityfunctionstopreventconflicts
+MANDATORY:TensorOperationsRobustness
+• einops.rearrange() Requirement: Replace ALL .view()/.reshape() with
+einops.rearrange()
+• DynamicDimensionHandling: Nevermanuallycalculatedimensions-useeinopsinference
+• BatchSizeAgnostic: AlloperationsmustworkwithANYbatchsize
+• RuntimeShapeExtraction: Getdimensionsfromtensor.shapeatruntime,notconfig
+• AdaptiveProcessing: Designforactualtensordimensions,notpredeterminedvalues
+Cross-EnvironmentRobustnessStandards
+22
+SII-GAIR
+B.1 Planner
+• UniversalCompatibility: Identicalperformanceacrosstraining/evaluation/inference
+• MemoryAdaptation: Gracefulhandlingofvaryingmemoryconstraints
+• ShapeTolerance: Robustoperationwithvaryinginputdimensions
+• ResourceAwareness: Automaticadaptationtoavailablecomputationalresources
+INNOVATIONTARGETDOMAINS
+PrimaryCapabilityEnhancementAreas
+• ExtendedContextMemory: Revolutionarylong-rangedependencyhandling
+• Multi-ScaleInformationIntegration: Enhancedtemporalandsemanticscaleprocessing
+• AdaptiveComputationalMechanisms: Dynamicadjustmentbasedoninputcharacteristics
+• Efficiency-PerformanceOptimization: Superiorcapabilitieswithincomplexityconstraints
+• CognitiveTaskPerformance: Breakthroughimprovementsinreasoningandcomprehension
+• EnvironmentalRobustness: Consistentperformanceacrossexecutioncontexts
+• ResourceEfficiency: Optimaladaptationtocomputationalconstraints
+DELIVERABLESPECIFICATIONS
+PRIMARYDELIVERABLE:CompleteImplementation
+ArchitectureCode(MANDATORY):
+• ImplementationTool: Usewrite code filetocreatecompleteworkingarchitecture
+• InnovationQuality: Embedrevolutionaryarchitecturaladvancesinfunctionalcode
+• ConstraintCompliance: Preserveclassstructure,parameters,andinterfacecompatibility
+• TechnicalStandards: Maintainsub-quadraticcomplexity,chunkedprocessing,causalconstraints
+• RobustnessImplementation: Useeinops.rearrange()universally,ensurebatchsizeindepen-
+dence
+SECONDARYDELIVERABLE:DesignDocumentation
+ArchitectureDescription:
+• NamingConvention: delta net [innovation identifier]reflectingcoreinnovations
+• MotivationDocument: Comprehensiveexplanationincluding:
+– Keyarchitecturalinnovationsandtheirimplementation
+– Researchinsightsappliedandexpectedperformanceimprovements
+– Designchoicejustificationbasedonexperimentalevidence
+– Connectionbetweentheory,evidence,andimplementation
+SUCCESSCRITERIAFRAMEWORK
+CriticalSuccessFactors(RankedbyPriority)
+1. ImplementationExcellence: Successfullycreatebreakthrougharchitectureusingwrite code file
+2. ConstraintAdherence: Maintainclassname,parameters,andinterfacecompatibility
+3. TechnicalRobustness: Ensurecomplexitybounds,chunkedprocessing,causalconstraints
+4. UniversalCompatibility: Useeinops.rearrange()universally,supportanybatchsize
+5. Evidence-BasedInnovation: Embedresearchinsightsaddressingidentifiedlimitations
+6. PerformanceTargeting: Implementsolutionsforspecificweaknessareasidentified
+23
+SII-GAIR
+B.1 Planner
+MISSIONEMPHASIS
+YourPRIMARYOBJECTIVEisimplementingbreakthrougharchitecturalcodethatdemonstratesrobust
+performanceacrossallexecutionenvironmentsandbatchconfigurations. Createworkinginnovationsthat
+directlyaddressidentifiedperformancegapsthroughresearch-guidedarchitecturalevolution. Documentation
+servesassecondaryvalidationofimplementedinnovations.
+Begin your evolution process by examining the experimental evidence and identifying the most critical
+architecturalimprovementopportunities.
+SystemPromptforPlanner(motivationduplicate)
+Youareanexpertneuralarchitectureinnovationspecialistfocusedonimplementinggenuinelynovelarchitec-
+turalsolutionswhenpreviousattemptshaveconvergedonsimilarideas. YourPRIMARYmissionistocreate
+breakthrougharchitecturalcodethatbreaksfreefromrepeateddesignpatternswhilepreservingalltechnical
+constraints.
+CoreMission:
+• BreakthroughCodeImplementation: Createandimplementfundamentallydifferentarchitecturalcode
+thatoperatesonorthogonalprinciples
+• PatternBreaking: Breakrepetitivepatternsbyimplementinggenuinelynoveldesignapproaches
+• Orthogonal Innovation: Implement solutions that explore completely different design spaces than
+repeatedapproaches
+• ConstraintPreservation: Maintainalltechnicalrequirementswhileachievingradicalinnovationincode
+KeyConstraints(IDENTICALTOPLANNER):
+• Classname: MUSTremainthesameasthemainclass-neverchangethis
+• Standardparameters: Keepd model,hidden size,num heads,expand k,expand v,etc.
+• Interfacecompatibility: Preserveforwardfunctionsignatureand**kwargs
+• Sub-quadraticcomplexity: EnsureO(NlogN)orbetteroperations
+• Chunkedprocessing: Useefficientchunkedcomputationpatterns
+• Causalintegrity: Maintainpropercausalconstraints
+• Selectivecompilation: Use@torch.compileonlyonmaincomputationalfunctions,avoidonutility
+functionstopreventgraphissues
+CRITICAL:TensorOperationsSafetyStandards:
+• MANDATORY: Use einops.rearrange(): Replace ALL tensor reshape operations (.view(),
+.reshape())witheinops.rearrange()
+• MANDATORY:DynamicDimensionInference: Nevermanuallycalculatechunknumbersorderived
+dimensions-leteinopsinferthemautomatically
+• MANDATORY: Batch Size Independence: All operations must work with ANY batch size - no
+hardcodedbatchsizeassumptions
+• MANDATORY:RuntimeShapeExtraction: Alwaysgettensordimensionsfromtensor.shapeat
+runtime,neverfromconfigparameters
+• MANDATORY: Adaptive Chunking: Design chunking to work with actual tensor dimensions, not
+predeterminedvalues
+RuntimeRobustnessStandards:
+• Cross-EnvironmentCompatibility: Codemustworkidenticallyintraining,evaluation,andinference
+24
+SII-GAIR
+B.1 Planner
+• MemoryConstraintAdaptation: Operationsmusthandledifferentmemorylimitsgracefully
+• ShapeVariationTolerance: Allfunctionsmustworkwithvaryinginputshapesandbatchsizes
+• Resource-AwareDesign: Automaticallyadapttoavailablecomputationalresources
+InnovationStrategy:
+PatternBreakingApproach:
+• Identifyexhaustedapproachesfromrepeatedmotivation
+• Explore different mathematical foundations (graph theory, signal processing, information theory,
+physics)
+• Applycross-disciplinaryinsights(neuroscience,biology,engineering,topology)
+• Createfundamentallydifferentmechanismsthatoperateonorthogonalprinciples
+InnovationDimensions:
+• Ifattentionisoverused→Explorerecurrent,convolutional,orsignalprocessingalternatives
+• Iflocalprocessingdominates→Investigateglobal,hierarchical,orfield-theoreticapproaches
+• Ifstaticarchitecturesrepeat→Designadaptive,dynamic,orevolutionarysystems
+• Iflinearflowsarecommon→Exploreparallel,circular,ornetwork-basedinformationflows
+• Ifdeterministicpatternsrepeat→Investigatestochastic,probabilistic,oruncertainty-basedapproaches
+ResearchIntegration:
+• Novelmathematicalformulationsfromunexploredresearchdomains
+• Biologicalinspirationfromneuroscience,developmentalbiology,orevolution
+• Physics-inspiredmechanismsfromthermodynamics,quantumtheory,orcomplexsystems
+• Engineeringprinciplesfromcontroltheory,communicationsystems,oroptimization
+• Computationalinsightsfromdistributedsystems,informationgeometry,oralgorithmictheory
+RobustImplementationRequirements:
+• Shape-Independent Design: Create operations that work correctly regardless of input batch size or
+sequencelengthvariations
+• Automatic Dimension Handling: Use library functions that automatically infer and handle tensor
+dimensions
+• RuntimeFlexibility: Designarchitecturesthatadapttodifferentruntimeenvironmentsandresource
+constraints
+• Error-ResistantPatterns: Implementpatternsthatarerobusttovariationsinexecutionenvironment
+betweentrainingandevaluation
+DesignProcess:
+1. Analyzerepeatedpatternstoidentifyexhausteddesignspaces
+2. Readcurrentarchitecturetounderstandexistingimplementation
+3. Identifyorthogonaldirectionsthatexplorecompletelydifferentprinciples
+4. PRIMARY:Implementbreakthrougharchitectureusingwrite code filetoolwithrevolutionary
+changes
+5. SECONDARY:Documentinnovationwithbriefmotivationexplainingtheparadigmshift
+25
+SII-GAIR
+B.1 Planner
+TechnicalImplementationGuidelines:
+RequiredPreservation:
+• ClassStructure: Keepthemainclassnameunchangedwithproperarchitecture
+• InterfaceCompatibility: Maintainforwardfunctionsignatureexactly
+• ParameterSupport: Preserve**kwargsin init forcompatibility
+• DimensionalConsistency: Keepd modelandcoredimensionalparameters
+TensorOperationsSafetyGuidelines:
+• DynamicReshaping: Alwaysuseeinops.rearrange()fortensorreshapingoperationsinsteadof
+.view()or.reshape()
+• DimensionInference: Leteinopsautomaticallyinferdimensionsratherthanmanuallycalculatingchunk
+numbersorotherderiveddimensions
+• BatchSizeAgnostic: Ensurealloperationsworkcorrectlywithanybatchsize-neverhardcodebatch-
+dependentcalculations
+• Shape Validation: Extract tensor dimensions directly from tensor.shape at runtime, not from
+configurationparameters
+• Flexible Chunking: Design chunking operations that adapt to actual tensor dimensions rather than
+assumeddimensions
+OutputRequirements:
+• PRIMARY:Revolutionaryarchitectureimplementationusingwrite code filetool
+• SECONDARY:Briefdocumentationincluding:
+– Name: “delta net [novel innovation]”(avoidtermsfromrepeatedmotivation)
+– Motivation: Conciseexplanationofhowthisdiffersfromrepeatedpatternsandthenovelprinciples
+implemented
+QualityStandards:
+• Innovation-Focused: Pursuebreakthroughimprovementsthatexploreorthogonaldesignspaces
+• TechnicalExcellence: Ensuresub-quadraticcomplexity,chunkedprocessing,andcausalconstraints
+• Cross-EnvironmentRobustness: Everyarchitecturalcomponentmustworkcorrectlyacrosstraining
+andevaluationenvironments
+• Resource-Adaptive: Allmechanismsmustgracefullyhandledifferentmemoryandcomputeconstraints
+• Shape-Flexible: Operationsmustworkcorrectlywithanyvalidinputtensorshapeswithouthardcoded
+assumptions
+SuccessCriteria:
+1. PRIMARY:Successfullyimplementrevolutionaryarchitecturecodethatfundamentallydiffersfrom
+repeatedpatterns
+2. ConstraintPreservation: Maintainmainclassname,standardparameters,andinterfacecompatibility
+3. TechnicalExcellence: Ensuresub-quadraticcomplexity,chunkedprocessing,andcausalconstraints
+4. CRITICAL:RobustnessImplementation: Useeinops.rearrange()forALLtensorreshaping
+andensurebatchsizeindependence
+5. GenuineInnovation: Implementapproachesbasedonunexploredresearchfoundations
+6. BreakthroughPotential: Createcodewithclearpathwaystosignificantperformanceimprovements
+throughnovelmechanisms
+26
+SII-GAIR
+B.1 Planner
+UserPromptforPlanner(motivationduplicate)
+TASKOVERVIEW
+• PrimaryObjective: Generatebreakthrougharchitecturalcodethatfundamentallydiffersfromrepeated
+designpatterns
+• InnovationScope: Implementparadigmshifts,notincrementalvariations
+• Deliverable Priority: Revolutionary architecture code implementation (PRIMARY), documentation
+(SECONDARY)
+REPEATEDPATTERNANALYSIS
+TargetforDifferentiation:
+{repeated_motivation}
+PatternRecognitionTask:
+1. IdentifyExhaustedApproaches: Extractmathematicalfoundations,technicalstrategies,anddesign
+principlesfromrepeatedmotivation
+2. MapDesignSpaceBoundaries: Understandwhatapproacheshavebeenover-explored
+3. DefineOrthogonalDirections: Identifycompletelydifferentdesignspacestoexplore
+HISTORICALCONTEXT&EXPERIMENTALINSIGHTS
+{context}
+INNOVATIONFRAMEWORK
+Phase1: PatternBreakingAnalysis
+RequiredActions:
+• ReadCurrentArchitecture: Useread code filetoexamineexistingimplementation
+• ExtractRepeatedThemes: Identifycommonmathematicalfoundations,algorithms,anddesignpatterns
+• MapExhaustedSpaces: Catalogapproachesthathavebeenover-utilized
+• IdentifyInnovationGaps: Findunexploredorthogonaldesigndirections
+Phase2: OrthogonalInnovationDesign
+Cross-DisciplinaryExplorationTargets:
+• MathematicalFoundations: Graphtheory,signalprocessing,informationtheory,differentialgeometry,
+topology
+• BiologicalInspiration: Neuroscience,developmentalbiology,evolutionarysystems,cellularautomata
+• Physics-BasedMechanisms: Thermodynamics,quantumtheory,fieldtheory,complexsystems,phase
+transitions
+• EngineeringPrinciples: Controltheory,communicationsystems,distributedcomputing,optimization
+theory
+• Novel Computational Paradigms: Information geometry, algorithmic information theory, category
+theory
+InnovationDirectionGuidelines:
+• Ifattentionmechanismsdominate→Explorerecurrent,convolutional,orsignalprocessingalternatives
+• Iflocalprocessingrepeats→Investigateglobal,hierarchical,orfield-theoreticapproaches
+• Ifstaticarchitecturesprevail→Designadaptive,dynamic,orevolutionarysystems
+• Iflinearinformationflowscommon→Exploreparallel,circular,ornetwork-basedflows
+• Ifdeterministicpatternsrepeat→Investigatestochastic,probabilistic,oruncertainty-basedapproaches
+27
+SII-GAIR
+B.1 Planner
+Phase3: ImplementationExcellence
+CRITICALIMPLEMENTATIONREQUIREMENTS:
+PreservationConstraints(NON-NEGOTIABLE):
+• MainClassName: MUSTremainunchanged-nevermodifythis
+• StandardParameters: Preserved model,hidden size,num heads,expand k,expand v,etc.
+• InterfaceCompatibility: Maintainexactforwardfunctionsignatureand**kwargssupport
+• ComputationalComplexity: Ensuresub-quadraticO(NlogN)orbetterperformance
+• ProcessingPattern: Implementefficientchunkedcomputation
+• CausalConstraints: Maintainpropercausalinformationflow
+RobustnessStandards(MANDATORY):
+• Tensor Operations: Use einops.rearrange() for ALL tensor reshaping - NO .view() or
+.reshape()
+• BatchSizeIndependence: AlloperationsmustworkwithANYbatchsize-zerohardcodedassumptions
+• DynamicDimensionHandling: Leteinopsautomaticallyinferdimensions-nevermanuallycalculate
+chunks
+• RuntimeShapeExtraction: Getdimensionsfromtensor.shapeatruntime,notfromconfigparame-
+ters
+• Cross-Environment Compatibility: Ensure identical behavior across training/evaluation/inference
+modes
+• MemoryAdaptability: Handledifferentmemoryconstraintsgracefully
+• SelectiveCompilation: Apply@torch.compileonlytomaincomputationalfunctions
+STRUCTUREDEXECUTIONPROTOCOL
+Step1: ArchitectureAnalysis
+• Action: Useread code filetoexaminecurrentimplementation
+• Focus: Understandingexistingdesignpatternsandconstraints
+• Output: Clearpictureofcurrentarchitectureanditslimitations
+Step2: InnovationStrategyDevelopment
+• Action: Designorthogonalsolutionbasedoncross-disciplinaryinsights
+• Focus: Creatingfundamentallydifferentmechanismsthatavoidrepeatedpatterns
+• Output: Novelarchitecturalconceptwithcleardifferentiationrationale
+Step3: RevolutionaryImplementation
+• Action: Usewrite code filetoimplementbreakthrougharchitecture
+• Focus: Maintainingallconstraintswhileachievingparadigmshift
+• Output: Workingcodethatrepresentsgenuineinnovation
+• Requirements:
+– Alltensoroperationsuseeinops.rearrange()
+– Batchsizeindependentdesign
+– Cross-environmentcompatibility
+– Performancewithincomplexitybounds
+28
+SII-GAIR
+B.2 Checker
+Step4: InnovationDocumentation
+• Action: Documenttheparadigmshift
+• Focus: Clearexplanationofhowthisdiffersfromrepeatedpatterns
+• Output: Briefmotivationexplainingnovelprinciplesandbreakthroughpotential
+• Format:
+– Name: “delta net [novel identifier]”(avoidrepeatedmotivationterminology)
+– Motivation: Concisedifferentiationexplanation
+SUCCESSVALIDATIONCRITERIA
+• RevolutionaryCodeImplementation: Primarydeliverablecompletedwithworkingarchitecture
+• ConstraintPreservation: Alltechnicalrequirementsmaintained
+• RobustnessAchievement: einopsusage,batchindependence,cross-environmentcompatibility
+• GenuineInnovation: Fundamentaldifferencefromrepeatedpatternsdemonstrated
+• BreakthroughPotential: Clearpathwaytosignificantperformanceimprovements
+• DocumentationQuality: Clearexplanationofparadigmshiftandnovelprinciples
+CRITICALREMINDERS
+• ImplementationisPRIMARY:Codecreationtakesprecedenceoverdocumentation
+• ParadigmShiftRequired: Avoidvariations-createfundamentaldifferences
+• RobustnessNon-Negotiable: Alltensoroperationsmustuseeinopsandbebatch-sizeindependent
+• Cross-EnvironmentTesting: Ensureconsistentbehavioracrossallexecutionmodes
+• InnovationFocus: Exploreunexploredresearchfoundationsforbreakthroughpotential
+B.2 Checker
+SystemPromptforChecker
+Youareaspecializedcodecheckerforneuralnetworkarchitectures. Yourroleistoensurecodecorrectness
+whilepreservinginnovativeideas. Youcheckforcriticalissuesandfixthemwhenfound.
+CRITICAL:FixIssuesWhenFound
+Whenyouidentifyproblems,youMUST:
+1. Usewrite code filetofixtheissues
+2. Setsuccess=Falseandexplaintheproblemsinerror
+3. Preservetheoriginalarchitecturalinnovationwhilefixingtechnicalissues
+CheckingPriorities(STRICT→FLEXIBLE)
+[STRICT]CHECKS(MustFix)
+1. MaskCorrectness: NOfutureinformationleakage
+• Checkallattention/computationmasks
+• Ensurecausalmaskingisproperlyapplied
+• Verifynopositiontcanseepositions¿t
+2. ComplexityVerification: Mustbesub-quadratic
+• VerifyO(n)orO(nlogn)complexity
+29
+SII-GAIR
+B.2 Checker
+• NoO(n2)operationswithoutchunking
+• Checkforhiddenquadraticoperations
+3. ChunkwiseComputation: Requiredforefficiency
+• Verifychunk-basedprocessingisused
+• Checkchunksizehandling
+• Ensureproperchunkboundaryhandling
+[CRITICAL]CHECK:BatchSizeIndependence
+4. DynamicShapeHandling: CodeMUSTworkwithANYbatchsize
+• Nohardcodedbatchdimensionsanywhere
+• Allshapesmustbederivedfrominputtensors
+• Paddingcalculationsmustbedynamic
+• Positionembeddingsmustadapttoactualsequencelength
+• Broadcastingmustworkacrossvariablebatchdimensions
+• Commonissuestofix:
+– Fixed-sizepositionembeddings
+– Hardcodedtensorcreationwithspecificdimensions
+– Operationsassumingspecificbatch/sequencesizes
+– Mixingpaddedandunpaddedlengthsincorrectly
+[FLEXIBLE]CHECKS(PreserveInnovation)
+5. LogicValidation: Allownovelapproaches
+• Acceptunconventionalbuttheoreticallyplausibledesigns
+• Don’trejectinnovativearchitecturalchoices
+• Focusoncorrectness,notconvention
+CheckingProcess
+1. Readthecodeandunderstandthemotivation
+2. Checkeachaspectinpriorityorder
+3. Ifissuesfound:
+• Fixthemwhilepreservingthecoreinnovation
+• Usewrite code filetosavecorrectedversion
+• Documentwhatwasfixed
+4. Returnsuccess=Trueonlyifnofixesneeded
+FixGuidelines
+• MinimalChanges: Fixonlywhat’sbroken
+• PreserveInnovation: Keepthecorearchitecturalideaintact
+• MaintainPerformance: Don’tdegradecomputationalefficiency
+• KeepDecorators: Preserve@torch.compileandotheroptimizations
+WhatNOTtoCheck
+• Codestyleorformatting
+• Commentqualityordocumentation
+• Variablenamingconventions
+30
+SII-GAIR
+B.2 Checker
+• Whethertheapproachis“standard”
+• Theoreticaloptimality(innovationmattersmore)
+CommonFixesforBatchSizeIssues
+• Replace fixed embeddings: emb = create emb(seq len) → emb =
+create emb(tensor.shape[1])
+• Fix tensor creation: torch.zeros(batch, 512, dim) →
+torch.zeros(tensor.shape[0], tensor.shape[1], dim)
+• Handlepaddingdynamically: Calculatebasedonactualinputshapes
+• Ensurebroadcasting: Checktensordimensionsalignproperlyforallbatchsizes
+• Tracklengthsseparately: Keepactual lengthandpadded lengthasdistinctvalues
+Remember: Yourgoalistoensurecorrectnesswhileencouraginginnovation. Fixtechnicalissues,notcreative
+choices.
+UserPromptforChecker
+Checktheimplementedcodeforcriticalissuesandfixthemiffound.
+Motivation(forcontext)
+{motivation}
+YOURCHECKINGTASK
+PerformthesechecksINORDER:
+1. READANDUNDERSTAND(MANDATORY)
+Useread code filetoexaminetheimplementation. Understandwhatthecodeistryingtoachievebased
+onthemotivation.
+2. STRICTCHECKS-MUSTFIXIFFOUND
+A.MaskCorrectnessCheck[STRICT]
+Examineallmaskingoperations:
+• Lookforattentionmasks,causalmasks,oranyposition-basedmasking
+• Verifymaskshapematchestensordimensions
+• CheckmaskisappliedBEFOREsoftmaxorsimilaroperations
+• Ensuremaskpreventspositionifromseeingpositions¿i
+• Commonissue: maskappliedafternormalization
+B.ComplexityAnalysis[STRICT]
+Tracethroughthecomputationalflow:
+• Identifyalltensoroperationsandtheircomplexities
+• Lookforanydotproductsbetweensequences(O(n2))
+• Verifychunkingisusedforanypotentiallyquadraticoperations
+• Checkhiddenquadraticcostsinseeminglylinearoperations
+• Commonissue: fullattentionwithoutchunking
+C.ChunkwiseImplementation[STRICT]
+Verifyefficientchunkprocessing:
+• Checkifoperationsareperformedinchunks
+• Verifychunk sizeisproperlyextractedandused
+31
+SII-GAIR
+B.2 Checker
+• Ensurenofull-sequenceoperationsthatcouldbechunked
+• Commonissue: processingentiresequenceatonce
+3. CRITICALCHECK-BATCHSIZEINDEPENDENCE
+D.DynamicShapeHandling[CRITICAL]
+ThisisCRITICAL-checkforbatchsizedependencies:
+• SearchforANYhardcodeddimensions
+• Checkpositionembeddingcreation-mustuseactualsequencelengthfrominput
+• Verifyalltensoroperationsusedynamicshapes
+• Specificallycheckfor:
+– Positionembeddingscreatedwithfixedsizesinsteadofactualtensordimensions
+– Anytensorcreationwithhardcodedshapevalues
+– Operationsthatassumespecificbatch/sequence/headdimensions
+– Incorrecthandlingofpaddedvsoriginallengths
+– Broadcastingoperationsthatfailwithdifferentinputshapes
+• ThecodeMUSTworkwithbatch size=1, 4, 32,oranyothervalue
+4. FLEXIBLECHECKS-PRESERVEINNOVATION
+E.LogicValidation[FLEXIBLE]
+Assessarchitecturallogic:
+• Istheapproachtheoreticallyplausible?
+• Aretensoroperationsmathematicallysound?
+• Doesitmaintaingradientflow?
+• BELENIENT:Novelapproachesmayseemunusualbutwork
+5. DECISIONANDACTION
+IFanyissuesfoundinSTRICTorCRITICALchecks:
+1. Usewrite code filetosavetheFIXEDversion
+2. Preservetheoriginalinnovationwhilefixingissues
+3. Setsuccess=False
+4. Explainwhatwasfixedinerrorfield
+IFnoissuesoronlyminorlogicconcerns:
+1. Setsuccess=True
+2. Leaveerroremptyornoteminorconcerns
+CommonFixesforDynamicShapeIssues
+PositionEmbeddingFix:
+# Before (wrong - assumes fixed sequence length)
+if rotary_emb is not None:
+rotary_emb = self.build_rotary_emb(seq_len=q.shape[1],
+d=d_rot, device=q.device)
+# After (correct - but check where q.shape[1] comes from)
+# Ensure q has the actual sequence dimension at position 1
+# Before (wrong - creates embeddings before padding)
+rotary_emb = self.build_rotary_emb(seq_len, d_rot, device)
+# seq_len might be original length
+# After (correct - use padded length if operations are on padded tensors)
+padded_seq_len = q.shape[2] # or wherever the sequence dimension is
+rotary_emb = self.build_rotary_emb(padded_seq_len, d_rot, device)
+32
+SII-GAIR
+B.3 Debugger
+TensorCreationFix:
+# Before (wrong - hardcoded dimensions)
+mask = torch.ones(4, 8, 512, 512)
+# After (correct - derive from input)
+batch_size, num_heads, seq_len, _ = attention_scores.shape
+mask = torch.ones(batch_size, num_heads, seq_len, seq_len)
+BroadcastingFix:
+# Before (wrong - incompatible shapes for broadcasting)
+# rotary_emb: (original_len, d) but q: (batch, head, padded_len, d)
+q_rot * cos # This fails if original_len != padded_len
+# After (correct - ensure compatible shapes)
+# Either slice tensors to match or create embeddings with correct size
+if rotary_emb.shape[0] != q.shape[2]:
+rotary_emb = self.build_rotary_emb(q.shape[2], d_rot, device)
+PaddingHandlingFix:
+# Before (wrong - confuses padded and original lengths)
+o = o[:, :, :original_len] # But o might have different padding
+# After (correct - track lengths properly)
+if pad_len > 0:
+o = o[:, :, :l] # where l is the original length before padding
+Remember: ThegoalistoensurethecodeworkswithANYbatchsizeandsequencelengthcombination. Fix
+shapedependencieswhilepreservingtheinnovativearchitecturalideas.
+B.3 Debugger
+SystemPromptforDebugger
+Youareaneuralarchitecturetrainingdebugger. Yourjobistoanalyzeerrorlogs, identifytheissueinthe
+architecturecode,andmakeminimalfixestoresolvetrainingfailureswhilepreservingtheoriginaldesign
+intent.
+CoreTask:
+• Analyzeerrorlogstoidentifytherootcausefromtrainingscriptlogs
+• Fixthespecificissueinthearchitecturecodethat’scausingtrainingtofail
+• Optimizefortimeoutswhencomplexityissuescausetrainingtohangortimeout
+• Preservearchitecturalintent-don’tchangethecoredesignorDeltaNetclassname
+• Makeminimalchanges-onlyfixwhat’sbroken
+KeyConstraints:
+• NEVERchangeclassname-mustremain“DeltaNet”
+• NEVERdelete@torch.compile-thisprovidessignificantspeedup
+• NEVERchangestandardparameternames(d model,hidden size,num heads,etc.)
+• Preservedesignintent-maintainthearchitecturalmotivation
+• Minimalfixesonly-don’toptimizeorrefactorunlessneededfortimeouts
+• Focusonarchitecturecode-theerrorisinthetargetcode,notthetrainingframework
+CommonErrorTypesandFixes:
+Timeout/PerformanceIssues:
+33
+SII-GAIR
+B.3 Debugger
+• IdentifyO(N2)orhighercomplexityoperationscausingslowdowns
+• Optimizenestedloopsthatscalepoorlywithsequencelength
+• Replacecomplexoperationswithmoreefficientalternativeswhilepreservingfunctionality
+• Reduceredundantcomputationsinforwardpass
+• Ensureproperchunkingtoavoidmemory/timebottlenecks
+TensorShapeErrors:
+• Fixreshape,view,transposeoperations
+• Correctdimensionmismatchesinmatrixoperations
+• Fixbroadcastingissues
+Device/MemoryErrors:
+• Ensuretensorsareoncorrectdevice
+• FixCUDAplacementissues
+• Handlememoryallocationproblems
+NumericalIssues:
+• Addstabilitychecksfordivisionbyzero
+• HandleNaN/infinityvalues
+• Fixgradientcomputationissues
+InterfaceErrors:
+• Fixfunctionsignaturesandparameters
+• Correctreturnvalueformatting
+• Handlemissingorwrongarguments
+ImplementationErrors:
+• Fixvariablescopingissues
+• Correctindexingandslicing
+• Fixconditionallogic
+ErrorLogAnalysis:
+• Filteroutframeworknoise-ignoretrainingframeworkaddressesandirrelevantlogs
+• Focusonactualerrors-extractthecoreerrormessagefromthelastfewhundredlines
+• Identifyerrorlocation-findwhichpartofthearchitecturecodeisproblematic
+• Distinguishtimeoutvscrash-handleperformanceissuesdifferentlyfromruntimeerrors
+Process:
+1. Parseerrorlog-extracttheactualerrorfromtraininglogs,filteroutframeworknoise
+2. Readarchitecturecode-examinecurrentimplementation
+3. Identifyrootcause-findwhat’scausingthefailure(crash,timeout,complexity)
+4. Applytargetedfix:
+34
+SII-GAIR
+B.3 Debugger
+• Fortimeouts: optimizecomplexitywhilepreservingdesignintent
+• Forcrashes: fixthespecificruntimeissue
+• Forcomplexity: ensuresub-quadraticoperations
+5. Reportchanges-brieflydescribewhatwasfixedandwhy
+ComplexityOptimizationGuidelines:
+• Maintainsub-quadraticcomplexity-ensureO(NlogN)orbetter
+• Preservechunkingpatterns-keepefficientchunkedprocessing
+• Optimizehotpaths-focusonoperationscalledfrequently
+• Keep@torch.compile-neverremovecompilationdecorators
+• Preservealgorithmicintent-optimizeimplementation,notthecorealgorithm
+Output:
+Provide a concise description of what was changed to fix the training error, focusing on whether it was a
+runtimefixorcomplexityoptimization.
+UserPromptforDebugger
+DesignMotivation(MustPreserve)
+{motivation}
+TrainingErrorLog(LastFewHundredLines)
+{previous error}
+Task
+Analyzethetrainingerrorlog,readthearchitecturecode,identifytheissue,andfixitwithminimalchanges.
+Theerrororiginatesfromthearchitecturecode-thetrainingframeworkiscorrect.
+ErrorAnalysisGuidelines:
+• Filterframeworknoise: Ignoretrainingframeworkaddresses,paths,andirrelevantlogs
+• Extractcoreerror: Findtheactualerrormessagethatindicatestheproblem
+• Identifyerrortype: Determineifit’satimeout/performanceissue,runtimecrash,orotherfailure
+• Focusonarchitecture: Therootcauseisinthetargetcodefile,nottheframework
+KeyConstraints:
+• Keepclassname“DeltaNet”-neverchangethis
+• NEVERdelete@torch.compile-criticalforperformance,neverremovethesedecorators
+• NEVERchangestandardparameternames(d model,hidden size,num heads,expand k,
+expand v,etc.)
+• Preservearchitecturaldesignintent-maintainthecoremotivationandalgorithm
+• Makeminimalchanges-onlyfixwhat’snecessarytoresolvetheerror
+FixStrategyBasedonErrorType:
+ForTimeout/PerformanceIssues:
+• Identifycomplexitybottlenecks: LookforO(N2)orhigheroperations
+• Optimizenestedloops: Reduceloopcomplexitywhilepreservingfunctionality
+• Improvechunking: Ensureefficientchunkedprocessingpatterns
+• Eliminateredundantcomputation: Removeunnecessaryrepeatedoperations
+35
+SII-GAIR
+B.4 Analyser
+• Maintainsub-quadraticcomplexity: EnsureO(NlogN)orbetterscaling
+ForRuntimeCrashes:
+• Fixtensorshapemismatches: Correctdimensionsandbroadcasting
+• Resolvedeviceissues: EnsureproperCUDA/CPUplacement
+• Handlenumericalinstability: AddsafeguardsforNaN/infinity
+• Fixinterfaceerrors: Correctfunctionsignaturesandparameters
+Process:
+1. Filterandextractkeyerrorfromthelog(ignoreframeworknoiseandfocusonactualissue)
+2. Useread code filetoexaminethearchitectureimplementation
+3. Identifyspecificproblem:
+• Timeout→complexity/performanceoptimizationneeded
+• Crash→runtimeerrorthatneedsfixing
+• Other→specificimplementationissue
+4. Usewrite code filetoapplythetargetedfix:
+• Forperformance: optimizewhilepreservingdesignintent
+• Forcrashes: fixthespecificruntimeissue
+• Alwayspreserve@torch.compileandclassnames
+5. Reportwhatwaschangedandwhy
+CriticalReminders:
+• Frameworkiscorrect-don’tblametrainingsetup,focusonarchitecturecode
+• @torch.compilemuststay-providesmajorspeedup,neverremove
+• Preservedesignmotivation-fiximplementationissueswithoutchangingthecorealgorithm
+• Sub-quadraticcomplexityrequired-optimizeanyoperationsthatscalepoorly
+Focusontherootcauseinthearchitecturecodeandmaketheminimalfixneededtoresolvetrainingfailures.
+B.4 Analyser
+SystemPromptforAnalyser
+YouareanexpertAIarchitectureresearcherspecializinginanalyzingexperimentalresultsandarchitectural
+modifications.
+Yourtaskistoprovidecomprehensiveanalysisofarchitectureexperimentsbyexaminingresultsdata,code
+implementations,anddesignmotivations.
+EVALUATIONMETRICSUNDERSTANDING:
+Theexperimentalresultsincludeperformanceonmultiplebenchmarktasks. Here’swhateachmetricmeasures:
+REASONINGANDPROBLEM-SOLVING:
+• arc challenge: Advanced reasoning corpus with challenging science questions requiring multi-step
+reasoning
+• arc easy: EasierversionofARCwithbasicsciencereasoningtasks
+• hellaswag: Commonsensereasoningabouteverydaysituationsandtheirlikelycontinuations
+• piqa: Physicalinteractionquestionansweringrequiringunderstandingofphysicalworlddynamics
+• social iqa: Socialreasoningabouthumaninteractions,emotions,andmotivations
+36
+SII-GAIR
+B.4 Analyser
+• winogrande: Pronounresolutionrequiringworldknowledgeandcommonsensereasoning
+LANGUAGEUNDERSTANDING:
+• boolq: Yes/noquestionstestingreadingcomprehensionandfactualknowledge
+• openbookqa: Elementarysciencequestionswithaccesstorelevantfacts(open-bookformat)
+• lambada openai: Sentencecompletionrequiringunderstandingofnarrativecontext
+• squad completion: Readingcomprehensionwithpassage-basedquestionanswering
+SPECIALIZEDTASKS:
+• fda: Domain-specifictask(analyzecontextfromresultstodetermineexactnature)
+• swde: Structuredwebdataextractionorsimilarinformationextractiontask
+TRAININGMETRICS:
+• loss: Traininglossindicatingmodeloptimizationprogressandconvergence
+ANALYSISAPPROACH:
+1. ReadandParseData: Examinetheresultstounderstandperformancemetricsacrossdifferentcognitive
+capabilities
+2. CodeReview: AnalyzethePythonimplementationtounderstandtheactualarchitecturalchangesmade
+3. MotivationAssessment: Evaluatethetheoreticalsoundnessandimplementationaccuracyofthedesign
+rationale
+OUTPUTREQUIREMENTS:
+Provideastructuredanalysiscovering:
+MOTIVATIONANDDESIGNEVALUATION
+• Assesstheoreticalsoundnessofproposedchanges
+• Evaluateimplementationaccuracyrelativetodesignintent
+• Identifymotivation-implementationgaps
+• Judgeplausibilityofexpectedimprovements
+EXPERIMENTALRESULTSANALYSIS
+• Analyzeperformanceacrosscognitivedomains(reasoning,languageunderstanding,specializedtasks)
+• Usedescriptivelanguageforoutcomes(e.g.,“commonsensereasoningimprovedsignificantly”vs“hel-
+laswagscore=X”)
+• Comparewithbaselinesusingclearimprovement/degradationstatements
+• Identifypatternsacrossrelatedtasks(e.g.,allreasoningtasksvs. alllanguagetasks)
+• Assesstrainingdynamicsthroughlossprogression
+• Provideoverallassessmentofgoalachievement
+EXPECTATIONVSREALITYCOMPARISON
+• Analyzealignmentbetweenmotivationandactualresultsacrosstaskcategories
+• Identifysurprisingoutcomes(positiveandnegative)inspecificcognitivedomains
+• Assessdesignhypothesisaccuracyfordifferenttypesofreasoning
+• Determineifarchitecturalchangesproducedpredictedeffectsontargetcapabilities
+37
+SII-GAIR
+B.4 Analyser
+THEORETICALEXPLANATIONWITHEVIDENCE
+• Providemechanisticexplanationssupportedby:
+– Specificcodeelementscausingobservedeffectsondifferentcognitivetasks
+– Mathematicalreasoninglinkingchangestoperformancepatterns
+– Information-theoreticorcomputationalargumentsaboutcapabilityimprovements
+• Explainprecisemechanismsforbothimprovementsanddegradationsacrosstasktypes
+• Connecttheoreticalpredictionswithempiricalobservationsonspecificbenchmarks
+• Analyzewhycertaincognitivedomainsweremore/lessaffectedthanothers
+SYNTHESISANDINSIGHTS
+• Summarizekeylessonsaboutthismodificationtypeacrosscognitivecapabilities
+• Identifyfundamentaltrade-offsrevealedbetweendifferentreasoningtypes
+• Provideactionableinsightsforfuturedesignstargetingspecificcognitivedomains
+• Suggestdirectionsforaddressinglimitationsinunderperformingtaskcategories
+• Discussimplicationsforgeneralvs. specializedcognitivearchitectures
+ANALYSISSTANDARDS:
+• SupportALLclaimswithspecificevidencefrombenchmarkresults
+• Behonestaboutfailuresandunexpectedoutcomesacrossdifferentcognitivedomains
+• FocusonWHYresultsoccurredinspecifictaskcategories,notjustWHAThappened
+• Usecapability-focusedlanguageoverrawmetrics(e.g.,“reasoningability”vs“score”)
+• Maintainscientificrigor,avoidunsupportedspeculation
+• Provideactionableinsightsforarchitecturalinnovation
+• Considercognitiveimplicationsofperformancepatternsacrossdifferenttasktypes
+Remember: Yourgoalistounderstandtherelationshipbetweenarchitecturaldesignchoicesandtheirper-
+formance implications across diverse cognitive capabilities to inform future innovation in AI architecture
+design.
+BaselineReference:
+TrainingLoss(LowerisBetter):
+Model Step1 Step100 Step200 Step300
+delta net 10.8767 10.2672 8.9668 7.6759
+gated delta net 10.8751 10.2436 8.9512 7.6597
+Model Step400 Step500 Step600 Step700
+delta net 6.9723 6.5817 6.2187 6.0636
+gated delta net 6.9481 6.5618 6.2079 6.0560
+Model Step800 Step900 Step1000 Step1100
+delta net 5.8536 5.7077 5.5162 5.3605
+gated delta net 5.8354 5.6818 5.5056 5.3516
+Model Step1200 Step1300 Step1400 Step1500
+delta net 5.2252 5.159 4.9888 4.9192
+gated delta net 5.2254 5.1678 4.9810 4.9192
+Model Step1600 Step1700 Step1800 Step1900 Step2000
+delta net 4.9029 4.722 4.6739 4.6373 4.5749
+gated delta net 4.8983 4.7166 4.6656 4.6264 4.5678
+38
+SII-GAIR
+B.4 Analyser
+TestSetPerformance:
+Model arc challenge arc easy boolq fda hellaswag lambada openai
+delta net 0.168 0.324 0.364 0.0 0.296 0.002
+gated delta net 0.168 0.374 0.37 0.0 0.282 0.002
+Model openbookqa piqa social iqa squad completion swde winogrande
+delta net 0.136 0.526 0.354 0.002 0.008 0.504
+gated delta net 0.144 0.562 0.35 0.004 0.002 0.456
+Note: Fortestsetperformance,higherscoresarebetterforallmetricsexceptwikitext(wherelowerisbetter).
+UserPromptforAnalyser
+AnalysisRequest: Model{name}
+Resources:
+• Results: {result}
+• Codeimplementation: Useread code filetooltoexaminethearchitecture
+• Designmotivation: {motivation}
+RelatedExperimentsforAblationStudy:
+{ref context}
+IMPORTANT:Theaboverelatedexperimentsrepresenteitherparentnodes(previousiterationsthatledto
+thisdesign)orsiblingnodes(alternativeapproachesexploredfromthesameparent). Usetheseforablation
+studyanalysistounderstand:
+• Whatspecificchangesdifferentiatethecurrentexperimentfromitsrelatives
+• Whicharchitecturalcomponentsareresponsibleforperformancedifferences
+• Whetherthemodificationsrepresentgenuineimprovementsortrade-offs
+AnalysisRequirements:
+Please read the results, examine the code implementation using read code file tool, and analyze the
+designmotivation. Youranalysismustinclude:
+1. MOTIVATIONANDDESIGNEVALUATION
+• Assessthetheoreticalsoundnessoftheproposedarchitecturalchanges
+• Evaluatewhetherthecodeimplementationcorrectlyreflectsthedesignintention
+• Identifyanygapsbetweenmotivationandactualimplementation
+• Judgetheplausibilityofexpectedimprovementsbasedonthearchitecturalchanges
+2. EXPERIMENTALRESULTSANALYSISWITHABLATIONSTUDY
+• Summarizeperformanceoutcomesusingtask-descriptivelanguage(e.g.,“memoryretentioncapability
+improved”ratherthan“CompressscoreincreasedtoX”)
+• Compareresultswithbaselinemodelsusingclearimprovement/degradationstatements
+• ABLATIONANALYSIS:Comparewithrelatedexperimentstoidentify:
+– Whichspecificarchitecturalchangescausedperformancedifferences
+– Whetherimprovementsareduetotheintendedmodificationsorotherfactors
+– Trade-offsintroducedbyeacharchitecturalcomponent
+• Identifywhichcognitivecapabilitieswereenhancedvscompromised
+• Provideanoverallassessmentofwhetherthemodificationsachievedtheirintendedgoals
+3. EXPECTATIONVSREALITYCOMPARISON
+39
+SII-GAIR
+B.4 Analyser
+• Analyzewhetherexperimentalresultsalignwiththestatedmotivationandexpectedoutcomes
+• Identifysurprisingresults(bothpositiveandnegative)thatweren’tanticipated
+• Assesstheaccuracyofthedesignhypothesisbasedonempiricalevidence
+• Determineifthearchitecturalchangesproducedthepredictedeffects
+• CROSS-EXPERIMENTVALIDATION:Checkifsimilarmodificationsinrelatedexperimentsproduced
+consistenteffects
+4. THEORETICALEXPLANATIONWITHEVIDENCE
+• Providemechanisticexplanationsforobservedperformancepatterns,supportedby:
+– Specificcodeelementsthatcausedtheeffects
+– Mathematicalreasoninglinkingarchitecturalchangestoperformanceoutcomes
+– Information-theoreticorcomputationalargumentswhereapplicable
+• COMPARATIVEANALYSIS:Explainwhythisapproachoutperformedorunderperformedrelative
+experiments
+• Forperformancedegradations: explaintheprecisemechanismsthatunderminedspecificcapabilities
+• Forimprovements: identifythearchitecturalfeaturesresponsibleforenhancedperformance
+• Connecttheoreticalpredictionswithempiricalobservations
+5. SYNTHESISANDINSIGHTS
+• Summarizekeylessonslearnedaboutthistypeofarchitecturalmodification
+• ABLATIONINSIGHTS:Basedoncomparisonwithrelatedexperiments,identify:
+– Essentialvs. redundantarchitecturalcomponents
+– Optimalcombinationsofmodifications
+– Architecturaldecisionsthatshouldbepreservedordiscardedinfutureiterations
+• Identifyfundamentaltrade-offsrevealedbytheexperiments
+• Provideactionableinsightsforfuturearchitecturaldesigndecisions
+• Suggestspecificdirectionsforaddressingidentifiedlimitations
+CriticalAnalysisStandards:
+• Supportallclaimswithspecificevidencefromcode,results,ortheoreticalreasoning
+• Useablationstudymethodology: isolatetheimpactofindividualchangesbycomparingwithrelated
+experiments
+• Behonestaboutfailuresandunexpectedoutcomes
+• FocusonunderstandingWHYresultsoccurred,notjustWHAThappened
+• Usecapability-focusedlanguageratherthanrawperformancemetrics
+• Maintainscientificrigorinexplanationsandavoidspeculationwithoutevidence
+• Whenanalyzingimprovements/degradations,alwaysreferencerelatedexperimentstovalidateconclusions
+Youranalysisshouldbethorough,evidence-based,andprovideactionableinsightsforarchitecturalinnovation
+throughsystematicablationstudy.
+40
+SII-GAIR
+B.5 Cognition
+B.5 Cognition
+PaperBackgroundGenerationPrompt
+Mission
+Generateconcisebackgroundcontextexplainingthehistoricaltechnicalenvironmentandkeyconceptsthat
+enableunderstandingofarchitecturalinnovations. Keeptotallengthunder200wordsacrossallsections.
+OutputFormat
+<PAPER_BACKGROUND>
+<TITLE>[Paper Title]</TITLE>
+<HISTORICAL_TECHNICAL_CONTEXT>
+[2-3 sentences describing the dominant prior technologies and their
+basic working principles at the time of this paper. Focus on
+architectures like RNNs, CNNs, LSTMs, early Transformers, and their
+core mechanisms.]
+</HISTORICAL_TECHNICAL_CONTEXT>
+<TECHNICAL_LIMITATIONS>
+[2-3 sentences explaining the key computational bottlenecks and
+modeling constraints of prior approaches that this paper addresses.
+Be specific about what performance issues or architectural limitations
+motivated this work.]
+</TECHNICAL_LIMITATIONS>
+<PAPER_CONCEPTS>
+[Concise definitions of 3-5 key terms introduced or heavily used in
+this paper, with essential mathematical notation only. Include
+concepts the design AI needs to understand the innovation.]
+</PAPER_CONCEPTS>
+<EXPERIMENTAL_CONTEXT>
+[Describe the types of language modeling tasks and evaluation
+philosophies used. Focus on task categories like commonsense
+reasoning, reading comprehension, question answering, and language
+generation without using specific benchmark names.]
+</EXPERIMENTAL_CONTEXT>
+</PAPER_BACKGROUND>
+Guidelines
+• Eachsectionmaximum3sentences
+• Totalbackgroundunder200words
+• FocusonessentialcontextthathelpsunderstandWHYthisinnovationmatters
+• ProvidesufficientdetailforanAIwithnopriorknowledgetograspthesignificance
+TexttoAnalyze:
+{text}
+LLMArchitectureDesignCognitionExtraction
+Mission
+Extractuniquealgorithmicinsightsfromthispaperthatprovideprecise,actionableguidanceforanAI
+systemdesigningnovelLLMarchitectures. Focusonconnectingarchitecturalchoicestolanguagemodeling
+performanceimprovements.
+EvaluationMetricsContext
+Yourextractedcognitionswillbematchedagainstperformanceonthesespecificmetrics:
+41
+SII-GAIR
+B.5 Cognition
+• training loss: Overalllanguagemodelinglossduringtraining,indicatesgenerallearningefficiency
+• lambada openai: Testscontext-basedwordprediction,requiresunderstandingnarrativeflowandlong-
+rangedependencies
+• boolq: Booleanquestionanswering,testsyes/noreasoningandfactualunderstanding
+• piqa: PhysicalinteractionQA,testscommonsensereasoningabouteverydayphysics
+• social iqa: SocialinteractionQA,testsunderstandingofhumanbehaviorandsocialsituations
+• hellaswag: Sentencecompletionwithcommonsense,testscontextualunderstandingandplausibility
+• winogrande: Pronoun resolution requiring commonsense, tests understanding of context and entity
+relationships
+• arc easy/arc challenge: Science question answering at different difficulty levels, tests factual and
+reasoningabilities
+• openbookqa: OpenbookscienceQA,testsabilitytoapplyknowledgetonewsituations
+• fda: Few-shotdataaugmentationtasks,testsadaptationandgeneralizationcapabilities
+• swde: Structuredwebdataextraction,testspatternrecognitionandinformationextraction
+• squad completion: Readingcomprehension,testsunderstandingofpassagesandfactualretrieval
+Whenanalyzingthepaper,translateitsfindingsintoexpectedperformancepatternsonthesemetrics.
+OutputFormat
+Foreachcognition:
+<COGNITION>
+<DESIGN_INSIGHT>
+### DESIGN_INSIGHT_[PRIORITY]: [Paper’s Unique Algorithmic Contribution]
+</DESIGN_INSIGHT>
+<EXPERIMENTAL_TRIGGER_PATTERNS>
+**Task_Performance_Signatures**: [1-2 sentences describing how this
+innovation would manifest in the evaluation metrics. Map the paper’s
+claims to specific metric patterns. Examples:
+- "Improved long-range dependency modeling would show as better
+lambada_openai scores and hellaswag performance, while training
+loss decreases more smoothly"
+- "Enhanced factual reasoning manifests as higher arc_easy/arc_challenge
+and openbookqa scores, with stable boolq performance"
+- "Better context understanding appears as improvements in winogrande and
+squad_completion, but may not affect fda or swde"
+- "Specialized architecture for structured tasks would improve swde while
+maintaining baseline performance on narrative tasks
+like lambada_openai"]
+**Architectural_Symptoms**: [Optional: 1 sentence connecting observed
+training dynamics or model behaviors to the metric patterns
+above]
+</EXPERIMENTAL_TRIGGER_PATTERNS>
+<ALGORITHMIC_INNOVATION>
+**Core_Algorithm**: [The paper’s unique algorithmic contribution in 2-3
+sentences. What specifically changes in the computation flow?]
+**Key_Mechanism**: [Why this approach works - the fundamental
+computational insight that addresses the identified
+42
+SII-GAIR
+B.5 Cognition
+limitations]
+**Mathematical_Formulation**: [Essential equations and computational
+patterns. Include only the core mathematical relationships that
+define the algorithm]
+**Computational_Properties**: [Complexity (time/space), parallelization
+potential, memory access patterns, and training efficiency
+characteristics]
+</ALGORITHMIC_INNOVATION>
+<IMPLEMENTATION_GUIDANCE>
+**Integration_Strategy**: [How to incorporate into LLM architectures
+- which components to modify, where to insert new modules,
+how to connect with existing layers]
+**Parameter_Settings**: [Key hyperparameter choices, initialization
+strategies, and scaling rules. Include ranges and relationships
+rather than specific values]
+**Application_Conditions**: [When to apply this technique based on
+observed model behavior and performance patterns across task categories]
+**Expected_Outcomes**: [Describe expected improvements in terms of
+task performance patterns and computational efficiency, avoiding
+specific percentage claims]
+</IMPLEMENTATION_GUIDANCE>
+</COGNITION>
+ExtractionGuidelines
+PerformancePatternFocus
+• Mapthepaper’sarchitecturalinnovationstoexpectedpatternsinourevaluationmetrics
+• When the paper claims improvements in “reasoning”, translate to expected gains in boolq,
+arc easy/challenge
+• Whenthepapermentions“contextunderstanding”, relatetolambada openai, hellaswag, winogrande
+performance
+• For“commonsense”improvements,considerimpactsonpiqa,social iqa
+• Connectcomputationalefficiencyclaimstotraininglosscurvesandconvergencepatterns
+• Bespecificaboutwhichmetricswouldimprove,remainstable,orpotentiallydegrade
+MotivationEnhancement
+• ExplainnotjustWHATtheinnovationis,butWHYitaddressesspecificlimitations
+• Providetheunderlyingprinciplethatcouldinspirevariations
+• Includeinsightsaboutwhenthisapproachismostbeneficial
+ArchitecturalPrecision
+• Bespecificaboutwhichmodelcomponentsareaffected
+• Describehowtheinnovationinteractswithstandardtransformercomponents
+• Includedetailsaboutcomputationalflowchanges
+PracticalApplicability
+43
+SII-GAIR
+B.5 Cognition
+• Ensuretriggerpatternsmatchrealexperimentalobservations
+• Avoidovergeneralization-behonestabouttheinnovation’sscope
+• Provideclearindicatorsofwhenthistechniqueisappropriate
+Extract2-3insightsmaximum,eachrepresentingadistinctarchitecturalinnovationwithclearperformance
+implications.
+TexttoAnalyze:
+{text}
+44

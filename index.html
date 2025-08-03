@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlphaTanks - ASI-ARCH Coevolution Battle</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            color: #00ff88;
+            text-shadow: 0 0 10px #00ff88;
+            margin: 0;
+        }
+        
+        .header p {
+            color: #888;
+            margin: 5px 0;
+        }
+        
+        .game-container {
+            display: flex;
+            gap: 20px;
+            height: calc(100vh - 120px);
+        }
+        
+        .battlefield {
+            flex: 1;
+            border: 2px solid #00ff88;
+            border-radius: 5px;
+            background: #0a0a0a;
+            position: relative;
+        }
+        
+        .control-panel {
+            width: 300px;
+            background: #222;
+            border-radius: 5px;
+            padding: 15px;
+            overflow-y: auto;
+        }
+        
+        .panel-section {
+            margin-bottom: 20px;
+            border: 1px solid #444;
+            border-radius: 3px;
+            padding: 10px;
+        }
+        
+        .panel-section h3 {
+            color: #00ff88;
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 5px;
+        }
+        
+        .stats {
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .team-red { color: #ff4444; }
+        .team-blue { color: #4444ff; }
+        
+        button {
+            background: #00ff88;
+            color: black;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 12px;
+            margin: 2px;
+        }
+        
+        button:hover {
+            background: #00cc66;
+        }
+        
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        
+        .evolution-log {
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 11px;
+            background: #111;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px;
+        }
+        
+        .log-fitness { color: #ffaa00; }
+        .log-mutation { color: #aa88ff; }
+        .log-battle { color: #88ffaa; }
+        
+        /* ASI-ARCH Module Visualization */
+        .asi-arch-modules {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .module-status {
+            background: #1a1a1a;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 8px;
+            font-size: 11px;
+        }
+        
+        .module-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        
+        .module-icon {
+            margin-right: 6px;
+            font-size: 14px;
+        }
+        
+        .module-name {
+            flex: 1;
+            font-weight: bold;
+            color: #00ff88;
+        }
+        
+        .module-indicator {
+            font-size: 12px;
+            transition: color 0.3s;
+        }
+        
+        .module-indicator.active {
+            color: #00ff88;
+            animation: pulse 2s infinite;
+        }
+        
+        .module-indicator.working {
+            color: #ffaa00;
+            animation: pulse 1s infinite;
+        }
+        
+        .module-indicator.idle {
+            color: #666;
+        }
+        
+        .module-activity {
+            color: #ccc;
+            font-size: 10px;
+            margin-bottom: 4px;
+            min-height: 12px;
+        }
+        
+        .module-stats {
+            font-size: 10px;
+            color: #888;
+        }
+        
+        .module-stats div {
+            margin: 1px 0;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>AlphaTanks: ASI-ARCH Coevolution Battle</h1>
+        <p>Autonomous tank AI evolution inspired by ASI-ARCH methodology</p>
+    </div>
+    
+        <div class="game-container">
+            <div class="battlefield">
+                <canvas id="gameCanvas"></canvas>
+            </div>        <div class="control-panel">
+            <div class="panel-section">
+                <h3>ASI-ARCH System Status</h3>
+                <div style="font-size: 11px; color: #ff9900; margin-bottom: 8px;">
+                    🏁 Red Queen Race: Competitive Coevolution Active
+                </div>
+                <div class="asi-arch-modules">
+                    <div class="module-status" id="researcherModule">
+                        <div class="module-header">
+                            <span class="module-icon">🔬</span>
+                            <span class="module-name">Researcher</span>
+                            <span class="module-indicator" id="researcherIndicator">●</span>
+                        </div>
+                        <div class="module-activity" id="researcherActivity">Initializing...</div>
+                        <div class="module-stats">
+                            <div>Proposals: <span id="researcherProposals">0</span></div>
+                            <div style="color: #ff6666;">🔴 Red Mutations: <span id="researcherRedMutations">0</span></div>
+                            <div style="color: #6666ff;">🔵 Blue Mutations: <span id="researcherBlueMutations">0</span></div>
+                        </div>
+                    </div>
+                    
+                    <div class="module-status" id="engineerModule">
+                        <div class="module-header">
+                            <span class="module-icon">⚙️</span>
+                            <span class="module-name">Engineer</span>
+                            <span class="module-indicator" id="engineerIndicator">●</span>
+                        </div>
+                        <div class="module-activity" id="engineerActivity">Standby</div>
+                        <div class="module-stats">
+                            <div>Battles: <span id="engineerBattles">0</span></div>
+                            <div style="color: #ff6666;">🔴 Red Wins: <span id="engineerRedWins">0</span></div>
+                            <div style="color: #6666ff;">🔵 Blue Wins: <span id="engineerBlueWins">0</span></div>
+                        </div>
+                    </div>
+                    
+                    <div class="module-status" id="analystModule">
+                        <div class="module-header">
+                            <span class="module-icon">📊</span>
+                            <span class="module-name">Analyst</span>
+                            <span class="module-indicator" id="analystIndicator">●</span>
+                        </div>
+                        <div class="module-activity" id="analystActivity">Ready</div>
+                        <div class="module-stats">
+                            <div>Insights: <span id="analystInsights">0</span></div>
+                            <div style="color: #ff6666;">🔴 Red Insights: <span id="analystRedInsights">0</span></div>
+                            <div style="color: #6666ff;">🔵 Blue Insights: <span id="analystBlueInsights">0</span></div>
+                        </div>
+                    </div>
+                    
+                    <div class="module-status" id="cognitionModule">
+                        <div class="module-header">
+                            <span class="module-icon">🧠</span>
+                            <span class="module-name">Cognition</span>
+                            <span class="module-indicator" id="cognitionIndicator">●</span>
+                        </div>
+                        <div class="module-activity" id="cognitionActivity">Knowledge base loaded</div>
+                        <div class="module-stats">
+                            <div>Base Tactics: <span id="cognitionTactics">4</span></div>
+                            <div style="color: #ff6666;">🔴 Red Tactics: <span id="cognitionRedTactics">0</span></div>
+                            <div style="color: #6666ff;">🔵 Blue Tactics: <span id="cognitionBlueTactics">0</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel-section">
+                <h3>Evolution Control</h3>
+                <button id="startEvolution">Start Evolution</button>
+                <button id="pauseEvolution">Pause</button>
+                <button id="resetBattle">Reset Battle</button>
+                <button id="fastMode">Fast Mode</button>
+                <div class="stats">
+                    <div id="generationDisplay">Generation: 0</div>
+                    <div>Battles: <span id="battles">0</span></div>
+                    <div>Total Experiments: <span id="experiments">0</span></div>
+                </div>
+            </div>
+            
+            <div class="panel-section">
+                <h3>Team Statistics</h3>
+                <div class="stats">
+                    <div class="team-red">Red Team:</div>
+                    <div>Wins: <span id="redWins">0</span></div>
+                    <div>Avg Fitness: <span id="redFitness">0.0</span></div>
+                    <div>Best Architecture: <span id="redBest">None</span></div>
+                    
+                    <div class="team-blue" style="margin-top: 10px;">Blue Team:</div>
+                    <div>Wins: <span id="blueWins">0</span></div>
+                    <div>Avg Fitness: <span id="blueFitness">0.0</span></div>
+                    <div>Best Architecture: <span id="blueBest">None</span></div>
+                </div>
+            </div>
+            
+            <div class="panel-section">
+                <h3>Current Battle</h3>
+                <div class="stats">
+                    <div>Battle Time: <span id="battleTime">0</span>s</div>
+                    <div>Red Tanks: <span id="redTanks">0</span></div>
+                    <div>Blue Tanks: <span id="blueTanks">0</span></div>
+                    <div>Status: <span id="battleStatus">Ready</span></div>
+                </div>
+            </div>
+            
+                <div class="panel-section">
+                    <h3>Architecture Evolution</h3>
+                    <div class="stats">
+                        <div>Novel Designs: <span id="novelDesigns">0</span></div>
+                        <div style="color: #ff6666;">🔴 Red Adaptations: <span id="redAdaptations">0</span></div>
+                        <div style="color: #6666ff;">🔵 Blue Adaptations: <span id="blueAdaptations">0</span></div>
+                        <div style="color: #ff6666;">🔴 Red Fitness Threshold: <span id="redFitnessThreshold">0.500</span></div>
+                        <div style="color: #6666ff;">🔵 Blue Fitness Threshold: <span id="blueFitnessThreshold">0.500</span></div>
+                    </div>
+                </div>            <div class="panel-section">
+                <h3>Evolution Log</h3>
+                <div id="evolutionLog" class="evolution-log">
+                    <div class="log-entry">System initialized. Ready for evolution...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="game-engine.js?v=2"></script>
+    <script src="tank-ai.js?v=2"></script>
+    <script src="asi-arch-modules.js?v=2"></script>
+    <script src="evolution-engine.js?v=2"></script>
+    <script src="asi-arch-visualizer.js?v=2"></script>
+    <script src="main.js?v=2"></script>
+    <script src="debug.js?v=2"></script>
+    <!-- <script src="test-validation.js"></script> -->
+</body>
+</html>
