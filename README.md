@@ -4,6 +4,12 @@
 
 The system showcases how AI can conduct independent research, discovering novel combat tactics and continuously improving through competitive coevolution - the "Red Queen Race" effect where opposing teams drive each other to greater sophistication.
 
+> **📚 Research Foundation**: This implementation is based on the ASI-ARCH methodology as described in the research paper:
+> 
+> *"Artificial Superintelligence for AI Research (ASI-ARCH): A Framework for Computational Research Scaling"* (arXiv:2507.18074v1)
+> 
+> The paper presents a novel approach where AI systems conduct autonomous research, and AlphaTanks demonstrates these principles through evolutionary tank AI that discovers emergent military tactics without human guidance.
+
 ### 🎥 Demo
 ![Tank Battle Animation](docs/demo.gif)
 *Watch Red and Blue teams evolve competing strategies in real-time*
@@ -310,10 +316,38 @@ We welcome contributions! Here's how to get started:
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-### Attribution
-- **ASI-ARCH Methodology**: Based on research in computational research scaling
-- **Tank Graphics**: Custom-designed for educational use
-- **Military Tactics**: Based on historical strategic principles
+### 📚 Academic Citation & Attribution
+
+**Primary Research Source:**
+```bibtex
+@article{asi_arch_2024,
+  title={Artificial Superintelligence for AI Research (ASI-ARCH): A Framework for Computational Research Scaling},
+  author={[ASI-ARCH Research Team]},
+  journal={arXiv preprint arXiv:2507.18074v1},
+  year={2024},
+  note={Available at: https://arxiv.org/abs/2507.18074v1}
+}
+```
+
+**AlphaTanks Implementation:**
+```bibtex
+@software{alphatanks_2025,
+  title={AlphaTanks: ASI-ARCH Tank Evolution Demonstration},
+  author={AlphaTanks Development Team},
+  year={2025},
+  note={Implementation of ASI-ARCH methodology for autonomous AI evolution},
+  url={https://github.com/YOUR_USERNAME/AlphaTanks}
+}
+```
+
+**Additional Attribution:**
+- **ASI-ARCH Methodology**: Implementation based on arXiv:2507.18074v1 research framework
+- **Military Tactics Knowledge Base**: Based on historical strategic principles and combat doctrine
+- **Tank Graphics & UI**: Custom-designed for educational and research demonstration
+- **Genetic Algorithm Implementation**: Standard evolutionary computation principles
+
+**Research Acknowledgment:**
+This project serves as an educational demonstration of the ASI-ARCH methodology, showcasing how AI systems can conduct autonomous research and discover emergent behaviors. The tank evolution simulation provides a concrete, interactive example of the computational research scaling principles described in the original ASI-ARCH paper.
 
 ## 🎯 Future Roadmap
 

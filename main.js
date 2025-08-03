@@ -61,6 +61,18 @@ function setupEventHandlers() {
     document.getElementById('pauseEvolution').addEventListener('click', pauseEvolution);
     document.getElementById('resetBattle').addEventListener('click', resetBattle);
     document.getElementById('fastMode').addEventListener('click', toggleFastMode);
+    document.getElementById('creditsButton').addEventListener('click', showCredits);
+    
+    // Credits modal handlers
+    const modal = document.getElementById('creditsModal');
+    const closeBtn = modal.querySelector('.close');
+    
+    closeBtn.addEventListener('click', hideCredits);
+    window.addEventListener('click', function(event) {
+        if (event.target === modal) {
+            hideCredits();
+        }
+    });
     
     // Window resize handler
     window.addEventListener('resize', handleResize);
@@ -143,6 +155,14 @@ function handleResize() {
 
 function handleKeydown(event) {
     switch(event.key) {
+        case 'Escape':
+            // Close credits modal if open
+            const modal = document.getElementById('creditsModal');
+            if (modal.style.display === 'block') {
+                event.preventDefault();
+                hideCredits();
+            }
+            break;
         case ' ': // Spacebar
             event.preventDefault();
             if (evolution.isEvolutionRunning) {
@@ -160,6 +180,11 @@ function handleKeydown(event) {
         case 'F':
             event.preventDefault();
             toggleFastMode();
+            break;
+        case 'c':
+        case 'C':
+            event.preventDefault();
+            showCredits();
             break;
         case 'd':
         case 'D':
@@ -289,6 +314,39 @@ The system implements ASI-ARCH methodology:
 Watch as tank AI evolves autonomously, demonstrating
 computational scaling of research breakthroughs!
 `);
+
+// Credits modal functions
+function showCredits() {
+    console.log('📚 Showing credits and attribution');
+    const modal = document.getElementById('creditsModal');
+    modal.style.display = 'block';
+    
+    // Add some animation
+    const modalContent = modal.querySelector('.modal-content');
+    modalContent.style.opacity = '0';
+    modalContent.style.transform = 'scale(0.7)';
+    
+    setTimeout(() => {
+        modalContent.style.transition = 'all 0.3s ease';
+        modalContent.style.opacity = '1';
+        modalContent.style.transform = 'scale(1)';
+    }, 10);
+}
+
+function hideCredits() {
+    console.log('📚 Hiding credits modal');
+    const modal = document.getElementById('creditsModal');
+    const modalContent = modal.querySelector('.modal-content');
+    
+    modalContent.style.transition = 'all 0.2s ease';
+    modalContent.style.opacity = '0';
+    modalContent.style.transform = 'scale(0.7)';
+    
+    setTimeout(() => {
+        modal.style.display = 'none';
+        modalContent.style.transition = '';
+    }, 200);
+}
 
 // Demo data for initial showcase
 window.DEMO_MODE = false;
