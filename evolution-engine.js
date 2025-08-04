@@ -29,7 +29,6 @@ class EvolutionEngine {
             blue: { wins: 0, totalBattles: 0 }
         }; // Track all battle outcomes for analysis
         this.isEvolutionRunning = false;
-        this.evolutionSpeed = 1.0; // Speed multiplier
         
         // Initialize candidate pool with initial genomes
         this.initializeCandidatePool();
@@ -437,7 +436,7 @@ class EvolutionEngine {
             if (this.isEvolutionRunning) {
                 this.runNextExperiment();
             }
-        }, 1000 / this.evolutionSpeed);
+        }, 1000); // Fixed 1 second delay between battles
     }
     
     handleBattleEnd(battleResult) {
@@ -725,11 +724,6 @@ class EvolutionEngine {
         }
         
         console.log(`🧬 [${type.toUpperCase()}] ${message}`);
-    }
-    
-    setEvolutionSpeed(speed) {
-        this.evolutionSpeed = speed;
-        this.logEvolutionEvent(`Evolution speed set to ${speed}x`, 'system');
     }
     
     pauseEvolution() {

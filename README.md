@@ -392,7 +392,6 @@ This project serves as an educational demonstration of the ASI-ARCH methodology,
 |-----|--------|
 | `SPACE` | Start/Pause Evolution |
 | `R` | Reset Battle |
-| `F` | Toggle Fast Mode |
 | `D` | Toggle Debug Mode |
 
 ## 🎮 How It Works

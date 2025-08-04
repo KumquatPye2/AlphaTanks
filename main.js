@@ -71,7 +71,6 @@ function setupEventHandlers() {
     document.getElementById('startEvolution').addEventListener('click', startEvolution);
     document.getElementById('pauseEvolution').addEventListener('click', pauseEvolution);
     document.getElementById('resetBattle').addEventListener('click', resetBattle);
-    document.getElementById('fastMode').addEventListener('click', toggleFastMode);
     document.getElementById('creditsButton').addEventListener('click', showCredits);
     
     // Credits modal handlers
@@ -187,25 +186,6 @@ function resetBattle() {
     evolution.logEvolutionEvent('System reset - Ready for new evolution cycle', 'system');
 }
 
-let fastModeEnabled = false;
-function toggleFastMode() {
-    fastModeEnabled = !fastModeEnabled;
-    
-    if (fastModeEnabled) {
-        evolution.setEvolutionSpeed(3.0);
-        game.maxBattleTime = 30; // Shorter battles
-        document.getElementById('fastMode').textContent = 'Normal Mode';
-        document.getElementById('fastMode').style.background = '#ffaa00';
-    } else {
-        evolution.setEvolutionSpeed(1.0);
-        game.maxBattleTime = 120; // Normal battles
-        document.getElementById('fastMode').textContent = 'Fast Mode';
-        document.getElementById('fastMode').style.background = '#00ff88';
-    }
-    
-    console.log(`🏃 Fast mode ${fastModeEnabled ? 'enabled' : 'disabled'}`);
-}
-
 function handleResize() {
     if (game) {
         game.setupCanvas();
@@ -237,9 +217,6 @@ function handleKeydown(event) {
             break;
         case 'f':
         case 'F':
-            event.preventDefault();
-            toggleFastMode();
-            break;
         case 'c':
         case 'C':
             event.preventDefault();
@@ -352,7 +329,6 @@ function enableAutoStart() {
 window.startEvolution = startEvolution;
 window.pauseEvolution = pauseEvolution;
 window.resetBattle = resetBattle;
-window.toggleFastMode = toggleFastMode;
 window.toggleDebugMode = toggleDebugMode;
 window.enableAutoStart = enableAutoStart;
 
@@ -367,7 +343,6 @@ console.log(`
 Controls:
 • SPACE: Start/Pause Evolution
 • R: Reset Battle
-• F: Toggle Fast Mode  
 • D: Toggle Debug Mode
 
 The system implements ASI-ARCH methodology:
