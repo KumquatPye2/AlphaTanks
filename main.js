@@ -124,9 +124,19 @@ function setupEventHandlers() {
         } else if (game.gameState === 'ready' || game.gameState === 'ended') {
             // Start fresh battle and evolution
             game.resumedFromPause = false; // Clear flag for fresh start
+            
+            // Clear genome cache so we get fresh data for new battle
+            genomeCache.lastPoolSize = 0;
+            genomeCache.lastCacheTime = 0;
+            genomeCache.redBest = null;
+            genomeCache.blueBest = null;
+            
             game.start();
             evolution.startEvolution(); // This will start new experiments
             console.log('🆕 Starting fresh battle and evolution');
+            
+            // Update genome display immediately for new battle (but don't spam it)
+            setTimeout(() => updateGenomeDisplay(), 1000);
         } else if (game.gameState === 'running') {
             // Already running, no action needed
             console.log('⚠️ Evolution already running');
@@ -260,8 +270,11 @@ function startPerformanceMonitoring() {
             memoryUsage: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1024 / 1024) : 'N/A'
         };
         
-        // Update genome display
-        updateGenomeDisplay();
+        // Only update genome display if game is not actively running a battle
+        // This prevents heavy computation during gameplay
+        if (!game || game.gameState !== 'running') {
+            updateGenomeDisplay();
+        }
         
         // Log performance issues (throttled to avoid spam)
         if (stats.fps < 30 && game && game.gameState === 'running') {
@@ -516,17 +529,42 @@ function displayNoGenomeDataForTeam(team) {
     });
 }
 
+// Cache for getBestGenomeForTeam to avoid heavy recomputation
+const genomeCache = {
+    lastPoolSize: 0,
+    lastCacheTime: 0,
+    redBest: null,
+    blueBest: null
+};
+
 function getBestGenomeForTeam(team) {
     if (!evolution || !evolution.candidatePool || evolution.candidatePool.length === 0) {
         console.log(`🧬 No candidate pool available for team ${team}`);
         return null;
     }
     
+    const currentTime = Date.now();
+    const poolSize = evolution.candidatePool.length;
+    
+    // Use cache if pool hasn't changed and cache is less than 5 seconds old
+    const cacheValid = (
+        poolSize === genomeCache.lastPoolSize && 
+        currentTime - genomeCache.lastCacheTime < 5000
+    );
+    
+    if (cacheValid) {
+        const cached = team === 'red' ? genomeCache.redBest : genomeCache.blueBest;
+        if (cached) {
+            console.log(`🧬 Using cached genome for team ${team}`);
+            return cached;
+        }
+    }
+    
     try {
-        console.log(`🧬 Looking for proven champion for team ${team}, pool size: ${evolution.candidatePool.length}`);
+        console.log(`🧬 Looking for proven champion for team ${team}, pool size: ${poolSize}`);
         
-        // Debug: Log sample candidate to see format
-        if (evolution.candidatePool.length > 0) {
+        // Debug: Log sample candidate to see format (only if not using cache)
+        if (!cacheValid && evolution.candidatePool.length > 0) {
             const sample = evolution.candidatePool[0];
             console.log(`🧬 Sample candidate:`, {
                 genome: sample.genome,
@@ -698,6 +736,16 @@ function getBestGenomeForTeam(team) {
         championCandidates.sort((a, b) => (b.fitness || 0) - (a.fitness || 0));
         const best = championCandidates[0];
         console.log(`🧬 Best ${team} champion fitness: ${best.fitness?.toFixed(3) || 'N/A'}, battles: ${best.battles || 0}, wins: ${best.wins || 0}`);
+        
+        // Update cache
+        genomeCache.lastPoolSize = poolSize;
+        genomeCache.lastCacheTime = currentTime;
+        if (team === 'red') {
+            genomeCache.redBest = best;
+        } else {
+            genomeCache.blueBest = best;
+        }
+        
         return best;
     } catch (error) {
         console.error('Error in getBestGenomeForTeam:', error);

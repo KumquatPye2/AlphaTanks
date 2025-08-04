@@ -149,6 +149,11 @@ class GameEngine {
         // Initialize lastTime on first frame
         if (this.lastTime === 0) {
             this.lastTime = currentTime;
+            // On first frame, use a small deltaTime to start immediately
+            this.update(1/60); // Assume 60fps for first frame
+            this.render();
+            requestAnimationFrame((time) => this.gameLoop(time));
+            return;
         }
         
         const deltaTime = Math.min((currentTime - this.lastTime) / 1000, 0.1); // Cap deltaTime to prevent large jumps
