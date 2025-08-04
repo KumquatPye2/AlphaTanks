@@ -64,7 +64,7 @@ class GameEngine {
         this.redTeam = [];
         this.blueTeam = [];
         this.battleTime = 0;
-        this.gameState = 'running';
+        this.gameState = 'ready'; // Don't automatically start - let start() method handle it
         
         // Create red team (left side)
         for (let i = 0; i < redTanks; i++) {
@@ -111,6 +111,8 @@ class GameEngine {
     
     start() {
         this.gameState = 'running';
+        this.battleTime = 0; // Reset battle time for new battle
+        this.lastTime = 0; // Reset to 0 so gameLoop will handle first frame properly
         this.gameLoop();
     }
     
@@ -118,19 +120,48 @@ class GameEngine {
         this.gameState = 'paused';
     }
     
+    resume() {
+        this.gameState = 'running';
+        // Keep existing battleTime - don't reset it!
+        this.lastTime = 0; // Reset to 0 so gameLoop will handle first frame properly
+        this.gameLoop();
+    }
+    
+    reset() {
+        this.gameState = 'ready';
+        this.lastTime = 0;
+        this.battleTime = 0;
+        this.tanks = [];
+        this.projectiles = [];
+        this.redTeam = [];
+        this.blueTeam = [];
+    }
+    
     setEvolutionEngine(evolutionEngine) {
         this.evolutionEngine = evolutionEngine;
     }
     
     gameLoop(currentTime = 0) {
-        if (this.gameState !== 'running') {return;}
+        if (this.gameState !== 'running') {
+            return;
+        }
         
-        const deltaTime = (currentTime - this.lastTime) / 1000;
+        // Initialize lastTime on first frame
+        if (this.lastTime === 0) {
+            this.lastTime = currentTime;
+        }
+        
+        const deltaTime = Math.min((currentTime - this.lastTime) / 1000, 0.1); // Cap deltaTime to prevent large jumps
         this.lastTime = currentTime;
         
-        this.update(deltaTime);
+        // Only update if we have a reasonable deltaTime (prevent negative time and huge jumps)
+        if (deltaTime > 0 && deltaTime <= 0.1) {
+            this.update(deltaTime);
+        }
+        
         this.render();
         
+        // Continue the game loop
         requestAnimationFrame((time) => this.gameLoop(time));
     }
     

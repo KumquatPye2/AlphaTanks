@@ -239,8 +239,8 @@ describe('ASI-ARCH Tank Evolution System - Functional Tests', () => {
       const mainContent = fs.readFileSync('main.js', 'utf8');
       
       expect(mainContent).toContain('GameEngine');
-      expect(mainContent).toContain('requestAnimationFrame');
-      expect(mainContent).toContain('game loop');
+      expect(mainContent).toContain('startEvolution');
+      expect(mainContent).toContain('pauseEvolution');
     });
   });
 

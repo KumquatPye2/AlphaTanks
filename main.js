@@ -88,6 +88,13 @@ function setupEventHandlers() {
     // Window resize handler
     window.addEventListener('resize', handleResize);
     
+    // Battle end handler
+    window.addEventListener('battleEnd', () => {
+        if (game) {
+            game.resumedFromPause = false; // Clear resume flag when battle ends
+        }
+    });
+    
     // Keyboard shortcuts
     document.addEventListener('keydown', handleKeydown);
     
@@ -97,18 +104,43 @@ function setupEventHandlers() {
     function startEvolution() {
         console.log('🧬 Starting evolution system...');
         
-        // Start the game with main game loop using requestAnimationFrame
-        game.start();
-        
-        // Start evolution
-        evolution.startEvolution();
+        // Check current game state and respond accordingly
+        if (game.gameState === 'paused') {
+            // Resume from pause - don't start new evolution experiment, just resume current battle
+            game.resume();
+            game.resumedFromPause = true; // Flag to prevent genome selection
+            evolution.isEvolutionRunning = true; // Resume evolution tracking
+            evolution.logEvolutionEvent('AlphaTanks evolution system resumed', 'system');
+            console.log('🔄 Resuming from pause');
+            
+            // Clear the resumedFromPause flag after 5 seconds to allow normal genome display
+            setTimeout(() => {
+                if (game) {
+                    game.resumedFromPause = false;
+                    console.log('🎯 Cleared resumedFromPause flag - normal genome display can resume');
+                }
+            }, 5000);
+            
+        } else if (game.gameState === 'ready' || game.gameState === 'ended') {
+            // Start fresh battle and evolution
+            game.resumedFromPause = false; // Clear flag for fresh start
+            game.start();
+            evolution.startEvolution(); // This will start new experiments
+            console.log('🆕 Starting fresh battle and evolution');
+        } else if (game.gameState === 'running') {
+            // Already running, no action needed
+            console.log('⚠️ Evolution already running');
+            return;
+        }
         
         // Update UI
         document.getElementById('startEvolution').disabled = true;
         document.getElementById('pauseEvolution').disabled = false;
         
-        // Log start
-        evolution.logEvolutionEvent('AlphaTanks evolution system started - Beginning autonomous tank AI development', 'system');
+        // Log start/resume
+        if (game.gameState === 'running') {
+            evolution.logEvolutionEvent('AlphaTanks evolution system resumed', 'system');
+        }
     }function pauseEvolution() {
     console.log('⏸️ Pausing evolution...');
     
@@ -117,6 +149,7 @@ function setupEventHandlers() {
     
     // Pause game
     game.pause();
+    game.resumedFromPause = false; // Clear resume flag when pausing
     
     // Update UI
     document.getElementById('startEvolution').disabled = false;
@@ -129,10 +162,13 @@ function resetBattle() {
     // Reset evolution
     evolution.resetEvolution();
     
-    // Reset game
+    // Reset game state first
+    game.reset();
+    
+    // Then initialize new battle (this sets state to 'ready')
     game.initializeBattle(3, 3);
     
-    // Update UI
+    // Update UI - reset button should enable start button
     document.getElementById('startEvolution').disabled = false;
     document.getElementById('pauseEvolution').disabled = true;
     
@@ -364,6 +400,20 @@ function hideCredits() {
 
 // Genome display functionality
 function updateGenomeDisplay() {
+    // If we recently resumed from pause and tanks exist, show current tank genomes
+    if (game && game.tanks && game.tanks.length > 0 && game.resumedFromPause) {
+        console.log('🎯 Using current tank genomes (resumed from pause)');
+        displayCurrentTankGenomes();
+        return;
+    }
+    
+    // If game is paused, show genomes of current tanks instead of selecting new ones
+    if (game && game.gameState === 'paused' && game.tanks && game.tanks.length > 0) {
+        console.log('🎯 Using current tank genomes (game paused)');
+        displayCurrentTankGenomes();
+        return;
+    }
+    
     if (!evolution || !evolution.candidatePool || evolution.candidatePool.length === 0) {
         // Show "waiting for evolution" state
         displayNoGenomeData();
@@ -371,6 +421,7 @@ function updateGenomeDisplay() {
     }
     
     try {
+        console.log('🧬 Looking for proven champion genomes...');
         // Get best performing genomes for each team
         const redBest = getBestGenomeForTeam('red');
         const blueBest = getBestGenomeForTeam('blue');
@@ -402,6 +453,35 @@ function updateGenomeDisplay() {
         }
     } catch (error) {
         console.error('Error updating genome display:', error);
+    }
+}
+
+function displayCurrentTankGenomes() {
+    // Display genomes of currently active tanks when paused
+    if (!game || !game.tanks || game.tanks.length === 0) {
+        displayNoGenomeData();
+        return;
+    }
+    
+    // Get representative tanks from each team
+    const redTanks = game.tanks.filter(tank => tank.team === 'red' && tank.isAlive);
+    const blueTanks = game.tanks.filter(tank => tank.team === 'blue' && tank.isAlive);
+    
+    // Display genomes of the first alive tank from each team
+    if (redTanks.length > 0 && redTanks[0].genome) {
+        // Calculate average fitness of red team or use first tank's fitness
+        const avgFitness = redTanks.reduce((sum, tank) => sum + (tank.fitness || 0.5), 0) / redTanks.length;
+        displayGenome('red', redTanks[0].genome, avgFitness);
+    } else {
+        displayNoGenomeDataForTeam('red');
+    }
+    
+    if (blueTanks.length > 0 && blueTanks[0].genome) {
+        // Calculate average fitness of blue team or use first tank's fitness
+        const avgFitness = blueTanks.reduce((sum, tank) => sum + (tank.fitness || 0.5), 0) / blueTanks.length;
+        displayGenome('blue', blueTanks[0].genome, avgFitness);
+    } else {
+        displayNoGenomeDataForTeam('blue');
     }
 }
 
