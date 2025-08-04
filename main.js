@@ -480,7 +480,7 @@ function getBestGenomeForTeam(team) {
             const hasBattleExperience = candidate.battles && candidate.battles > 0;
             const hasWins = candidate.wins && candidate.wins > 0;
             
-            if (isTeamMember && hasBattleExperience) {
+            if (isTeamMember && hasBattleExperience && hasWins) {
                 console.log(`🧬 Found proven champion for ${team}: battles=${candidate.battles}, wins=${candidate.wins}`);
                 return true;
             }

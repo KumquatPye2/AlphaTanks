@@ -95,7 +95,7 @@ console.log("🚀 Starting complete genome flow test...");
 
 const originalGenome = testEvolutionEngine();
 const processedGenome = testASIArchModules(originalGenome);
-const tankTraits = testTankAI(processedGenome);
+const _tankTraits = testTankAI(processedGenome);
 const displaySuccess = testDisplayGenome(processedGenome);
 
 console.log("\n📊 Test Summary:");
