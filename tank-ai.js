@@ -9,24 +9,25 @@ class Tank {
         
         // Normalize genome format - handle both object and array formats
         if (Array.isArray(genome)) {
-            // Array format: [aggression, caution, speed, accuracy, cooperation, formation, flanking, ambush, sacrifice]
+            // Array format: [Aggression, Speed, Accuracy, Defense, Teamwork, Adaptability, Learning, RiskTaking, Evasion]
             this.genome = genome;
         } else if (genome && typeof genome === 'object') {
-            // Object format: {aggression: 0.5, caution: 0.3, ...}
+            // Object format: convert to array format matching display function
+            // [Aggression, Speed, Accuracy, Defense, Teamwork, Adaptability, Learning, RiskTaking, Evasion]
             this.genome = [
-                genome.aggression || 0.5,
-                genome.caution || 0.5,
-                genome.speed || 0.5,
-                genome.accuracy || 0.5,
-                genome.cooperation || 0.5,
-                genome.formation || 0.5,
-                genome.flanking || 0,
-                genome.ambush || 0,
-                genome.sacrifice || 0
+                genome.aggression || 0.5,           // 0: Aggression
+                genome.speed || 0.5,                // 1: Speed  
+                genome.accuracy || 0.5,             // 2: Accuracy
+                genome.defense || genome.caution || 0.5,  // 3: Defense
+                genome.teamwork || genome.cooperation || 0.5,  // 4: Teamwork
+                genome.adaptability || 0.5,         // 5: Adaptability
+                genome.learning || 0.5,             // 6: Learning
+                genome.riskTaking || 0.5,           // 7: RiskTaking
+                genome.evasion || 0.5               // 8: Evasion
             ];
         } else {
-            // Default genome if invalid input
-            this.genome = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0, 0, 0];
+            // Default genome if invalid input - use proper 9-trait format
+            this.genome = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5];
         }
         
         // Tank state
@@ -34,14 +35,14 @@ class Tank {
         this.maxHealth = 100;
         this.isAlive = true;
         this.angle = team === 'red' ? 0 : Math.PI; // Red faces right, blue faces left
-        this.speed = 50 * (0.5 + this.genome[2] * 0.5); // Use speed from genome[2]
+        this.speed = 50 * (0.5 + this.genome[1] * 0.5); // Use speed from genome[1]
         
         // Combat stats
         this.lastShotTime = 0;
         this.fireRate = 1.0 + this.genome[0]; // Use aggression from genome[0]
         this.damage = 20 + this.genome[0] * 10;
-        this.range = 200 + this.genome[3] * 100; // Use accuracy from genome[3]
-        this.accuracy = 0.7 + this.genome[3] * 0.3;
+        this.range = 200 + this.genome[2] * 100; // Use accuracy from genome[2]
+        this.accuracy = 0.7 + this.genome[2] * 0.3;
         
         // Statistics tracking
         this.damageDealt = 0;
@@ -61,10 +62,13 @@ class Tank {
         this.enemies = [];
         
         // Behavior weights (from normalized genome array)
-        this.aggressionWeight = this.genome[0];
-        this.cautionWeight = this.genome[1];
-        this.cooperationWeight = this.genome[4];
-        this.formationWeight = this.genome[5];
+        // [Aggression, Speed, Accuracy, Defense, Teamwork, Adaptability, Learning, RiskTaking, Evasion]
+        this.aggressionWeight = this.genome[0];  // Aggression
+        this.cautionWeight = this.genome[3];     // Defense (was caution)
+        this.cooperationWeight = this.genome[4]; // Teamwork (was cooperation)
+        this.formationWeight = this.genome[5];   // Adaptability (for formation behavior)
+        this.riskTakingWeight = this.genome[7];  // RiskTaking
+        this.evasionWeight = this.genome[8];     // Evasion
         
         // Access genome[0] through genome[8] for 9-trait validation
         this.trait0 = this.genome[0];

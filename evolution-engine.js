@@ -31,6 +31,9 @@ class EvolutionEngine {
         this.isEvolutionRunning = false;
         this.evolutionSpeed = 1.0; // Speed multiplier
         
+        // Initialize candidate pool with initial genomes
+        this.initializeCandidatePool();
+        
         // Statistics
         this.redTeamWins = 0;
         this.blueTeamWins = 0;
@@ -47,12 +50,66 @@ class EvolutionEngine {
         }
     }
     
-    generateTankGenome() {
-        // Generate a random 9-trait genome
-        const genome = [];
-        for (let i = 0; i < 9; i++) {
-            genome.push(Math.random());
+    initializeCandidatePool() {
+        // Create initial candidate pool with team-specific diverse genomes
+        // Create 10 red-oriented genomes
+        for (let i = 0; i < 10; i++) {
+            const genome = this.generateTankGenome();
+            // Make red genomes more aggressive and risk-taking
+            genome[0] = Math.min(1, genome[0] + 0.2); // More aggression
+            genome[1] = Math.min(1, genome[1] + 0.1); // More speed
+            genome[7] = Math.min(1, genome[7] + 0.2); // More risk-taking
+            genome[3] = Math.max(0, genome[3] - 0.1); // Less defensive
+            
+            const candidate = {
+                genome: genome,
+                fitness: Math.random() * 0.3 + 0.4, // Random fitness between 0.4 and 0.7
+                generation: 0,
+                team: 'red', // Assign to red team
+                id: `red_init_${i}`,
+                isInitial: true // Flag to identify initial placeholder fitness
+            };
+            this.candidatePool.push(candidate);
         }
+        
+        // Create 10 blue-oriented genomes
+        for (let i = 0; i < 10; i++) {
+            const genome = this.generateTankGenome();
+            // Make blue genomes more defensive and cooperative
+            genome[2] = Math.min(1, genome[2] + 0.2); // More accuracy
+            genome[3] = Math.min(1, genome[3] + 0.1); // More defense
+            genome[4] = Math.min(1, genome[4] + 0.1); // More teamwork
+            genome[0] = Math.max(0, genome[0] - 0.1); // Less aggression
+            
+            const candidate = {
+                genome: genome,
+                fitness: Math.random() * 0.3 + 0.4, // Random fitness between 0.4 and 0.7
+                generation: 0,
+                team: 'blue', // Assign to blue team
+                id: `blue_init_${i}`,
+                isInitial: true // Flag to identify initial placeholder fitness
+            };
+            this.candidatePool.push(candidate);
+        }
+        
+        console.log(`🧬 Initialized candidate pool with ${this.candidatePool.length} team-specific genomes (10 red, 10 blue)`);
+    }
+    
+    generateTankGenome() {
+        // Generate a random 9-trait genome with explicit trait mapping
+        // Trait order matches display function: [Aggression, Speed, Accuracy, Defense, Teamwork, Adaptability, Learning, RiskTaking, Evasion]
+        const genome = [
+            Math.random(),  // 0: Aggression
+            Math.random(),  // 1: Speed
+            Math.random(),  // 2: Accuracy
+            Math.random(),  // 3: Defense
+            Math.random(),  // 4: Teamwork
+            Math.random(),  // 5: Adaptability
+            Math.random(),  // 6: Learning
+            Math.random(),  // 7: RiskTaking
+            Math.random()   // 8: Evasion
+        ];
+        
         return genome;
     }
     
@@ -100,16 +157,18 @@ class EvolutionEngine {
             
             // Convert genome object to array format if needed
             if (!Array.isArray(genome) && genome && typeof genome === 'object') {
+                // Map object properties to array indices to match display function
+                // [Aggression, Speed, Accuracy, Defense, Teamwork, Adaptability, Learning, RiskTaking, Evasion]
                 genome = [
-                    genome.aggression || 0.5,
-                    genome.caution || 0.5,
-                    genome.speed || 0.5,
-                    genome.accuracy || 0.5,
-                    genome.cooperation || 0.5,
-                    genome.formation || 0.5,
-                    genome.flanking || 0,
-                    genome.ambush || 0,
-                    genome.sacrifice || 0
+                    genome.aggression || 0.5,           // 0: Aggression
+                    genome.speed || 0.5,                // 1: Speed  
+                    genome.accuracy || 0.5,             // 2: Accuracy
+                    genome.defense || genome.caution || 0.5,  // 3: Defense
+                    genome.teamwork || genome.cooperation || 0.5,  // 4: Teamwork
+                    genome.adaptability || 0.5,         // 5: Adaptability
+                    genome.learning || 0.5,             // 6: Learning
+                    genome.riskTaking || 0.5,           // 7: RiskTaking
+                    genome.evasion || 0.5               // 8: Evasion
                 ];
             }
             
@@ -236,7 +295,9 @@ class EvolutionEngine {
             // Basic mutation if no ASI-ARCH modules - ensure genomes actually change
             population.forEach((tank, index) => {
                 // Skip elite individuals
-                if (index < eliteCount) {return;}
+                if (index < eliteCount) {
+                    return;
+                }
                 
                 tank.genome = tank.genome.map(gene => {
                     // 30% mutation chance to ensure changes
@@ -305,64 +366,30 @@ class EvolutionEngine {
         this.runNextExperiment();
     }
     
-    pauseEvolution() {
-        this.isEvolutionRunning = false;
-        this.logEvolutionEvent('Evolution paused', 'system');
-    }
-    
-    resetEvolution() {
-        this.currentGeneration = 0;
-        this.totalExperiments = 0;
-        this.totalBattles = 0;
-        this.candidatePool = [];
-        this.experimentHistory = [];
-        this.redTeamWins = 0;
-        this.blueTeamWins = 0;
-        this.draws = 0;
+    classifyStrategy(genome) {
+        // Handle both array and object genome formats
+        let aggression, caution, cooperation, formation;
         
-        this.logEvolutionEvent('Evolution system reset', 'system');
-        this.updateUI();
-    }
-    
-    initializeCandidatePool() {
-        console.log('🔬 Initializing candidate pool with baseline genomes');
-        
-        // Create diverse initial population
-        for (let i = 0; i < 10; i++) {
-            const genome = this.generateRandomGenome();
-            this.candidatePool.push({
-                genome: genome,
-                fitness: 0,
-                generation: 0,
-                battles: 0,
-                wins: 0,
-                strategy: this.classifyStrategy(genome)
-            });
+        if (Array.isArray(genome)) {
+            // Array format: [aggression, speed, accuracy, defense, teamwork, adaptability, learning, riskTaking, evasion]
+            aggression = genome[0] || 0;
+            caution = genome[3] || 0; // Use defense as caution
+            cooperation = genome[4] || 0; // Use teamwork as cooperation  
+            formation = genome[4] || 0; // Use teamwork as formation indicator
+        } else if (genome && typeof genome === 'object') {
+            // Object format: {aggression: 0.5, caution: 0.3, ...}
+            aggression = genome.aggression || 0;
+            caution = genome.caution || genome.defense || 0;
+            cooperation = genome.cooperation || genome.teamwork || 0;
+            formation = genome.formation || genome.teamwork || 0;
+        } else {
+            return 'Balanced';
         }
         
-        this.logEvolutionEvent('Candidate pool initialized with 10 baseline genomes', 'initialization');
-    }
-    
-    generateRandomGenome() {
-        return {
-            aggression: Math.random(),
-            caution: Math.random(),
-            speed: Math.random(),
-            accuracy: Math.random(),
-            cooperation: Math.random(),
-            formation: Math.random(),
-            // Advanced traits (initially zero, evolve over time)
-            flanking: 0,
-            ambush: 0,
-            sacrifice: 0
-        };
-    }
-    
-    classifyStrategy(genome) {
-        if (genome.aggression > 0.7) {return 'Aggressive';}
-        if (genome.caution > 0.7) {return 'Defensive';}
-        if (genome.cooperation > 0.7) {return 'Cooperative';}
-        if (genome.formation > 0.7) {return 'Formation';}
+        if (aggression > 0.7) {return 'Aggressive';}
+        if (caution > 0.7) {return 'Defensive';}
+        if (cooperation > 0.7) {return 'Cooperative';}
+        if (formation > 0.7) {return 'Formation';}
         return 'Balanced';
     }
     
@@ -486,32 +513,48 @@ class EvolutionEngine {
     }
     
     addToPool(candidate) {
-        // Check if similar genome already exists
+        // Check if similar genome already exists FROM THE SAME TEAM
         const existingIndex = this.candidatePool.findIndex(c => 
+            c.team === candidate.team && // Must be same team
             this.genomeSimilarity(c.genome, candidate.genome) > 0.9
         );
         
         if (existingIndex !== -1) {
-            // Update existing candidate
+            // Update existing candidate from same team
             const existing = this.candidatePool[existingIndex];
             existing.battles++;
             existing.wins += candidate.wins;
             existing.fitness = (existing.fitness + candidate.fitness) / 2;
         } else {
-            // Add new candidate
+            // Add new candidate (different team or different genome)
             this.candidatePool.push(candidate);
         }
     }
     
     genomeSimilarity(genome1, genome2) {
-        const keys = Object.keys(genome1);
-        let similarity = 0;
+        // Handle both array and object formats
+        if (Array.isArray(genome1) && Array.isArray(genome2)) {
+            if (genome1.length !== genome2.length) {
+                return 0;
+            }
+            
+            let similarity = 0;
+            for (let i = 0; i < genome1.length; i++) {
+                similarity += 1 - Math.abs(genome1[i] - genome2[i]);
+            }
+            return similarity / genome1.length;
+        } else if (typeof genome1 === 'object' && typeof genome2 === 'object') {
+            const keys = Object.keys(genome1);
+            let similarity = 0;
+            
+            keys.forEach(key => {
+                similarity += 1 - Math.abs((genome1[key] || 0) - (genome2[key] || 0));
+            });
+            
+            return similarity / keys.length;
+        }
         
-        keys.forEach(key => {
-            similarity += 1 - Math.abs(genome1[key] - genome2[key]);
-        });
-        
-        return similarity / keys.length;
+        return 0; // Different formats
     }
 
     sigmoid(x) {
@@ -637,8 +680,18 @@ class EvolutionEngine {
         document.getElementById('blueWins').textContent = stats.blueWins;
         
         // RED QUEEN: Use separate team fitness averages
-        const redFitnessText = isNaN(stats.redAverageFitness) ? '0.000' : stats.redAverageFitness.toFixed(3);
-        const blueFitnessText = isNaN(stats.blueAverageFitness) ? '0.000' : stats.blueAverageFitness.toFixed(3);
+        // Check if we have any real battle-earned fitness values
+        // Note: Initially all candidates are isInitial=true, so we need battle-earned candidates
+        const hasAnyBattleEarnedFitness = this.candidatePool.some(c => 
+            (c.battles && c.battles > 0) || (c.isInitial === false)
+        );
+        
+        const redFitnessText = hasAnyBattleEarnedFitness ? 
+            (isNaN(stats.redAverageFitness) ? '0.000' : stats.redAverageFitness.toFixed(3)) : 
+            'Evolving...';
+        const blueFitnessText = hasAnyBattleEarnedFitness ? 
+            (isNaN(stats.blueAverageFitness) ? '0.000' : stats.blueAverageFitness.toFixed(3)) : 
+            'Evolving...';
         
         document.getElementById('redFitness').textContent = redFitnessText;
         document.getElementById('blueFitness').textContent = blueFitnessText;
@@ -677,6 +730,44 @@ class EvolutionEngine {
     setEvolutionSpeed(speed) {
         this.evolutionSpeed = speed;
         this.logEvolutionEvent(`Evolution speed set to ${speed}x`, 'system');
+    }
+    
+    pauseEvolution() {
+        console.log('⏸️ Pausing ASI-ARCH Evolution System');
+        this.isEvolutionRunning = false;
+        this.logEvolutionEvent('Evolution system paused', 'system');
+    }
+    
+    resetEvolution() {
+        console.log('🔄 Resetting ASI-ARCH Evolution System');
+        this.isEvolutionRunning = false;
+        this.currentGeneration = 0;
+        this.generation = 1;
+        this.totalExperiments = 0;
+        this.totalBattles = 0;
+        this.redTeamWins = 0;
+        this.blueTeamWins = 0;
+        this.draws = 0;
+        
+        // Reset battle results
+        this.battleResults = {
+            red: { wins: 0, totalBattles: 0 },
+            blue: { wins: 0, totalBattles: 0 }
+        };
+        
+        // Clear experiment history
+        this.experimentHistory = [];
+        
+        // Reinitialize candidate pool with fresh genomes
+        this.candidatePool = [];
+        this.initializeCandidatePool();
+        
+        // Reinitialize populations
+        this.redPopulation = [];
+        this.bluePopulation = [];
+        this.initializePopulations();
+        
+        this.logEvolutionEvent('Evolution system reset - Ready for new cycle', 'system');
     }
     
     // Additional evolution management methods for validation

@@ -94,15 +94,19 @@ class GameEngine {
     }
     
     generateBasicGenome() {
-        // Basic random genome for initial tanks
-        return {
-            aggression: 0.3 + Math.random() * 0.4,
-            caution: 0.3 + Math.random() * 0.4,
-            speed: 0.4 + Math.random() * 0.4,
-            accuracy: 0.4 + Math.random() * 0.4,
-            cooperation: 0.3 + Math.random() * 0.4,
-            formation: 0.2 + Math.random() * 0.4
-        };
+        // Basic random genome for initial tanks - returns array format
+        // [Aggression, Speed, Accuracy, Defense, Teamwork, Adaptability, Learning, RiskTaking, Evasion]
+        return [
+            0.3 + Math.random() * 0.4,  // 0: Aggression
+            0.4 + Math.random() * 0.4,  // 1: Speed
+            0.4 + Math.random() * 0.4,  // 2: Accuracy
+            0.3 + Math.random() * 0.4,  // 3: Defense (was caution)
+            0.3 + Math.random() * 0.4,  // 4: Teamwork (was cooperation)
+            0.2 + Math.random() * 0.4,  // 5: Adaptability
+            0.2 + Math.random() * 0.4,  // 6: Learning
+            0.3 + Math.random() * 0.4,  // 7: RiskTaking
+            0.3 + Math.random() * 0.4   // 8: Evasion
+        ];
     }
     
     start() {
@@ -353,11 +357,10 @@ class GameEngine {
     }
     
     updateUI() {
-        // Update control panel
-        document.getElementById('battleTime').textContent = this.battleTime.toFixed(1);
-        document.getElementById('redTanks').textContent = this.redTeam.filter(tank => tank.isAlive).length;
-        document.getElementById('blueTanks').textContent = this.blueTeam.filter(tank => tank.isAlive).length;
-        document.getElementById('battleStatus').textContent = this.gameState;
+        // Current Battle panel has been removed - no UI updates needed
+        // Battle information is displayed directly on the battlefield
+        // This function is kept for compatibility but does nothing
+        return;
     }
     
     addProjectile(projectile) {

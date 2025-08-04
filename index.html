@@ -30,10 +30,44 @@
             margin: 5px 0;
         }
         
+        /* Evolution Control Bar */
+        .evolution-control-bar {
+            background: #222;
+            border: 2px solid #00ff88;
+            border-radius: 5px;
+            padding: 10px 20px;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .evolution-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .evolution-stats {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 12px;
+            color: #ccc;
+            flex-wrap: wrap;
+        }
+        
+        .evolution-stats div {
+            white-space: nowrap;
+        }
+        
         .game-container {
             display: flex;
             gap: 20px;
-            height: calc(100vh - 120px);
+            height: calc(100vh - 180px);
         }
         
         .battlefield {
@@ -50,6 +84,8 @@
             border-radius: 5px;
             padding: 15px;
             overflow-y: auto;
+            overflow-x: hidden;
+            box-sizing: border-box;
         }
         
         .panel-section {
@@ -278,12 +314,119 @@
         .research-link:hover {
             text-decoration: underline;
         }
+        
+        /* Genome Display */
+        .genome-display {
+            margin-top: 10px;
+            background: #1a1a1a;
+            border: 1px solid #444;
+            border-radius: 5px;
+            padding: 8px;
+            font-size: 10px;
+            width: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        
+        .genome-header {
+            color: #00ff88;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-align: center;
+            border-bottom: 1px solid #444;
+            padding-bottom: 4px;
+        }
+        
+        .genome-traits {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            font-family: monospace;
+            font-size: 9px;
+        }
+        
+        .genome-trait {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 2px 4px;
+            background: #222;
+            border-radius: 2px;
+            margin: 1px 0;
+            min-height: 16px;
+            overflow: hidden;
+        }
+        
+        .trait-name {
+            color: #ccc;
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-right: 4px;
+        }
+        
+        .trait-value {
+            color: #00ff88;
+            font-weight: bold;
+            min-width: 30px;
+            text-align: right;
+            margin-right: 4px;
+        }
+        
+        .trait-bar {
+            width: 30px;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        
+        .trait-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff4444, #ffaa00, #00ff88);
+            transition: width 0.3s ease;
+        }
+        
+        .genome-fitness {
+            text-align: center;
+            margin-top: 8px;
+            padding: 4px;
+            background: #333;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        
+        .fitness-red {
+            color: #ff6666;
+        }
+        
+        .fitness-blue {
+            color: #6666ff;
+        }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>AlphaTanks: ASI-ARCH Coevolution Battle</h1>
         <p>Autonomous tank AI evolution inspired by ASI-ARCH methodology</p>
+    </div>
+    
+    <!-- Evolution Control Bar -->
+    <div class="evolution-control-bar">
+        <div class="evolution-controls">
+            <button id="startEvolution">Start Evolution</button>
+            <button id="pauseEvolution">Pause</button>
+            <button id="resetBattle">Reset Battle</button>
+            <button id="fastMode">Fast Mode</button>
+            <button id="creditsButton">Credits</button>
+        </div>
+        <div class="evolution-stats">
+            <div id="generationDisplay">Generation: 0</div>
+            <div>Battles: <span id="battles">0</span></div>
+            <div>Total Experiments: <span id="experiments">0</span></div>
+        </div>
     </div>
     
         <div class="game-container">
@@ -355,20 +498,6 @@
             </div>
             
             <div class="panel-section">
-                <h3>Evolution Control</h3>
-                <button id="startEvolution">Start Evolution</button>
-                <button id="pauseEvolution">Pause</button>
-                <button id="resetBattle">Reset Battle</button>
-                <button id="fastMode">Fast Mode</button>
-                <button id="creditsButton">Credits</button>
-                <div class="stats">
-                    <div id="generationDisplay">Generation: 0</div>
-                    <div>Battles: <span id="battles">0</span></div>
-                    <div>Total Experiments: <span id="experiments">0</span></div>
-                </div>
-            </div>
-            
-            <div class="panel-section">
                 <h3>Team Statistics</h3>
                 <div class="stats">
                     <div class="team-red">Red Team:</div>
@@ -384,23 +513,125 @@
             </div>
             
             <div class="panel-section">
-                <h3>Current Battle</h3>
-                <div class="stats">
-                    <div>Battle Time: <span id="battleTime">0</span>s</div>
-                    <div>Red Tanks: <span id="redTanks">0</span></div>
-                    <div>Blue Tanks: <span id="blueTanks">0</span></div>
-                    <div>Status: <span id="battleStatus">Ready</span></div>
+                <h3>🧬 Best Genomes</h3>
+                
+                <!-- Red Team Best Genome -->
+                <div class="genome-display">
+                    <div class="genome-header team-red">🔴 Red Champion</div>
+                    <div class="genome-traits" id="redGenomeTraits">
+                        <div class="genome-trait">
+                            <span class="trait-name">Aggression:</span>
+                            <span class="trait-value" id="redAggression">0.0</span>
+                            <div class="trait-bar"><div class="trait-fill" id="redAggressionBar"></div></div>
+                        </div>
+                        <div class="genome-trait">
+                            <span class="trait-name">Speed:</span>
+                            <span class="trait-value" id="redSpeed">0.0</span>
+                            <div class="trait-bar"><div class="trait-fill" id="redSpeedBar"></div></div>
+                        </div>
+                        <div class="genome-trait">
+                            <span class="trait-name">Accuracy:</span>
+                            <span class="trait-value" id="redAccuracy">0.0</span>
+                            <div class="trait-bar"><div class="trait-fill" id="redAccuracyBar"></div></div>
+                        </div>
+                        <div class="genome-trait">
+                            <span class="trait-name">Defense:</span>
+                            <span class="trait-value" id="redDefense">0.0</span>
+                            <div class="trait-bar"><div class="trait-fill" id="redDefenseBar"></div></div>
+                        </div>
+                        <div class="genome-trait">
+                            <span class="trait-name">Teamwork:</span>
+                            <span class="trait-value" id="redTeamwork">0.0</span>
+                            <div class="trait-bar"><div class="trait-fill" id="redTeamworkBar"></div></div>
+                        </div>
+                        <div class="genome-trait">
+                            <span class="trait-name">Adaptability:</span>
+                            <span class="trait-value" id="redAdaptability">0.0</span>
+                            <div class="trait-bar"><div class="trait-fill" id="redAdaptabilityBar"></div></div>
+                        </div>
+                        <div class="genome-trait">
+                            <span class="trait-name">Learning:</span>
+                            <span class="trait-value" id="redLearning">0.0</span>
+                            <div class="trait-bar"><div class="trait-fill" id="redLearningBar"></div></div>
+                        </div>
+                        <div class="genome-trait">
+                            <span class="trait-name">Risk-taking:</span>
+                            <span class="trait-value" id="redRiskTaking">0.0</span>
+                            <div class="trait-bar"><div class="trait-fill" id="redRiskTakingBar"></div></div>
+                        </div>
+                        <div class="genome-trait">
+                            <span class="trait-name">Evasion:</span>
+                            <span class="trait-value" id="redEvasion">0.0</span>
+                            <div class="trait-bar"><div class="trait-fill" id="redEvasionBar"></div></div>
+                        </div>
+                    </div>
+                    <div class="genome-fitness fitness-red">
+                        Champion: <span id="redChampionFitness">0.000</span> | Threshold: <span id="redFitnessThreshold">0.500</span>
+                    </div>
+                </div>
+                
+                <!-- Blue Team Best Genome -->
+                <div class="genome-display">
+                    <div class="genome-header team-blue">🔵 Blue Champion</div>
+                    <div class="genome-traits" id="blueGenomeTraits">
+                        <div class="genome-trait">
+                            <span class="trait-name">Aggression:</span>
+                            <span class="trait-value" id="blueAggression">0.0</span>
+                            <div class="trait-bar"><div class="trait-fill" id="blueAggressionBar"></div></div>
+                        </div>
+                        <div class="genome-trait">
+                            <span class="trait-name">Speed:</span>
+                            <span class="trait-value" id="blueSpeed">0.0</span>
+                            <div class="trait-bar"><div class="trait-fill" id="blueSpeedBar"></div></div>
+                        </div>
+                        <div class="genome-trait">
+                            <span class="trait-name">Accuracy:</span>
+                            <span class="trait-value" id="blueAccuracy">0.0</span>
+                            <div class="trait-bar"><div class="trait-fill" id="blueAccuracyBar"></div></div>
+                        </div>
+                        <div class="genome-trait">
+                            <span class="trait-name">Defense:</span>
+                            <span class="trait-value" id="blueDefense">0.0</span>
+                            <div class="trait-bar"><div class="trait-fill" id="blueDefenseBar"></div></div>
+                        </div>
+                        <div class="genome-trait">
+                            <span class="trait-name">Teamwork:</span>
+                            <span class="trait-value" id="blueTeamwork">0.0</span>
+                            <div class="trait-bar"><div class="trait-fill" id="blueTeamworkBar"></div></div>
+                        </div>
+                        <div class="genome-trait">
+                            <span class="trait-name">Adaptability:</span>
+                            <span class="trait-value" id="blueAdaptability">0.0</span>
+                            <div class="trait-bar"><div class="trait-fill" id="blueAdaptabilityBar"></div></div>
+                        </div>
+                        <div class="genome-trait">
+                            <span class="trait-name">Learning:</span>
+                            <span class="trait-value" id="blueLearning">0.0</span>
+                            <div class="trait-bar"><div class="trait-fill" id="blueLearningBar"></div></div>
+                        </div>
+                        <div class="genome-trait">
+                            <span class="trait-name">Risk-taking:</span>
+                            <span class="trait-value" id="blueRiskTaking">0.0</span>
+                            <div class="trait-bar"><div class="trait-fill" id="blueRiskTakingBar"></div></div>
+                        </div>
+                        <div class="genome-trait">
+                            <span class="trait-name">Evasion:</span>
+                            <span class="trait-value" id="blueEvasion">0.0</span>
+                            <div class="trait-bar"><div class="trait-fill" id="blueEvasionBar"></div></div>
+                        </div>
+                    </div>
+                    <div class="genome-fitness fitness-blue">
+                        Champion: <span id="blueChampionFitness">0.000</span> | Threshold: <span id="blueFitnessThreshold">0.500</span>
+                    </div>
                 </div>
             </div>
             
-                <div class="panel-section">
+            <div class="panel-section">
                     <h3>Architecture Evolution</h3>
                     <div class="stats">
                         <div>Novel Designs: <span id="novelDesigns">0</span></div>
                         <div style="color: #ff6666;">🔴 Red Adaptations: <span id="redAdaptations">0</span></div>
                         <div style="color: #6666ff;">🔵 Blue Adaptations: <span id="blueAdaptations">0</span></div>
-                        <div style="color: #ff6666;">🔴 Red Fitness Threshold: <span id="redFitnessThreshold">0.500</span></div>
-                        <div style="color: #6666ff;">🔵 Blue Fitness Threshold: <span id="blueFitnessThreshold">0.500</span></div>
                     </div>
                 </div>            <div class="panel-section">
                 <h3>Evolution Log</h3>
@@ -485,13 +716,13 @@
         </div>
     </div>
     
-    <script src="game-engine.js?v=2"></script>
-    <script src="tank-ai.js?v=2"></script>
-    <script src="asi-arch-modules.js?v=2"></script>
-    <script src="evolution-engine.js?v=2"></script>
-    <script src="asi-arch-visualizer.js?v=2"></script>
-    <script src="main.js?v=2"></script>
-    <script src="debug.js?v=2"></script>
+    <script src="game-engine.js?v=20250804092918"></script>
+    <script src="tank-ai.js?v=20250804092918"></script>
+    <script src="asi-arch-modules.js?v=20250804092918"></script>
+    <script src="evolution-engine.js?v=20250804092918"></script>
+    <script src="asi-arch-visualizer.js?v=20250804092918"></script>
+    <script src="main.js?v=20250804092918"></script>
+    <script src="debug.js?v=20250804092918"></script>
     <!-- <script src="test-validation.js"></script> -->
 </body>
 </html>

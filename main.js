@@ -39,11 +39,22 @@ function initializeGame() {
     evolution = new EvolutionEngine();
     window.evolution = evolution; // Make globally accessible
     
+    // DEBUG: Check evolution state immediately after initialization
+    console.log('🧬 Evolution engine initialized:');
+    console.log('🧬 Candidate pool size:', evolution.candidatePool?.length || 0);
+    console.log('🧬 Sample candidates:', evolution.candidatePool?.slice(0, 3) || []);
+    
     // Setup UI event handlers
     setupEventHandlers();
     
     // Initialize first battle
     game.initializeBattle(3, 3);
+    
+    // DEBUG: Force update genome display immediately
+    setTimeout(() => {
+        console.log('🧬 Force updating genome display...');
+        updateGenomeDisplay();
+    }, 100);
     
     console.log('✅ AlphaTanks system ready!');
     
@@ -213,6 +224,9 @@ function startPerformanceMonitoring() {
             memoryUsage: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1024 / 1024) : 'N/A'
         };
         
+        // Update genome display
+        updateGenomeDisplay();
+        
         // Log performance issues (throttled to avoid spam)
         if (stats.fps < 30 && game && game.gameState === 'running') {
             if (!window.lastPerfWarning || Date.now() - window.lastPerfWarning > 5000) {
@@ -346,6 +360,406 @@ function hideCredits() {
         modal.style.display = 'none';
         modalContent.style.transition = '';
     }, 200);
+}
+
+// Genome display functionality
+function updateGenomeDisplay() {
+    if (!evolution || !evolution.candidatePool || evolution.candidatePool.length === 0) {
+        // Show "waiting for evolution" state
+        displayNoGenomeData();
+        return;
+    }
+    
+    try {
+        // Get best performing genomes for each team
+        const redBest = getBestGenomeForTeam('red');
+        const blueBest = getBestGenomeForTeam('blue');
+        
+        if (redBest && redBest.genome) {
+            // Check if this is a real battle-earned fitness or just initial placeholder
+            const hasRealFitness = (redBest.battles && redBest.battles > 0) || !redBest.isInitial;
+            if (hasRealFitness && typeof redBest.fitness === 'number') {
+                displayGenome('red', redBest.genome, redBest.fitness);
+            } else {
+                // Show genome traits but indicate fitness is still evolving
+                displayGenomeWithEvolvingFitness('red', redBest.genome);
+            }
+        } else {
+            displayNoGenomeDataForTeam('red');
+        }
+        
+        if (blueBest && blueBest.genome) {
+            // Check if this is a real battle-earned fitness or just initial placeholder
+            const hasRealFitness = (blueBest.battles && blueBest.battles > 0) || !blueBest.isInitial;
+            if (hasRealFitness && typeof blueBest.fitness === 'number') {
+                displayGenome('blue', blueBest.genome, blueBest.fitness);
+            } else {
+                // Show genome traits but indicate fitness is still evolving
+                displayGenomeWithEvolvingFitness('blue', blueBest.genome);
+            }
+        } else {
+            displayNoGenomeDataForTeam('blue');
+        }
+    } catch (error) {
+        console.error('Error updating genome display:', error);
+    }
+}
+
+function displayNoGenomeData() {
+    displayNoGenomeDataForTeam('red');
+    displayNoGenomeDataForTeam('blue');
+}
+
+function displayNoGenomeDataForTeam(team) {
+    const traitNames = ['Aggression', 'Speed', 'Accuracy', 'Defense', 'Teamwork', 'Adaptability', 'Learning', 'RiskTaking', 'Evasion'];
+    
+    // Update fitness display
+    const fitnessElement = document.getElementById(`${team}ChampionFitness`);
+    if (fitnessElement) {
+        fitnessElement.textContent = 'Evolving...';
+    }
+    
+    // Update each trait to show evolving state
+    traitNames.forEach((traitName, _index) => {
+        // Update trait value
+        const valueElement = document.getElementById(`${team}${traitName}`);
+        if (valueElement) {
+            valueElement.textContent = '—';
+        }
+        
+        // Update trait bar to show minimal width
+        const barElement = document.getElementById(`${team}${traitName}Bar`);
+        if (barElement) {
+            barElement.style.width = '0%';
+            barElement.style.background = '#333';
+        }
+    });
+}
+
+function getBestGenomeForTeam(team) {
+    if (!evolution || !evolution.candidatePool || evolution.candidatePool.length === 0) {
+        console.log(`🧬 No candidate pool available for team ${team}`);
+        return null;
+    }
+    
+    try {
+        console.log(`🧬 Looking for proven champion for team ${team}, pool size: ${evolution.candidatePool.length}`);
+        
+        // Debug: Log sample candidate to see format
+        if (evolution.candidatePool.length > 0) {
+            const sample = evolution.candidatePool[0];
+            console.log(`🧬 Sample candidate:`, {
+                genome: sample.genome,
+                isArray: Array.isArray(sample.genome),
+                genomeType: typeof sample.genome,
+                genomeLength: sample.genome?.length,
+                fitness: sample.fitness,
+                battles: sample.battles,
+                wins: sample.wins
+            });
+        }
+        
+        // First, try to filter candidates by actual team assignment AND battle experience
+        let championCandidates = evolution.candidatePool.filter(candidate => {
+            if (!candidate || !candidate.genome) {
+                console.log(`🧬 Invalid candidate: missing genome`);
+                return false;
+            }
+            
+            // Check genome format
+            const isValidArray = Array.isArray(candidate.genome) && candidate.genome.length >= 9;
+            const isValidObject = !Array.isArray(candidate.genome) && typeof candidate.genome === 'object';
+            
+            if (!isValidArray && !isValidObject) {
+                console.log(`🧬 Invalid genome format:`, candidate.genome);
+                return false;
+            }
+            
+            // Filter by team assignment AND battle experience (proven champions only)
+            const isTeamMember = candidate.team === team;
+            const hasBattleExperience = candidate.battles && candidate.battles > 0;
+            const hasWins = candidate.wins && candidate.wins > 0;
+            
+            if (isTeamMember && hasBattleExperience) {
+                console.log(`🧬 Found proven champion for ${team}: battles=${candidate.battles}, wins=${candidate.wins}`);
+                return true;
+            }
+            
+            return false;
+        });
+        
+        console.log(`🧬 Found ${championCandidates.length} proven champions for ${team}`);
+        
+        // If no proven champions yet, fall back to experienced fighters (even without wins)
+        if (championCandidates.length === 0) {
+            championCandidates = evolution.candidatePool.filter(candidate => {
+                if (!candidate || !candidate.genome) {
+                    return false;
+                }
+                
+                const isValidArray = Array.isArray(candidate.genome) && candidate.genome.length >= 9;
+                const isValidObject = !Array.isArray(candidate.genome) && typeof candidate.genome === 'object';
+                
+                if (!isValidArray && !isValidObject) {
+                    return false;
+                }
+                
+                // Look for team members with any battle experience
+                const isTeamMember = candidate.team === team;
+                const hasBattleExperience = candidate.battles && candidate.battles > 0;
+                
+                if (isTeamMember && hasBattleExperience) {
+                    console.log(`🧬 Found experienced fighter for ${team}: battles=${candidate.battles}`);
+                    return true;
+                }
+                
+                return false;
+            });
+            
+            console.log(`🧬 Found ${championCandidates.length} experienced fighters for ${team}`);
+        }
+        
+        // If still no battle-tested candidates, use current generation team members (early generation case)
+        if (championCandidates.length === 0) {
+            championCandidates = evolution.candidatePool.filter(candidate => {
+                if (!candidate || !candidate.genome) {
+                    return false;
+                }
+                
+                const isValidArray = Array.isArray(candidate.genome) && candidate.genome.length >= 9;
+                const isValidObject = !Array.isArray(candidate.genome) && typeof candidate.genome === 'object';
+                
+                if (!isValidArray && !isValidObject) {
+                    return false;
+                }
+                
+                // Filter by team assignment only (for early generations)
+                if (candidate.team === team) {
+                    console.log(`🧬 Found current generation member for ${team} (early generation)`);
+                    return true;
+                }
+                
+                return false;
+            });
+            
+            console.log(`🧬 Found ${championCandidates.length} current generation members for ${team}`);
+        }
+        
+        // If no team-specific candidates, get overall best and assign based on traits
+        if (championCandidates.length === 0) {
+            const allCandidates = evolution.candidatePool.filter(candidate => {
+                if (!candidate || !candidate.genome) {
+                    return false;
+                }
+                
+                const isValidArray = Array.isArray(candidate.genome) && candidate.genome.length >= 9;
+                const isValidObject = !Array.isArray(candidate.genome) && typeof candidate.genome === 'object';
+                
+                return isValidArray || isValidObject;
+            });
+            
+            console.log(`🧬 Using fallback: ${allCandidates.length} valid candidates total`);
+            
+            if (allCandidates.length === 0) {
+                console.warn(`🧬 No valid candidates found for team ${team}`);
+                return null;
+            }
+            
+            allCandidates.sort((a, b) => (b.fitness || 0) - (a.fitness || 0));
+            
+            // Try to find team-appropriate candidates by traits, avoiding already assigned ones
+            for (const candidate of allCandidates) {
+                const genome = candidate.genome;
+                let aggression, teamwork, defense;
+                
+                // Handle both array and object formats
+                if (Array.isArray(genome)) {
+                    aggression = genome[0] || 0;
+                    teamwork = genome[4] || 0;
+                    defense = genome[3] || 0;
+                } else {
+                    aggression = genome.aggression || 0;
+                    teamwork = genome.cooperation || genome.teamwork || 0;
+                    defense = genome.caution || genome.defense || 0;
+                }
+                
+                // Prefer different candidates for each team based on traits
+                if (team === 'red' && aggression > 0.3) {
+                    console.log(`🧬 Assigned red candidate based on aggression: ${aggression.toFixed(2)}`);
+                    // Mark this candidate as used by red team (temporary assignment)
+                    candidate.tempTeam = 'red';
+                    return candidate;
+                } else if (team === 'blue' && (teamwork > 0.3 || defense > 0.3) && candidate.tempTeam !== 'red') {
+                    console.log(`🧬 Assigned blue candidate based on teamwork/defense: ${teamwork.toFixed(2)}/${defense.toFixed(2)}`);
+                    // Mark this candidate as used by blue team (temporary assignment)
+                    candidate.tempTeam = 'blue';
+                    return candidate;
+                }
+            }
+            
+            // Final fallback: assign different top candidates to each team
+            if (team === 'red' && allCandidates.length > 0) {
+                console.log(`🧬 Using top candidate for red team (fallback)`);
+                allCandidates[0].tempTeam = 'red';
+                return allCandidates[0];
+            } else if (team === 'blue' && allCandidates.length > 1) {
+                console.log(`🧬 Using second-best candidate for blue team (fallback)`);
+                allCandidates[1].tempTeam = 'blue';
+                return allCandidates[1];
+            } else if (team === 'blue' && allCandidates.length > 0) {
+                console.log(`🧬 Using top candidate for blue team (only option)`);
+                return allCandidates[0];
+            }
+            
+            return null;
+        }
+        
+        // Sort by fitness and return the best
+        championCandidates.sort((a, b) => (b.fitness || 0) - (a.fitness || 0));
+        const best = championCandidates[0];
+        console.log(`🧬 Best ${team} champion fitness: ${best.fitness?.toFixed(3) || 'N/A'}, battles: ${best.battles || 0}, wins: ${best.wins || 0}`);
+        return best;
+    } catch (error) {
+        console.error('Error in getBestGenomeForTeam:', error);
+        return null;
+    }
+}
+
+function displayGenome(team, genome, fitness) {
+    const traitNames = ['Aggression', 'Speed', 'Accuracy', 'Defense', 'Teamwork', 'Adaptability', 'Learning', 'RiskTaking', 'Evasion'];
+    
+    // Validate inputs and handle both array and object genome formats
+    if (!genome || typeof fitness !== 'number') {
+        console.warn('Invalid genome data provided to displayGenome:', { team, genome, fitness });
+        return;
+    }
+    
+    // Convert object genome to array format if needed
+    let genomeArray;
+    if (Array.isArray(genome)) {
+        genomeArray = genome;
+    } else if (typeof genome === 'object') {
+        // Convert object format to array format
+        genomeArray = [
+            genome.aggression || 0,
+            genome.speed || 0,
+            genome.accuracy || 0,
+            genome.defense || genome.caution || 0,
+            genome.teamwork || genome.cooperation || 0,
+            genome.adaptability || 0,
+            genome.learning || 0,
+            genome.riskTaking || 0,
+            genome.evasion || 0
+        ];
+    } else {
+        console.warn('Invalid genome format provided to displayGenome:', { team, genome, fitness });
+        return;
+    }
+    
+    // Update fitness display
+    const fitnessElement = document.getElementById(`${team}ChampionFitness`);
+    if (fitnessElement) {
+        fitnessElement.textContent = fitness.toFixed(3);
+    }
+    
+    // Update each trait using the genomeArray
+    traitNames.forEach((traitName, index) => {
+        const value = genomeArray[index];
+        
+        // Handle undefined or invalid values
+        if (typeof value !== 'number' || isNaN(value)) {
+            console.warn(`Invalid trait value at index ${index} for team ${team}:`, value);
+            return; // Skip this trait
+        }
+        
+        const displayValue = value.toFixed(2);
+        const percentage = Math.max(0, Math.min(100, (value * 100))).toFixed(0);
+        
+        // Update trait value
+        const valueElement = document.getElementById(`${team}${traitName}`);
+        if (valueElement) {
+            valueElement.textContent = displayValue;
+        }
+        
+        // Update trait bar
+        const barElement = document.getElementById(`${team}${traitName}Bar`);
+        if (barElement) {
+            barElement.style.width = `${percentage}%`;
+            
+            // Color coding based on value
+            if (value < 0.3) {
+                barElement.style.background = '#ff4444'; // Low - Red
+            } else if (value < 0.7) {
+                barElement.style.background = '#ffaa00'; // Medium - Orange
+            } else {
+                barElement.style.background = '#00ff88'; // High - Green
+            }
+        }
+    });
+    
+    console.log(`🧬 Updated ${team} champion genome - Fitness: ${fitness.toFixed(3)}`);
+}
+
+function displayGenomeWithEvolvingFitness(team, genome) {
+    const traitNames = ['Aggression', 'Speed', 'Accuracy', 'Defense', 'Teamwork', 'Adaptability', 'Learning', 'RiskTaking', 'Evasion'];
+    
+    // Convert object genome to array format if needed
+    let genomeArray;
+    if (Array.isArray(genome)) {
+        genomeArray = genome;
+    } else if (typeof genome === 'object' && genome) {
+        // Convert object format to array format
+        genomeArray = [
+            genome.aggression || 0,
+            genome.speed || 0,
+            genome.accuracy || 0,
+            genome.defense || genome.caution || 0,
+            genome.teamwork || genome.cooperation || 0,
+            genome.adaptability || 0,
+            genome.learning || 0,
+            genome.riskTaking || 0,
+            genome.evasion || 0
+        ];
+    } else {
+        console.warn('Invalid genome format in displayGenomeWithEvolvingFitness:', genome);
+        genomeArray = null;
+    }
+    
+    // Update fitness display to show "Evolving..." - use the correct element ID
+    const fitnessElement = document.getElementById(`${team}ChampionFitness`);
+    if (fitnessElement) {
+        fitnessElement.textContent = 'Evolving...';
+    }
+    
+    // Update each trait with actual values but show fitness as evolving
+    traitNames.forEach((traitName, index) => {
+        // Update trait value with actual genome data
+        const valueElement = document.getElementById(`${team}${traitName}`);
+        if (valueElement && genomeArray && genomeArray[index] !== undefined) {
+            const value = genomeArray[index];
+            valueElement.textContent = value.toFixed(2);
+        } else if (valueElement) {
+            valueElement.textContent = '—';
+        }
+        
+        // Update trait bar with actual values
+        const barElement = document.getElementById(`${team}${traitName}Bar`);
+        if (barElement && genomeArray && genomeArray[index] !== undefined) {
+            const value = genomeArray[index];
+            barElement.style.width = `${value * 100}%`;
+            
+            // Color coding based on value
+            if (value < 0.3) {
+                barElement.style.background = '#ff4444'; // Low - Red
+            } else if (value < 0.7) {
+                barElement.style.background = '#ffaa00'; // Medium - Orange
+            } else {
+                barElement.style.background = '#00ff88'; // High - Green
+            }
+        }
+    });
+    
+    console.log(`🧬 Updated ${team} genome traits - Fitness still evolving...`);
 }
 
 // Demo data for initial showcase

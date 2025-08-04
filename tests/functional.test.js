@@ -87,6 +87,14 @@ describe('ASI-ARCH Tank Evolution System - Functional Tests', () => {
       expect(htmlContent).toContain('id="blueFitness"');
       expect(htmlContent).toContain('id="researcherRedMutations"');
       expect(htmlContent).toContain('id="researcherBlueMutations"');
+      
+      // Check for genome display elements
+      expect(htmlContent).toContain('🧬 Best Genomes');
+      expect(htmlContent).toContain('id="redChampionFitness"');
+      expect(htmlContent).toContain('id="blueChampionFitness"');
+      expect(htmlContent).toContain('id="redAggression"');
+      expect(htmlContent).toContain('id="blueAggression"');
+      expect(htmlContent).toContain('class="genome-display"');
     });
   });
 
@@ -318,6 +326,21 @@ describe('ASI-ARCH Tank Evolution System - Functional Tests', () => {
       expect(asiArchContent).toContain('counter-evolution');
       expect(asiArchContent).toContain('competitive');
       expect(asiArchContent).toContain('arms race');
+    });
+
+    test('should have genome display functionality', () => {
+      const fs = require('fs');
+      const mainContent = fs.readFileSync('main.js', 'utf8');
+      
+      // Check for genome display functions
+      expect(mainContent).toContain('updateGenomeDisplay');
+      expect(mainContent).toContain('getBestGenomeForTeam');
+      expect(mainContent).toContain('displayGenome');
+      
+      // Check for trait tracking
+      expect(mainContent).toContain('traitNames');
+      expect(mainContent).toContain('Aggression');
+      expect(mainContent).toContain('ChampionFitness');
     });
   });
 });

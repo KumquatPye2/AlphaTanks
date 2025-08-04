@@ -43,7 +43,25 @@ class TankResearcher {
                 const teamWon = battle.result.winner === team;
                 const fitnessBonus = teamWon ? 0.2 : 0;
                 
-                teamGenomes.forEach(genome => {
+                teamGenomes.forEach(genomeItem => {
+                    // Extract genome and ensure it's in array format
+                    let genome = genomeItem.genome || genomeItem;
+                    
+                    // Convert object genomes to array format if needed
+                    if (!Array.isArray(genome) && genome && typeof genome === 'object') {
+                        genome = [
+                            genome.aggression || 0.5,           // 0: Aggression
+                            genome.speed || 0.5,                // 1: Speed  
+                            genome.accuracy || 0.5,             // 2: Accuracy
+                            genome.defense || genome.caution || 0.5,  // 3: Defense
+                            genome.teamwork || genome.cooperation || 0.5,  // 4: Teamwork
+                            genome.adaptability || genome.formation || 0.5,  // 5: Adaptability
+                            genome.learning || genome.flanking || 0.5,     // 6: Learning
+                            genome.riskTaking || genome.ambush || 0.5,      // 7: RiskTaking
+                            genome.evasion || genome.sacrifice || 0.5       // 8: Evasion
+                        ];
+                    }
+                    
                     teamCandidates.push({
                         genome,
                         fitness: this.calculateGenomeFitness(genome, battle.result, team) + fitnessBonus,
@@ -79,14 +97,16 @@ class TankResearcher {
         
         if (team === 'red') {
             // Red team: More aggressive, faster, risk-taking
-            baseGenome.aggression = Math.min(1, baseGenome.aggression + 0.2);
-            baseGenome.speed = Math.min(1, baseGenome.speed + 0.1);
-            baseGenome.caution = Math.max(0, baseGenome.caution - 0.1);
+            // Array indices: [Aggression, Speed, Accuracy, Defense, Teamwork, Adaptability, Learning, RiskTaking, Evasion]
+            baseGenome[0] = Math.min(1, baseGenome[0] + 0.2); // Aggression
+            baseGenome[1] = Math.min(1, baseGenome[1] + 0.1); // Speed
+            baseGenome[3] = Math.max(0, baseGenome[3] - 0.1); // Defense (less defensive)
+            baseGenome[7] = Math.min(1, baseGenome[7] + 0.2); // RiskTaking
         } else {
             // Blue team: More defensive, accurate, cooperative
-            baseGenome.accuracy = Math.min(1, baseGenome.accuracy + 0.2);
-            baseGenome.cooperation = Math.min(1, baseGenome.cooperation + 0.1);
-            baseGenome.caution = Math.min(1, baseGenome.caution + 0.1);
+            baseGenome[2] = Math.min(1, baseGenome[2] + 0.2); // Accuracy
+            baseGenome[4] = Math.min(1, baseGenome[4] + 0.1); // Teamwork
+            baseGenome[3] = Math.min(1, baseGenome[3] + 0.1); // Defense
         }
         
         return baseGenome;
@@ -94,8 +114,14 @@ class TankResearcher {
     
     selectParents(candidatePool, count) {
         if (candidatePool.length === 0) {
-            // Generate random parents if pool is empty
-            return Array(count).fill().map(() => ({ genome: this.generateRandomGenome() }));
+            // Generate random parents if pool is empty - ensure consistent format
+            return Array(count).fill().map(() => ({ 
+                genome: this.generateRandomGenome(),
+                fitness: 0.5,
+                generation: 0,
+                battles: 0,
+                wins: 0
+            }));
         }
         
         // Tournament selection (like ASI-ARCH)
@@ -171,39 +197,40 @@ class TankResearcher {
             window.emitASIArchEvent('researcher', 'crossover');
         }
         
-        const child = {};
-        const traits = Object.keys(parent1);
+        // Create child array with same length as parents
+        const child = new Array(parent1.length);
         
-        traits.forEach(trait => {
+        for (let i = 0; i < parent1.length; i++) {
             // Uniform crossover with slight bias toward better parent
             if (Math.random() < 0.5) {
-                child[trait] = parent1[trait];
+                child[i] = parent1[i];
             } else {
-                child[trait] = parent2[trait];
+                child[i] = parent2[i];
             }
             
             // Add small random variation
-            child[trait] += (Math.random() - 0.5) * 0.1;
-            child[trait] = Math.max(0, Math.min(1, child[trait]));
-        });
+            child[i] += (Math.random() - 0.5) * 0.1;
+            child[i] = Math.max(0, Math.min(1, child[i]));
+        }
         
         return child;
     }
     
     mutate(parent) {
-        const child = { ...parent };
-        const traits = Object.keys(child);
+        const child = [...parent]; // Create array copy
         
         const mutatedTraits = [];
-        traits.forEach(trait => {
+        const traitNames = ['Aggression', 'Speed', 'Accuracy', 'Defense', 'Teamwork', 'Adaptability', 'Learning', 'RiskTaking', 'Evasion'];
+        
+        for (let i = 0; i < child.length; i++) {
             if (Math.random() < this.mutationRate) {
                 // Gaussian mutation
                 const mutation = this.gaussianRandom() * 0.2;
-                child[trait] += mutation;
-                child[trait] = Math.max(0, Math.min(1, child[trait]));
-                mutatedTraits.push(trait);
+                child[i] += mutation;
+                child[i] = Math.max(0, Math.min(1, child[i]));
+                mutatedTraits.push(traitNames[i] || `trait${i}`);
             }
-        });
+        }
         
         // Emit visualization event for mutations
         if (mutatedTraits.length > 0 && window.emitASIArchEvent) {
@@ -217,19 +244,20 @@ class TankResearcher {
     }
     
     mutateWithTeamTracking(parent, team) {
-        const child = { ...parent };
-        const traits = Object.keys(child);
+        const child = [...parent]; // Create array copy
         
         const mutatedTraits = [];
-        traits.forEach(trait => {
+        const traitNames = ['Aggression', 'Speed', 'Accuracy', 'Defense', 'Teamwork', 'Adaptability', 'Learning', 'RiskTaking', 'Evasion'];
+        
+        for (let i = 0; i < child.length; i++) {
             if (Math.random() < this.mutationRate) {
                 // Gaussian mutation
                 const mutation = this.gaussianRandom() * 0.2;
-                child[trait] += mutation;
-                child[trait] = Math.max(0, Math.min(1, child[trait]));
-                mutatedTraits.push(trait);
+                child[i] += mutation;
+                child[i] = Math.max(0, Math.min(1, child[i]));
+                mutatedTraits.push(traitNames[i] || `trait${i}`);
             }
-        });
+        }
         
         // Emit team-specific visualization event for mutations
         if (mutatedTraits.length > 0 && window.emitASIArchEvent) {
@@ -258,6 +286,8 @@ class TankResearcher {
         const tactics = cognitionBase.formations;
         let significantLearning = false;
         
+        // Array indices: [Aggression, Speed, Accuracy, Defense, Teamwork, Adaptability, Learning, RiskTaking, Evasion]
+        
         // Analyze team performance to determine learning urgency
         const recentBattles = history.slice(-5); // Last 5 battles
         const teamWins = recentBattles.filter(battle => battle.result.winner === team).length;
@@ -266,15 +296,15 @@ class TankResearcher {
         if (team === 'red') {
             // Red team: Apply aggressive blitzkrieg or pincer tactics
             const blitzkrieg = tactics.blitzkrieg.traits;
-            const oldSpeed = genome.speed;
-            const oldAggression = genome.aggression;
+            const oldSpeed = genome[1];
+            const oldAggression = genome[0];
             
-            genome.speed = Math.max(genome.speed, blitzkrieg.speed * 0.7);
-            genome.aggression = Math.max(genome.aggression, blitzkrieg.aggression * 0.7);
+            genome[1] = Math.max(genome[1], blitzkrieg.speed * 0.7); // Speed
+            genome[0] = Math.max(genome[0], blitzkrieg.aggression * 0.7); // Aggression
             
             // Only emit learning event if significant tactical improvement occurred
-            const speedImprovement = genome.speed - oldSpeed;
-            const aggressionImprovement = genome.aggression - oldAggression;
+            const speedImprovement = genome[1] - oldSpeed;
+            const aggressionImprovement = genome[0] - oldAggression;
             const totalImprovement = speedImprovement + aggressionImprovement;
             significantLearning = (totalImprovement > 0.1) && (Math.random() < (0.2 * learningUrgency));
             
@@ -288,16 +318,16 @@ class TankResearcher {
         } else if (team === 'blue') {
             // Blue team: Apply defensive phalanx tactics  
             const phalanx = tactics.phalanx.traits;
-            const oldFormation = genome.formation;
-            const oldCooperation = genome.cooperation;
+            const oldAdaptability = genome[5];
+            const oldTeamwork = genome[4];
             
-            genome.formation = Math.max(genome.formation, phalanx.formation * 0.7);
-            genome.cooperation = Math.max(genome.cooperation, phalanx.cooperation * 0.7);
+            genome[5] = Math.max(genome[5], phalanx.formation * 0.7); // Adaptability (was formation)
+            genome[4] = Math.max(genome[4], phalanx.cooperation * 0.7); // Teamwork (was cooperation)
             
             // Only emit learning event if significant tactical improvement occurred
-            const formationImprovement = genome.formation - oldFormation;
-            const cooperationImprovement = genome.cooperation - oldCooperation;
-            const totalImprovement = formationImprovement + cooperationImprovement;
+            const adaptabilityImprovement = genome[5] - oldAdaptability;
+            const teamworkImprovement = genome[4] - oldTeamwork;
+            const totalImprovement = adaptabilityImprovement + teamworkImprovement;
             significantLearning = (totalImprovement > 0.1) && (Math.random() < (0.2 * learningUrgency));
             
             if (significantLearning && window.emitASIArchEvent) {
@@ -315,22 +345,26 @@ class TankResearcher {
     applyNovelTraits(genome) {
         // ASI-ARCH emergent behavior discovery
         // Randomly introduce advanced traits that might emerge
+        // Array indices: [Aggression, Speed, Accuracy, Defense, Teamwork, Adaptability, Learning, RiskTaking, Evasion]
         
         if (Math.random() < 0.1) { // 10% chance
-            if (genome.aggression > 0.6 && genome.speed > 0.5) {
-                genome.flanking = Math.min(1, genome.flanking + 0.2);
+            // Flanking behavior: high aggression + speed boost evasion
+            if (genome[0] > 0.6 && genome[1] > 0.5) {
+                genome[8] = Math.min(1, genome[8] + 0.2); // Evasion
             }
         }
         
         if (Math.random() < 0.05) { // 5% chance
-            if (genome.caution > 0.7 && genome.accuracy > 0.6) {
-                genome.ambush = Math.min(1, genome.ambush + 0.3);
+            // Ambush behavior: high defense + accuracy boost learning
+            if (genome[3] > 0.7 && genome[2] > 0.6) {
+                genome[6] = Math.min(1, genome[6] + 0.3); // Learning
             }
         }
         
         if (Math.random() < 0.02) { // 2% chance (rare trait)
-            if (genome.cooperation > 0.8) {
-                genome.sacrifice = Math.min(1, genome.sacrifice + 0.1);
+            // Sacrifice behavior: high teamwork boosts risk-taking
+            if (genome[4] > 0.8) {
+                genome[7] = Math.min(1, genome[7] + 0.1); // RiskTaking
             }
         }
         
@@ -338,17 +372,18 @@ class TankResearcher {
     }
     
     generateRandomGenome() {
-        return {
-            aggression: Math.random(),
-            caution: Math.random(),
-            speed: Math.random(),
-            accuracy: Math.random(),
-            cooperation: Math.random(),
-            formation: Math.random(),
-            flanking: 0,
-            ambush: 0,
-            sacrifice: 0
-        };
+        // Return 9-trait array format: [Aggression, Speed, Accuracy, Defense, Teamwork, Adaptability, Learning, RiskTaking, Evasion]
+        return [
+            Math.random(), // Aggression
+            Math.random(), // Speed
+            Math.random(), // Accuracy
+            Math.random(), // Defense (was caution)
+            Math.random(), // Teamwork (was cooperation)
+            Math.random(), // Adaptability (was formation)
+            Math.random(), // Learning
+            Math.random(), // RiskTaking
+            Math.random()  // Evasion
+        ];
     }
     
     analyzeOpponentStrategies(history, opponentTeam) {
@@ -366,17 +401,18 @@ class TankResearcher {
             const opponentWon = battle.result.winner === opponentTeam;
             
             opponentGenomes.forEach(genome => {
-                totalAggression += genome.aggression;
-                totalSpeed += genome.speed;
-                totalAccuracy += genome.accuracy;
+                // Array indices: [Aggression, Speed, Accuracy, Defense, Teamwork, Adaptability, Learning, RiskTaking, Evasion]
+                totalAggression += genome[0]; // Aggression
+                totalSpeed += genome[1]; // Speed
+                totalAccuracy += genome[2]; // Accuracy
                 sampleCount++;
                 
                 if (opponentWon) {
                     // Record successful opponent tactics
-                    if (genome.aggression > 0.7) {winningTactics.push('high_aggression');}
-                    if (genome.speed > 0.7) {winningTactics.push('high_speed');}
-                    if (genome.accuracy > 0.7) {winningTactics.push('high_accuracy');}
-                    if (genome.formation > 0.6) {winningTactics.push('formation_fighting');}
+                    if (genome[0] > 0.7) {winningTactics.push('high_aggression');}
+                    if (genome[1] > 0.7) {winningTactics.push('high_speed');}
+                    if (genome[2] > 0.7) {winningTactics.push('high_accuracy');}
+                    if (genome[5] > 0.6) {winningTactics.push('formation_fighting');} // Adaptability (was formation)
                 }
             });
         });
@@ -391,60 +427,63 @@ class TankResearcher {
     
         applyCounterEvolution(genome, opponentStrategies, team) {
             // RED QUEEN RACE: Evolve specific counters to opponent strategies in an evolutionary arms race
+            // Array indices: [Aggression, Speed, Accuracy, Defense, Teamwork, Adaptability, Learning, RiskTaking, Evasion]
             let counterTacticLearned = false;
             let tacticName = '';
 
             // Counter high-aggression opponents with defensive tactics
             if (opponentStrategies.avgAggression > 0.6) {
-                genome.caution = Math.min(1, genome.caution + 0.2);
-                genome.formation = Math.min(1, genome.formation + 0.15);
-                genome.ambush = Math.min(1, genome.ambush + 0.1);
+                genome[3] = Math.min(1, genome[3] + 0.2); // Defense (was caution)
+                genome[5] = Math.min(1, genome[5] + 0.15); // Adaptability (was formation)
+                genome[6] = Math.min(1, genome[6] + 0.1); // Learning (similar to ambush planning)
                 counterTacticLearned = true;
                 tacticName = 'defensive_counter';
-            }        // Counter high-speed opponents with accuracy and prediction
-        if (opponentStrategies.avgSpeed > 0.6) {
-            genome.accuracy = Math.min(1, genome.accuracy + 0.2);
-            genome.cooperation = Math.min(1, genome.cooperation + 0.1);
-            counterTacticLearned = true;
-            tacticName = 'precision_counter';
+            }
+            
+            // Counter high-speed opponents with accuracy and prediction
+            if (opponentStrategies.avgSpeed > 0.6) {
+                genome[2] = Math.min(1, genome[2] + 0.2); // Accuracy
+                genome[4] = Math.min(1, genome[4] + 0.1); // Teamwork (was cooperation)
+                counterTacticLearned = true;
+                tacticName = 'precision_counter';
+            }
+            
+            // Counter high-accuracy opponents with mobility and flanking
+            if (opponentStrategies.avgAccuracy > 0.6) {
+                genome[1] = Math.min(1, genome[1] + 0.2); // Speed
+                genome[8] = Math.min(1, genome[8] + 0.15); // Evasion (flanking behavior)
+                counterTacticLearned = true;
+                tacticName = 'mobility_counter';
+            }
+            
+            // Counter formation fighting with disruption tactics
+            if (opponentStrategies.winningTactics.includes('formation_fighting')) {
+                genome[8] = Math.min(1, genome[8] + 0.2); // Evasion (flanking)
+                genome[0] = Math.min(1, genome[0] + 0.1); // Aggression
+                counterTacticLearned = true;
+                tacticName = 'disruption_counter';
+            }
+            
+            // Emit counter-evolution event
+            if (window.emitASIArchEvent && opponentStrategies.winningTactics.length > 0) {
+                window.emitASIArchEvent('researcher', 'counter_evolve', { 
+                    trait: 'adaptation',
+                    team: team,
+                    counter: opponentStrategies.winningTactics[0] 
+                });
+            }
+            
+            // Emit team-specific tactical learning for counter-evolution
+            // Only when significant counter-strategy is needed and occasionally to avoid spam
+            if (counterTacticLearned && window.emitASIArchEvent && Math.random() < 0.3) {
+                window.emitASIArchEvent('cognition', 'team_tactics_learned', { 
+                    team: team,
+                    tactic: tacticName
+                });
+            }
+            
+            return genome;
         }
-        
-        // Counter high-accuracy opponents with mobility and flanking
-        if (opponentStrategies.avgAccuracy > 0.6) {
-            genome.speed = Math.min(1, genome.speed + 0.2);
-            genome.flanking = Math.min(1, genome.flanking + 0.15);
-            counterTacticLearned = true;
-            tacticName = 'mobility_counter';
-        }
-        
-        // Counter formation fighting with disruption tactics
-        if (opponentStrategies.winningTactics.includes('formation_fighting')) {
-            genome.flanking = Math.min(1, genome.flanking + 0.2);
-            genome.aggression = Math.min(1, genome.aggression + 0.1);
-            counterTacticLearned = true;
-            tacticName = 'disruption_counter';
-        }
-        
-        // Emit counter-evolution event
-        if (window.emitASIArchEvent && opponentStrategies.winningTactics.length > 0) {
-            window.emitASIArchEvent('researcher', 'counter_evolve', { 
-                trait: 'adaptation',
-                team: team,
-                counter: opponentStrategies.winningTactics[0] 
-            });
-        }
-        
-        // Emit team-specific tactical learning for counter-evolution
-        // Only when significant counter-strategy is needed and occasionally to avoid spam
-        if (counterTacticLearned && window.emitASIArchEvent && Math.random() < 0.3) {
-            window.emitASIArchEvent('cognition', 'team_tactics_learned', { 
-                team: team,
-                tactic: tacticName
-            });
-        }
-        
-        return genome;
-    }
     
     calculateGenomeFitness(genome, battleResult, team) {
         // Calculate fitness for a specific genome in the context of its team
@@ -473,17 +512,17 @@ class TankResearcher {
         let contribution = 0;
         
         // High aggression genomes get credit for high damage
-        if (genome.aggression > 0.7 && teamStats.totalDamageDealt > 50) {
+        if (genome[0] > 0.7 && teamStats.totalDamageDealt > 50) { // Aggression
             contribution += 0.3;
         }
         
         // High accuracy genomes get credit for team accuracy
-        if (genome.accuracy > 0.7 && teamStats.accuracy > 0.6) {
+        if (genome[2] > 0.7 && teamStats.accuracy > 0.6) { // Accuracy
             contribution += 0.3;
         }
         
         // Cooperative genomes get credit for team survival
-        if (genome.cooperation > 0.6 && teamStats.averageSurvivalTime > 40) {
+        if (genome[4] > 0.6 && teamStats.averageSurvivalTime > 40) { // Teamwork (was cooperation)
             contribution += 0.3;
         }
         
@@ -590,7 +629,8 @@ class TankEngineer {
     
     calculateTeamSynergy(genome, stats) {
         // How well the tank worked with its team
-        return genome.cooperation * genome.formation * 0.5 + 
+        // Array indices: [Aggression, Speed, Accuracy, Defense, Teamwork, Adaptability, Learning, RiskTaking, Evasion]
+        return genome[4] * genome[5] * 0.5 + // Teamwork * Adaptability (was cooperation * formation)
                (stats.accuracy > 0.5 ? 0.3 : 0) +
                (stats.averageSurvivalTime > 30 ? 0.2 : 0);
     }
@@ -873,33 +913,30 @@ class ASIArchModules {
     // Researcher Module Interface
         applyResearcher(population, team, _history) {
         const researched = population.map(individual => {
-            // Convert array genome to object if needed
+            // Genome should already be in array format, just pass it directly
             let genome = individual.genome;
-            if (Array.isArray(genome)) {
-                genome = {
-                    aggression: genome[0] || 0.5,
-                    caution: genome[1] || 0.5,
-                    speed: genome[2] || 0.5,
-                    accuracy: genome[3] || 0.5,
-                    cooperation: genome[4] || 0.5,
-                    formation: genome[5] || 0.5,
-                    flanking: genome[6] || 0.5,
-                    ambush: genome[7] || 0.5,
-                    sacrifice: genome[8] || 0.5
-                };
+            
+            // Ensure it's an array, if not convert properly
+            if (!Array.isArray(genome)) {
+                // Convert object to new array format: [Aggression, Speed, Accuracy, Defense, Teamwork, Adaptability, Learning, RiskTaking, Evasion]
+                genome = [
+                    genome.aggression || 0.5,    // [0] Aggression
+                    genome.speed || 0.5,         // [1] Speed  
+                    genome.accuracy || 0.5,      // [2] Accuracy
+                    genome.caution || 0.5,       // [3] Defense (was caution)
+                    genome.cooperation || 0.5,   // [4] Teamwork (was cooperation)
+                    genome.formation || 0.5,     // [5] Adaptability (was formation)
+                    genome.flanking || 0.5,      // [6] Learning (was flanking)
+                    genome.ambush || 0.5,        // [7] RiskTaking (was ambush)
+                    genome.sacrifice || 0.5      // [8] Evasion (was sacrifice)
+                ];
             }
             
             const mutated = this.researcherModule.mutate(genome);
             this.stats[team].mutations++;
             
-            // Convert back to array format for test compatibility
-            const genomeArray = [
-                mutated.aggression, mutated.caution, mutated.speed,
-                mutated.accuracy, mutated.cooperation, mutated.formation,
-                mutated.flanking, mutated.ambush, mutated.sacrifice
-            ];
-            
-            return { ...individual, genome: genomeArray };
+            // mutated should already be an array, no conversion needed
+            return { ...individual, genome: mutated };
         });
         this.updateDisplay();
         return researched;
