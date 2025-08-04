@@ -3,6 +3,8 @@ class Tank {
     constructor(x, y, team, genome) {
         this.x = x;
         this.y = y;
+        this.spawnX = x; // Track spawn position for battle timer logic
+        this.spawnY = y; // Track spawn position for battle timer logic
         this.width = 24;
         this.height = 16;
         this.team = team;

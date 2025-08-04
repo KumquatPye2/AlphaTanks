@@ -555,6 +555,7 @@ class TankEngineer {
                 window.game.redTeam = [];
                 window.game.blueTeam = [];
                 window.game.battleTime = 0;
+                window.game.battleStarted = false; // Reset timer flag for new battle
                 window.game.gameState = 'running';
                 
                 // Create red team with evolved genomes

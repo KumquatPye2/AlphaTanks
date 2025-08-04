@@ -20,6 +20,7 @@ class GameEngine {
         this.gameState = 'ready'; // 'ready', 'running', 'paused', 'ended'
         this.battleTime = 0;
         this.maxBattleTime = 120; // 2 minutes max battle time
+        this.battleStarted = false; // Flag to track when battle timer should start
         
         this.redTeam = [];
         this.blueTeam = [];
@@ -40,7 +41,7 @@ class GameEngine {
         // Set up coordinate system
         this.ctx.imageSmoothingEnabled = false;
     }
-    
+
     createObstacles() {
         // Create strategic obstacles for interesting battles
         const obstacles = [
@@ -65,6 +66,7 @@ class GameEngine {
         this.blueTeam = [];
         this.battleTime = 0;
         this.gameState = 'ready'; // Don't automatically start - let start() method handle it
+        this.battleStarted = false; // Reset battle started flag
         
         // Create red team (left side)
         for (let i = 0; i < redTanks; i++) {
@@ -113,6 +115,7 @@ class GameEngine {
         this.gameState = 'running';
         this.battleTime = 0; // Reset battle time for new battle
         this.lastTime = 0; // Reset to 0 so gameLoop will handle first frame properly
+        this.battleStarted = false; // Battle timer hasn't started yet
         this.gameLoop();
     }
     
@@ -123,6 +126,7 @@ class GameEngine {
     resume() {
         this.gameState = 'running';
         // Keep existing battleTime - don't reset it!
+        // Keep existing battleStarted state - don't reset it!
         this.lastTime = 0; // Reset to 0 so gameLoop will handle first frame properly
         this.gameLoop();
     }
@@ -131,6 +135,7 @@ class GameEngine {
         this.gameState = 'ready';
         this.lastTime = 0;
         this.battleTime = 0;
+        this.battleStarted = false;
         this.tanks = [];
         this.projectiles = [];
         this.redTeam = [];
@@ -171,7 +176,27 @@ class GameEngine {
     }
     
     update(deltaTime) {
-        this.battleTime += deltaTime;
+        // Check for first tank movement in every battle (not just when battleStarted is false)
+        if (!this.battleStarted && this.tanks.length > 0) {
+            const anyTankMoved = this.tanks.some(tank => {
+                if (!tank.isAlive) {
+                    return false;
+                }
+                const deltaX = Math.abs(tank.x - tank.spawnX);
+                const deltaY = Math.abs(tank.y - tank.spawnY);
+                return deltaX > 5 || deltaY > 5; // Tank moved more than 5 pixels
+            });
+            
+            if (anyTankMoved) {
+                this.battleStarted = true;
+                console.log('⏱️ Battle timer started - first tank moved');
+            }
+        }
+        
+        // Only increment battle time after first tank movement
+        if (this.battleStarted) {
+            this.battleTime += deltaTime;
+        }
         
         // Optimize: Only update living tanks
         const aliveTanks = this.tanks.filter(tank => tank.isAlive);
@@ -196,8 +221,8 @@ class GameEngine {
         // Check win conditions
         this.checkWinConditions();
         
-        // Time limit
-        if (this.battleTime > this.maxBattleTime) {
+        // Time limit (only apply if battle has actually started)
+        if (this.battleStarted && this.battleTime > this.maxBattleTime) {
             this.endBattle('timeout');
         }
         
@@ -380,7 +405,13 @@ class GameEngine {
     drawBattleInfo() {
         this.ctx.fillStyle = '#00ff88';
         this.ctx.font = '14px Courier New';
-        this.ctx.fillText(`Battle Time: ${this.battleTime.toFixed(1)}s`, 10, 25);
+        
+        // Show battle time or waiting status
+        if (!this.battleStarted) {
+            this.ctx.fillText(`Status: Waiting for tanks to move...`, 10, 25);
+        } else {
+            this.ctx.fillText(`Battle Time: ${this.battleTime.toFixed(1)}s`, 10, 25);
+        }
         
         const aliveRed = this.redTeam.filter(tank => tank.isAlive).length;
         const aliveBlue = this.blueTeam.filter(tank => tank.isAlive).length;

@@ -136,7 +136,9 @@ function setupEventHandlers() {
             console.log('🆕 Starting fresh battle and evolution');
             
             // Update genome display immediately for new battle (but don't spam it)
-            setTimeout(() => updateGenomeDisplay(), 1000);
+            setTimeout(() => {
+                updateGenomeDisplay();
+            }, 1000);
         } else if (game.gameState === 'running') {
             // Already running, no action needed
             console.log('⚠️ Evolution already running');
@@ -271,8 +273,8 @@ function startPerformanceMonitoring() {
         };
         
         // Only update genome display if game is not actively running a battle
-        // This prevents heavy computation during gameplay
-        if (!game || game.gameState !== 'running') {
+        // AND initialization is not yet complete (to avoid heavy processing during gameplay)
+        if ((!game || game.gameState !== 'running') && (!game || !game.initializationComplete)) {
             updateGenomeDisplay();
         }
         
@@ -419,20 +421,20 @@ function updateGenomeDisplay() {
         displayCurrentTankGenomes();
         return;
     }
-    
+
     // If game is paused, show genomes of current tanks instead of selecting new ones
     if (game && game.gameState === 'paused' && game.tanks && game.tanks.length > 0) {
         console.log('🎯 Using current tank genomes (game paused)');
         displayCurrentTankGenomes();
         return;
     }
-    
+
     if (!evolution || !evolution.candidatePool || evolution.candidatePool.length === 0) {
         // Show "waiting for evolution" state
         displayNoGenomeData();
         return;
     }
-    
+
     try {
         console.log('🧬 Looking for proven champion genomes...');
         // Get best performing genomes for each team
