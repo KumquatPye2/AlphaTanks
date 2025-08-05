@@ -177,16 +177,20 @@ class TankResearcher {
         // Generate 3 tanks per team
         for (let i = 0; i < 3; i++) {
             let genome;
+            let generationType = 'random';
             
             if (parents.length >= 2 && Math.random() < this.crossoverRate) {
                 // Crossover between two parents
                 genome = this.crossover(parents[0].genome, parents[1].genome);
+                generationType = 'crossover';
             } else if (parents.length >= 1) {
                 // Mutation of single parent with team tracking
                 genome = this.mutateWithTeamTracking(parents[0].genome, team);
+                generationType = 'mutation';
             } else {
                 // Random genome with team specialization
                 genome = this.generateTeamSpecificGenome(team);
+                generationType = 'team-specific';
             }
             
             // Apply cognition-based improvements with team focus and performance context
@@ -199,6 +203,11 @@ class TankResearcher {
             
             // Apply novel traits (ASI-ARCH emergent behaviors)
             genome = this.applyNovelTraits(genome);
+            
+            // Track genome generation for this newly created genome
+            if (window.researcherInsights) {
+                window.researcherInsights.trackGenomeGeneration(genome, team, generationType);
+            }
             
             genomes.push(genome);
         }
