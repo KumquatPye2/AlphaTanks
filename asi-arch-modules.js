@@ -650,6 +650,23 @@ class TankEngineer {
                     // Track battle execution in Engineer Insights
                     if (window.engineerInsights) {
                         window.engineerInsights.trackBattleExecution(event.detail, redGenomes, blueGenomes);
+                        
+                        // Evaluate individual genome performance for both teams
+                        redGenomes.forEach(genome => {
+                            const _performance = this.evaluateGenomePerformance(genome, event.detail, 'red');
+                            // Note: trackGenomeEvaluation is called within evaluateGenomePerformance
+                        });
+                        
+                        blueGenomes.forEach(genome => {
+                            const _performance = this.evaluateGenomePerformance(genome, event.detail, 'blue');
+                            // Note: trackGenomeEvaluation is called within evaluateGenomePerformance
+                        });
+                        
+                        // Call analyst module with real battle data for trackPerformanceAnalysis
+                        // Access the analyst module through the global ASI-ARCH instance
+                        if (window.asiArchModules && window.asiArchModules.analystModule) {
+                            window.asiArchModules.analystModule.analyzeResults(event.detail, []);
+                        }
                     }
                     
                     // Emit visualization event for battle completion
@@ -766,6 +783,17 @@ class TankAnalyst {
                     type: 'significant_improvement' 
                 });
             }
+        }
+        
+        // Track performance analysis in Engineer Insights
+        if (window.engineerInsights) {
+            window.engineerInsights.trackPerformanceAnalysis({
+                totalGenomes: (battleResult.redGenomes?.length || 0) + (battleResult.blueGenomes?.length || 0),
+                averagePerformance: analysis.fitness_progression?.current || 0,
+                topPerformer: battleResult.winner,
+                trends: analysis.performance_trends ? 'Improving' : 'Stable',
+                insights: analysis.strategic_insights || []
+            });
         }
         
         // Emit completion event
@@ -1032,11 +1060,8 @@ class ASIArchModules {
         applyEngineer(population, team) {
             // Optimize configurations through systematic evaluation and optimization
             const optimized = population.map(individual => {
-                this.engineerModule.evaluateGenomePerformance(
-                    individual.genome, 
-                    { duration: 60, redTeamStats: {}, blueTeamStats: {} }, 
-                    team
-                );
+                // Note: Real genome performance evaluation happens during actual battles
+                // This is just for evolution tracking, not insights tracking
                 this.stats[team].insights++;
                 return individual;
             });
