@@ -500,6 +500,7 @@ class EvolutionEngine {
         if (this.totalExperiments % 5 === 0) {
             this.currentGeneration++;
             this.logEvolutionEvent(`Advanced to Generation ${this.currentGeneration}`, 'generation');
+            
             // Dispatch generation complete event for tracking
             const generationCompleteEvent = new CustomEvent('generationComplete', {
                 detail: {
@@ -507,7 +508,8 @@ class EvolutionEngine {
                     totalExperiments: this.totalExperiments,
                     candidatePoolSize: this.candidatePool.length,
                     topFitness: this.candidatePool[0]?.fitness || 0,
-                    averageFitness: this.candidatePool.reduce((sum, c) => sum + c.fitness, 0) / this.candidatePool.length || 0
+                    averageFitness: this.candidatePool.reduce((sum, c) => sum + c.fitness, 0) / this.candidatePool.length || 0,
+                    timestamp: Date.now() // Add timestamp to help identify duplicates
                 }
             });
             window.dispatchEvent(generationCompleteEvent);

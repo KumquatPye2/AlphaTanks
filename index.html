@@ -718,14 +718,24 @@
     
     
     <!-- Chart.js for professional charting -->
+    <!-- Chart.js for visualization -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
+    <!-- Core refactored modules (load first) -->
+    <script src="core/constants.js?v=1754336875"></script>
+    <script src="core/utils.js?v=1754336875"></script>
+    <script src="core/data-collector.js?v=1754336875"></script>
+    <script src="core/dashboard-ui.js?v=1754336875"></script>
+    <script src="core/researcher-insights-refactored.js?v=1754336875"></script>
+    
+    <!-- Game engine modules -->
     <script src="game-engine.js?v=1754336875"></script>
     <script src="tank-ai.js?v=1754336875"></script>
     <script src="asi-arch-modules.js?v=1754336875"></script>
     <script src="evolution-engine.js?v=1754336875"></script>
     <script src="asi-arch-visualizer.js?v=1754336875"></script>
-    <script src="researcher-insights.js?v=1754336875"></script>
+    
+    <!-- Main application -->
     <script src="main.js?v=1754336875"></script>
     <script src="debug.js?v=1754336875"></script>
     <!-- <script src="test-validation.js"></script> -->

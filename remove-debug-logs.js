@@ -19,7 +19,7 @@ function removeDebugLogs(filePath) {
     
     try {
         let content = fs.readFileSync(filePath, 'utf8');
-        let originalLength = content.length;
+        const originalLength = content.length;
         
         // Remove console.log statements but preserve console.warn and console.error
         // This regex matches console.log(...) but not console.warn or console.error
@@ -28,8 +28,8 @@ function removeDebugLogs(filePath) {
         // Remove empty lines that might be left behind
         content = content.replace(/\n\s*\n\s*\n/g, '\n\n');
         
-        let newLength = content.length;
-        let removed = originalLength - newLength;
+        const newLength = content.length;
+        const removed = originalLength - newLength;
         
         if (removed > 0) {
             fs.writeFileSync(filePath, content, 'utf8');

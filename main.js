@@ -31,10 +31,14 @@ function initializeGame() {
     evolution = new EvolutionEngine();
     window.evolution = evolution; // Make globally accessible
     
-    // Initialize researcher insights if available
+    // Initialize researcher insights with new modular system
     if (typeof ResearcherInsights !== 'undefined') {
         // Clean up any existing instance first
         if (window.researcherInsights) {
+            if (typeof window.researcherInsights.destroy === 'function') {
+                window.researcherInsights.destroy();
+            }
+            
             // Remove existing dashboard if it exists
             const existingDashboard = document.getElementById('researcher-insights-dashboard');
             if (existingDashboard) {
@@ -42,8 +46,13 @@ function initializeGame() {
             }
         }
         
-        // Create new instance
+        // Create new instance using the refactored modular system
         window.researcherInsights = new ResearcherInsights();
+        
+        // Also ensure backward compatibility by making components available globally
+        window.dataCollector = window.researcherInsights.dataCollector;
+        window.dashboardUI = window.researcherInsights.dashboardUI;
+        
     } else {
         console.warn('🔬 ResearcherInsights class not available');
     }
@@ -93,16 +102,6 @@ function setupEventHandlers() {
     window.addEventListener('battleEnd', (_event) => {
         if (game) {
             game.resumedFromPause = false; // Clear resume flag when battle ends
-        }
-    });
-    
-    // Generation complete handler for researcher insights
-    window.addEventListener('generationComplete', (event) => {
-        // Track generation completion in researcher insights
-        if (window.researcherInsights && event.detail) {
-            window.researcherInsights.trackGenerationComplete(event.detail.generation, event.detail);
-        } else {
-            console.warn('🔬 DEBUG: researcherInsights not available or no event detail');
         }
     });
     
