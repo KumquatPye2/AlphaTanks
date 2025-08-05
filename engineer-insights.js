@@ -340,11 +340,11 @@ class EngineerInsights {
             ((redStats.shotsHit || 0) + (blueStats.shotsHit || 0)) / totalShots : 0;
         
         // Effectiveness based on damage output, accuracy, and battle resolution
-        const damageScore = Math.min(totalDamage / 1000, 1); // Normalize to 0-1
+        const damageScore = Math.min(totalDamage / 500, 1); // Lowered from 1000 to 500 for more realistic scale
         const accuracyScore = avgAccuracy;
         const resolutionScore = battleResult.winner !== 'timeout' ? 0.5 : 0; // Bonus for decisive battles
         
-        return (damageScore + accuracyScore + resolutionScore) / 2.5;
+        return (damageScore + accuracyScore + resolutionScore) / 2.0; // Changed from 2.5 to 2.0 for proper normalization
     }
 
     calculateEngagementLevel(battleResult) {
