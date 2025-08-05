@@ -30,8 +30,9 @@ class EvolutionEngine {
         }; // Track all battle outcomes for analysis
         this.isEvolutionRunning = false;
         
-        // Initialize candidate pool with initial genomes
-        this.initializeCandidatePool();
+        // Defer candidate pool initialization until after ResearcherInsights is available
+        // This will be called by initializeGame() after ResearcherInsights is created
+        this.candidatePoolInitialized = false;
         
         // Statistics
         this.redTeamWins = 0;
@@ -60,6 +61,11 @@ class EvolutionEngine {
             genome[7] = Math.min(1, genome[7] + 0.2); // More risk-taking
             genome[3] = Math.max(0, genome[3] - 0.1); // Less defensive
             
+            // Track team-specific genome generation
+            if (window.researcherInsights) {
+                window.researcherInsights.trackGenomeGeneration(genome, 'red', 'team-specific');
+            }
+            
             const candidate = {
                 genome: genome,
                 fitness: Math.random() * 0.3 + 0.4, // Random fitness between 0.4 and 0.7
@@ -79,6 +85,11 @@ class EvolutionEngine {
             genome[3] = Math.min(1, genome[3] + 0.1); // More defense
             genome[4] = Math.min(1, genome[4] + 0.1); // More teamwork
             genome[0] = Math.max(0, genome[0] - 0.1); // Less aggression
+            
+            // Track team-specific genome generation
+            if (window.researcherInsights) {
+                window.researcherInsights.trackGenomeGeneration(genome, 'blue', 'team-specific');
+            }
             
             const candidate = {
                 genome: genome,
@@ -112,6 +123,12 @@ class EvolutionEngine {
     
     createTank(x, y, team) {
         const genome = this.generateTankGenome();
+        
+        // Track genome generation
+        if (window.researcherInsights) {
+            window.researcherInsights.trackGenomeGeneration(genome, team, 'tank-creation');
+        }
+        
         const tank = {
             x: x,
             y: y,
@@ -354,12 +371,17 @@ class EvolutionEngine {
         this.isEvolutionRunning = true;
         this.logEvolutionEvent('Evolution system started', 'system');
         
-        // Initialize with basic genomes if candidate pool is empty
-        if (this.candidatePool.length === 0) {
-            this.initializeCandidatePool();
-        }
+        // Ensure candidate pool is initialized before starting evolution
+        this.ensureCandidatePoolInitialized();
         
         this.runNextExperiment();
+    }
+    
+    ensureCandidatePoolInitialized() {
+        if (!this.candidatePoolInitialized) {
+            this.initializeCandidatePool();
+            this.candidatePoolInitialized = true;
+        }
     }
     
     classifyStrategy(genome) {

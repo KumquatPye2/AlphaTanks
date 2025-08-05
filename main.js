@@ -53,6 +53,11 @@ function initializeGame() {
         window.dataCollector = window.researcherInsights.dataCollector;
         window.dashboardUI = window.researcherInsights.dashboardUI;
         
+        // Now initialize the candidate pool since ResearcherInsights is available
+        if (evolution && !evolution.candidatePoolInitialized) {
+            evolution.ensureCandidatePoolInitialized();
+        }
+        
     } else {
         console.warn('🔬 ResearcherInsights class not available');
     }

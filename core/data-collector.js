@@ -144,11 +144,14 @@ class DataCollector {
     trackRedQueenAdaptation(team, opponentStrategies, adaptations) {
         this.metrics.redQueenAdaptations++;
         
+        // Safety check for adaptations parameter
+        const validAdaptations = adaptations || {};
+        
         this.log('RED_QUEEN', `${team} team adapted to opponent strategies`, {
             team,
             opponentStrategies,
-            adaptations,
-            adaptationStrength: Object.values(adaptations).reduce((sum, val) => sum + Math.abs(val), 0)
+            adaptations: validAdaptations,
+            adaptationStrength: Object.values(validAdaptations).reduce((sum, val) => sum + Math.abs(val), 0)
         });
     }
 

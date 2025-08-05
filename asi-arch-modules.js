@@ -112,6 +112,11 @@ class TankResearcher {
             baseGenome[3] = Math.min(1, baseGenome[3] + 0.1); // Defense
         }
         
+        // Track team-specific genome generation
+        if (window.researcherInsights) {
+            window.researcherInsights.trackGenomeGeneration(baseGenome, team, 'team-specific');
+        }
+        
         return baseGenome;
     }
     
@@ -414,7 +419,7 @@ class TankResearcher {
         
         // Track genome generation in insights system
         if (window.researcherInsights) {
-            window.researcherInsights.trackGenomeGeneration(genome);
+            window.researcherInsights.trackGenomeGeneration(genome, 'unknown', 'random');
         }
         
         return genome;
@@ -507,6 +512,16 @@ class TankResearcher {
                 });
             }
             
+            // Track Red Queen adaptation in the metrics system
+            if (counterTacticLearned && window.researcherInsights) {
+                const adaptations = {
+                    [tacticName]: 1.0,
+                    adaptationType: tacticName,
+                    targetStrategy: opponentStrategies.winningTactics[0] || 'general_counter'
+                };
+                window.researcherInsights.trackRedQueenAdaptation(team, opponentStrategies, adaptations);
+            }
+
             // Emit team-specific tactical learning for counter-evolution
             // Only when significant counter-strategy is needed and occasionally to avoid spam
             if (counterTacticLearned && window.emitASIArchEvent && Math.random() < 0.3) {
@@ -515,7 +530,7 @@ class TankResearcher {
                     tactic: tacticName
                 });
             }
-            
+
             return genome;
         }
     
