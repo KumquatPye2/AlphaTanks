@@ -291,13 +291,14 @@ describe('GameEngine Pause/Resume Functionality', () => {
             
             // First frame
             gameEngine.gameLoop(1000);
+            updateSpy.mockClear(); // Clear the first valid call
             
             // Frame with negative deltaTime (shouldn't happen but safety check)
             gameEngine.lastTime = 2000;
             gameEngine.gameLoop(1900);
             
-            // Should not call update with negative deltaTime
-            expect(updateSpy).not.toHaveBeenCalledWith(expect.any(Number));
+            // Should not call update at all when deltaTime is invalid
+            expect(updateSpy).not.toHaveBeenCalled();
         });
         
         test('should cap deltaTime to prevent large jumps', () => {
