@@ -320,6 +320,14 @@ class GameEngine {
     }
     
     endBattle(winner) {
+        // Enforce minimum battle duration of 15 seconds if battle has started
+        const minimumBattleTime = 15; // seconds
+        
+        if (this.battleStarted && this.battleTime < minimumBattleTime) {
+            // Don't end battle yet, let it continue until minimum time
+            return;
+        }
+        
         this.gameState = 'ended';
         // Emit battle end event
         const battleResult = this.getBattleResult(winner);

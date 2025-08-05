@@ -451,7 +451,7 @@ class DashboardUI {
         // Update button text in main app if it exists
         const button = DOMUtils.getElementById('researcherInsightsButton');
         if (button) {
-            button.textContent = this.isVisible ? '🔬 Hide Insights' : '🔬 Show Insights';
+            button.textContent = this.isVisible ? '🔬 Hide Researcher' : '🔬 Researcher Insights';
         }
         
         if (this.isVisible) {
