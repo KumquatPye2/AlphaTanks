@@ -508,6 +508,22 @@ class EvolutionEngine {
         if (this.totalExperiments % 5 === 0) {
             this.currentGeneration++;
             this.logEvolutionEvent(`Advanced to Generation ${this.currentGeneration}`, 'generation');
+            
+            console.log('🔬 DEBUG: Dispatching generationComplete event for generation:', this.currentGeneration);
+            
+            // Dispatch generation complete event for tracking
+            const generationCompleteEvent = new CustomEvent('generationComplete', {
+                detail: {
+                    generation: this.currentGeneration,
+                    totalExperiments: this.totalExperiments,
+                    candidatePoolSize: this.candidatePool.length,
+                    topFitness: this.candidatePool[0]?.fitness || 0,
+                    averageFitness: this.candidatePool.reduce((sum, c) => sum + c.fitness, 0) / this.candidatePool.length || 0
+                }
+            });
+            window.dispatchEvent(generationCompleteEvent);
+            
+            console.log('🔬 DEBUG: generationComplete event dispatched with data:', generationCompleteEvent.detail);
         }
     }
     
@@ -770,6 +786,18 @@ class EvolutionEngine {
         this.currentGeneration++;
         this.generation = this.currentGeneration + 1; // Keep both for compatibility
         this.logEvolutionEvent(`Advancing to generation ${this.generation}`, 'evolution');
+        
+        // Dispatch generation complete event for tracking
+        const generationCompleteEvent = new CustomEvent('generationComplete', {
+            detail: {
+                generation: this.currentGeneration,
+                totalExperiments: this.totalExperiments,
+                candidatePoolSize: this.candidatePool.length,
+                topFitness: this.candidatePool[0]?.fitness || 0,
+                averageFitness: this.candidatePool.reduce((sum, c) => sum + c.fitness, 0) / this.candidatePool.length || 0
+            }
+        });
+        window.dispatchEvent(generationCompleteEvent);
         
         // Trigger evolution for both teams
         this.evolvePopulation('red');

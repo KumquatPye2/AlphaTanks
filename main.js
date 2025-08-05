@@ -39,6 +39,25 @@ function initializeGame() {
     evolution = new EvolutionEngine();
     window.evolution = evolution; // Make globally accessible
     
+    // Initialize researcher insights if available
+    if (typeof ResearcherInsights !== 'undefined') {
+        // Clean up any existing instance first
+        if (window.researcherInsights) {
+            console.log('🔬 Cleaning up existing researcher insights instance');
+            // Remove existing dashboard if it exists
+            const existingDashboard = document.getElementById('researcher-insights-dashboard');
+            if (existingDashboard) {
+                existingDashboard.remove();
+            }
+        }
+        
+        // Create new instance
+        window.researcherInsights = new ResearcherInsights();
+        console.log('🔬 Researcher insights initialized');
+    } else {
+        console.warn('🔬 ResearcherInsights class not available');
+    }
+    
     // DEBUG: Check evolution state immediately after initialization
     console.log('🧬 Evolution engine initialized:');
     console.log('🧬 Candidate pool size:', evolution.candidatePool?.length || 0);
@@ -71,6 +90,7 @@ function setupEventHandlers() {
     document.getElementById('startEvolution').addEventListener('click', startEvolution);
     document.getElementById('pauseEvolution').addEventListener('click', pauseEvolution);
     document.getElementById('resetBattle').addEventListener('click', resetBattle);
+    document.getElementById('researcherInsightsButton').addEventListener('click', openResearcherInsights);
     document.getElementById('creditsButton').addEventListener('click', showCredits);
     
     // Credits modal handlers
@@ -88,9 +108,23 @@ function setupEventHandlers() {
     window.addEventListener('resize', handleResize);
     
     // Battle end handler
-    window.addEventListener('battleEnd', () => {
+    window.addEventListener('battleEnd', (_event) => {
         if (game) {
             game.resumedFromPause = false; // Clear resume flag when battle ends
+        }
+    });
+    
+    // Generation complete handler for researcher insights
+    window.addEventListener('generationComplete', (event) => {
+        console.log('🔬 DEBUG: generationComplete event received:', event.detail);
+        
+        // Track generation completion in researcher insights
+        if (window.researcherInsights && event.detail) {
+            console.log('🔬 DEBUG: Calling trackGenerationComplete with:', event.detail.generation, event.detail);
+            window.researcherInsights.trackGenerationComplete(event.detail.generation, event.detail);
+            console.log('🔬 Tracked generation completion for insights:', event.detail.generation);
+        } else {
+            console.warn('🔬 DEBUG: researcherInsights not available or no event detail');
         }
     });
     
@@ -354,6 +388,41 @@ The system implements ASI-ARCH methodology:
 Watch as tank AI evolves autonomously, demonstrating
 computational scaling of research breakthroughs!
 `);
+
+// Researcher Insights function - now toggleable
+function openResearcherInsights() {
+    console.log('🔬 Toggling Researcher Insights Dashboard');
+    
+    // Initialize basic tracking only once (no test data)
+    if (window.researcherInsights && !window.researcherInsights.testDataInitialized) {
+        console.log('🔬 Initializing researcher insights tracking...');
+        
+        // Mark as initialized without adding test data
+        window.researcherInsights.testDataInitialized = true;
+        
+        console.log('🔬 Researcher insights ready. Charts will populate with real evolution data.');
+    }
+    
+    // Always toggle the dashboard
+    if (window.researcherInsights) {
+        window.researcherInsights.toggle();
+    } else {
+        console.warn('🔬 Researcher insights not initialized');
+    }
+}
+
+// Helper function to clear test data (for debugging)
+function _clearResearcherTestData() {
+    if (window.researcherInsights) {
+        window.researcherInsights.clearGenerationData();
+        console.log('🔬 Test data cleared. Next toggle will regenerate.');
+    } else {
+        console.warn('🔬 Researcher insights not available');
+    }
+}
+
+// Make it available globally for console debugging
+window.clearResearcherTestData = _clearResearcherTestData;
 
 // Credits modal functions
 function showCredits() {

@@ -26,6 +26,11 @@ class TankResearcher {
         const redGenomes = this.generateTeamGenomes(redParents, cognitionBase, 'red', history);
         const blueGenomes = this.generateTeamGenomes(blueParents, cognitionBase, 'blue', history);
         
+        // Track experiment in insights system
+        if (window.researcherInsights) {
+            window.researcherInsights.trackExperiment(redGenomes, blueGenomes, candidatePool, history);
+        }
+        
         return { redGenomes, blueGenomes };
     }
     
@@ -147,9 +152,16 @@ class TankResearcher {
         }
         
         // Return best contestant
-        return contestants.reduce((best, current) => 
+        const winner = contestants.reduce((best, current) => 
             current.fitness > best.fitness ? current : best
         );
+        
+        // Track tournament in insights system
+        if (window.researcherInsights) {
+            window.researcherInsights.trackTournament(contestants, winner, size);
+        }
+        
+        return winner;
     }
     
     generateTeamGenomes(parents, cognitionBase, team, history) {
@@ -213,11 +225,17 @@ class TankResearcher {
             child[i] = Math.max(0, Math.min(1, child[i]));
         }
         
+        // Track crossover in insights system
+        if (window.researcherInsights) {
+            window.researcherInsights.trackCrossover(parent1, parent2, child, 'unknown');
+        }
+        
         return child;
     }
     
     mutate(parent) {
         const child = [...parent]; // Create array copy
+        const originalGenome = [...parent]; // Keep original for insights
         
         const mutatedTraits = [];
         const traitNames = ['Aggression', 'Speed', 'Accuracy', 'Defense', 'Teamwork', 'Adaptability', 'Learning', 'RiskTaking', 'Evasion'];
@@ -240,11 +258,17 @@ class TankResearcher {
             });
         }
         
+        // Track mutation in insights system
+        if (mutatedTraits.length > 0 && window.researcherInsights) {
+            window.researcherInsights.trackMutation(originalGenome, child, 'unknown');
+        }
+        
         return child;
     }
     
     mutateWithTeamTracking(parent, team) {
         const child = [...parent]; // Create array copy
+        const originalGenome = [...parent]; // Keep original for insights
         
         const mutatedTraits = [];
         const traitNames = ['Aggression', 'Speed', 'Accuracy', 'Defense', 'Teamwork', 'Adaptability', 'Learning', 'RiskTaking', 'Evasion'];
@@ -268,6 +292,11 @@ class TankResearcher {
                 team: team,
                 teamIcon: teamIcon
             });
+        }
+        
+        // Track mutation in insights system
+        if (mutatedTraits.length > 0 && window.researcherInsights) {
+            window.researcherInsights.trackMutation(originalGenome, child, team);
         }
         
         return child;
@@ -373,7 +402,7 @@ class TankResearcher {
     
     generateRandomGenome() {
         // Return 9-trait array format: [Aggression, Speed, Accuracy, Defense, Teamwork, Adaptability, Learning, RiskTaking, Evasion]
-        return [
+        const genome = [
             Math.random(), // Aggression
             Math.random(), // Speed
             Math.random(), // Accuracy
@@ -384,6 +413,13 @@ class TankResearcher {
             Math.random(), // RiskTaking
             Math.random()  // Evasion
         ];
+        
+        // Track genome generation in insights system
+        if (window.researcherInsights) {
+            window.researcherInsights.trackGenomeGeneration(genome);
+        }
+        
+        return genome;
     }
     
     analyzeOpponentStrategies(history, opponentTeam) {
