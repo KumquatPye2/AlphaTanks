@@ -354,7 +354,9 @@ class GameEngine {
             totalDamageDealt: team.reduce((sum, tank) => sum + tank.damageDealt, 0),
             totalDamageTaken: team.reduce((sum, tank) => sum + tank.damageTaken, 0),
             averageSurvivalTime: team.reduce((sum, tank) => sum + tank.survivalTime, 0) / team.length,
-            accuracy: team.reduce((sum, tank) => sum + (tank.shotsFired > 0 ? tank.shotsHit / tank.shotsFired : 0), 0) / team.length
+            accuracy: team.reduce((sum, tank) => sum + (tank.shotsFired > 0 ? tank.shotsHit / tank.shotsFired : 0), 0) / team.length,
+            shotsFired: team.reduce((sum, tank) => sum + tank.shotsFired, 0),
+            shotsHit: team.reduce((sum, tank) => sum + tank.shotsHit, 0)
         };
     }
     
