@@ -595,6 +595,11 @@ class TankEngineer {
     }
     
     async runBattle(redGenomes, blueGenomes) {
+        // Track battle setup in Engineer Insights
+        if (window.engineerInsights) {
+            window.engineerInsights.trackBattleSetup(redGenomes, blueGenomes);
+        }
+        
         // Emit visualization event for battle start
         if (window.emitASIArchEvent) {
             window.emitASIArchEvent('engineer', 'run_battle', { 
@@ -642,6 +647,11 @@ class TankEngineer {
                 const battleEndHandler = (event) => {
                     window.removeEventListener('battleEnd', battleEndHandler);
                     
+                    // Track battle execution in Engineer Insights
+                    if (window.engineerInsights) {
+                        window.engineerInsights.trackBattleExecution(event.detail, redGenomes, blueGenomes);
+                    }
+                    
                     // Emit visualization event for battle completion
                     if (window.emitASIArchEvent) {
                         window.emitASIArchEvent('engineer', 'battle_complete', { 
@@ -675,21 +685,35 @@ class TankEngineer {
         // Detailed performance analysis for individual genome
         const teamStats = team === 'red' ? battleResult.redTeamStats : battleResult.blueTeamStats;
         
-        return {
+        const performance = {
             survival: battleResult.duration,
             combat_effectiveness: teamStats.totalDamageDealt / Math.max(teamStats.totalDamageTaken, 1),
             accuracy: teamStats.accuracy,
             team_synergy: this.calculateTeamSynergy(genome, teamStats),
             adaptability: this.calculateAdaptability(genome, battleResult)
         };
+        
+        // Track genome evaluation in Engineer Insights
+        if (window.engineerInsights) {
+            window.engineerInsights.trackGenomeEvaluation(genome, team, performance);
+        }
+        
+        return performance;
     }
     
     calculateTeamSynergy(genome, stats) {
         // How well the tank worked with its team
         // Array indices: [Aggression, Speed, Accuracy, Defense, Teamwork, Adaptability, Learning, RiskTaking, Evasion]
-        return genome[4] * genome[5] * 0.5 + // Teamwork * Adaptability (was cooperation * formation)
+        const synergyScore = genome[4] * genome[5] * 0.5 + // Teamwork * Adaptability (was cooperation * formation)
                (stats.accuracy > 0.5 ? 0.3 : 0) +
                (stats.averageSurvivalTime > 30 ? 0.2 : 0);
+        
+        // Track team synergy calculation in Engineer Insights
+        if (window.engineerInsights) {
+            window.engineerInsights.trackTeamSynergyCalculation(genome, stats, synergyScore);
+        }
+        
+        return synergyScore;
     }
     
     calculateAdaptability(genome, result) {
@@ -697,7 +721,14 @@ class TankEngineer {
         const survived = result.duration > 30;
         const effectiveCombat = result.redTeamStats.accuracy > 0.4 || result.blueTeamStats.accuracy > 0.4;
         
-        return (survived ? 0.5 : 0) + (effectiveCombat ? 0.5 : 0);
+        const adaptabilityScore = (survived ? 0.5 : 0) + (effectiveCombat ? 0.5 : 0);
+        
+        // Track adaptability assessment in Engineer Insights
+        if (window.engineerInsights) {
+            window.engineerInsights.trackAdaptabilityAssessment(genome, result, adaptabilityScore);
+        }
+        
+        return adaptabilityScore;
     }
 }
 

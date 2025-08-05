@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Engineer Module Insights Demo</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .demo-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(0,0,0,0.8);
+            border-radius: 15px;
+            padding: 30px;
+            border: 2px solid #ff6600;
+            box-shadow: 0 0 30px rgba(255,102,0,0.3);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 2px solid #ff6600;
+            padding-bottom: 20px;
+        }
+        
+        .header h1 {
+            color: #ff6600;
+            font-size: 2.5em;
+            margin: 0;
+            text-shadow: 0 0 10px rgba(255,102,0,0.5);
+        }
+        
+        .header p {
+            color: #cccccc;
+            font-size: 1.2em;
+            margin: 10px 0;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        
+        .feature-card {
+            background: rgba(255,102,0,0.1);
+            border: 1px solid rgba(255,102,0,0.3);
+            border-radius: 10px;
+            padding: 20px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(255,102,0,0.2);
+        }
+        
+        .feature-card h3 {
+            color: #ff6600;
+            margin-top: 0;
+            font-size: 1.4em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .feature-card ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        
+        .feature-card li {
+            padding: 5px 0;
+            color: #dddddd;
+            position: relative;
+            padding-left: 20px;
+        }
+        
+        .feature-card li::before {
+            content: "⚙️";
+            position: absolute;
+            left: 0;
+        }
+        
+        .metrics-demo {
+            background: rgba(0,0,0,0.5);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid #ff6600;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        
+        .metric-box {
+            background: rgba(255,102,0,0.1);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid rgba(255,102,0,0.2);
+        }
+        
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #ff6600;
+            display: block;
+        }
+        
+        .metric-label {
+            color: #cccccc;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        .chart-demo {
+            background: rgba(255,102,0,0.05);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid rgba(255,102,0,0.2);
+        }
+        
+        .chart-placeholder {
+            height: 200px;
+            background: linear-gradient(45deg, transparent 30%, rgba(255,102,0,0.1) 50%, transparent 70%);
+            border: 2px dashed rgba(255,102,0,0.3);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            color: #ff6600;
+            margin: 15px 0;
+        }
+        
+        .demo-logs {
+            background: rgba(0,0,0,0.7);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ff6600;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px 10px;
+            border-left: 3px solid;
+            background: rgba(0,0,0,0.3);
+        }
+        
+        .log-battle-setup { border-left-color: #00ff88; }
+        .log-battle-execution { border-left-color: #ff6600; }
+        .log-genome-evaluation { border-left-color: #ffff00; }
+        .log-team-synergy { border-left-color: #00ffff; }
+        .log-adaptability { border-left-color: #ff00ff; }
+        .log-performance-analysis { border-left-color: #ffffff; }
+        
+        .controls {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #ff6600, #ff8800);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255,102,0,0.3);
+        }
+        
+        .btn:hover {
+            background: linear-gradient(135deg, #ff8800, #ffaa00);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255,102,0,0.4);
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,102,0,0.3);
+            color: #999999;
+        }
+        
+        .comparison-table {
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid rgba(255,102,0,0.2);
+        }
+        
+        .comparison-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .comparison-table th,
+        .comparison-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,102,0,0.1);
+        }
+        
+        .comparison-table th {
+            background: rgba(255,102,0,0.2);
+            color: #ff6600;
+            font-weight: bold;
+        }
+        
+        .comparison-table td {
+            color: #dddddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="header">
+            <h1>⚙️ Engineer Module Insights</h1>
+            <p>Real-time monitoring and analysis of the ASI-ARCH Engineer Module</p>
+            <p>Tracks battle execution, genome evaluation, and performance optimization</p>
+        </div>
+        
+        <div class="features-grid">
+            <div class="feature-card">
+                <h3>⚡ Real-time Engineering Metrics</h3>
+                <ul>
+                    <li>Battle execution tracking</li>
+                    <li>Genome evaluation counts</li>
+                    <li>Performance analysis statistics</li>
+                    <li>Team synergy calculations</li>
+                    <li>Adaptability assessments</li>
+                </ul>
+            </div>
+            
+            <div class="feature-card">
+                <h3>🎯 Battle Performance Analysis</h3>
+                <ul>
+                    <li>Battle effectiveness trends</li>
+                    <li>Engagement level monitoring</li>
+                    <li>Duration pattern analysis</li>
+                    <li>Combat outcome prediction</li>
+                    <li>Strategic efficiency metrics</li>
+                </ul>
+            </div>
+            
+            <div class="feature-card">
+                <h3>⚔️ Genome Engineering Insights</h3>
+                <ul>
+                    <li>Team composition analysis</li>
+                    <li>Trait balance evaluation</li>
+                    <li>Performance correlation tracking</li>
+                    <li>Engineering quality assessment</li>
+                    <li>Synergy optimization metrics</li>
+                </ul>
+            </div>
+            
+            <div class="feature-card">
+                <h3>📊 Advanced Visualization</h3>
+                <ul>
+                    <li>Real-time performance charts</li>
+                    <li>Battle effectiveness graphs</li>
+                    <li>Engagement level displays</li>
+                    <li>Duration trend analysis</li>
+                    <li>Interactive data exploration</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="metrics-demo">
+            <h3 style="color: #ff6600; text-align: center; margin-bottom: 20px;">📊 Live Engineering Metrics</h3>
+            <div class="metrics-grid">
+                <div class="metric-box">
+                    <span class="metric-value">47</span>
+                    <div class="metric-label">Battles Run</div>
+                </div>
+                <div class="metric-box">
+                    <span class="metric-value">52</span>
+                    <div class="metric-label">Battle Setups</div>
+                </div>
+                <div class="metric-box">
+                    <span class="metric-value">234</span>
+                    <div class="metric-label">Genome Evaluations</div>
+                </div>
+                <div class="metric-box">
+                    <span class="metric-value">15</span>
+                    <div class="metric-label">Performance Analyses</div>
+                </div>
+                <div class="metric-box">
+                    <span class="metric-value">89</span>
+                    <div class="metric-label">Synergy Calculations</div>
+                </div>
+                <div class="metric-box">
+                    <span class="metric-value">67</span>
+                    <div class="metric-label">Adaptability Assessments</div>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 15px; color: #cccccc;">
+                <strong>Recent Performance:</strong> Avg Duration: 42.3s | Avg Effectiveness: 73.2%
+            </div>
+        </div>
+        
+        <div class="chart-demo">
+            <h3 style="color: #ff6600; text-align: center;">🎯 Battle Effectiveness Trend</h3>
+            <div class="chart-placeholder">
+                Real-time effectiveness monitoring chart would appear here
+            </div>
+        </div>
+        
+        <div class="chart-demo">
+            <h3 style="color: #ff6600; text-align: center;">⚔️ Battle Engagement & Duration Analysis</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="chart-placeholder" style="height: 150px;">
+                    Engagement Level Chart
+                </div>
+                <div class="chart-placeholder" style="height: 150px;">
+                    Duration Trend Chart
+                </div>
+            </div>
+        </div>
+        
+        <div class="comparison-table">
+            <h3 style="color: #ff6600; text-align: center; margin: 20px 0;">🔄 Engineer vs Researcher Module Comparison</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Aspect</th>
+                        <th>Engineer Module</th>
+                        <th>Researcher Module</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Primary Focus</td>
+                        <td>Battle execution & performance</td>
+                        <td>Genome generation & evolution</td>
+                    </tr>
+                    <tr>
+                        <td>Key Metrics</td>
+                        <td>Effectiveness, engagement, synergy</td>
+                        <td>Mutations, crossovers, fitness</td>
+                    </tr>
+                    <tr>
+                        <td>Analysis Type</td>
+                        <td>Real-time battle performance</td>
+                        <td>Evolutionary progression</td>
+                    </tr>
+                    <tr>
+                        <td>Optimization Target</td>
+                        <td>Combat effectiveness</td>
+                        <td>Genetic diversity</td>
+                    </tr>
+                    <tr>
+                        <td>Data Tracking</td>
+                        <td>Battle results & team dynamics</td>
+                        <td>Generation cycles & adaptations</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="demo-logs">
+            <div style="color: #ff6600; font-weight: bold; margin-bottom: 10px;">📝 Live Engineering Logs</div>
+            <div class="log-entry log-battle-setup">
+                [14:23:42] BATTLE_SETUP: Battle environment prepared - Red: 5 vs Blue: 5 teams
+            </div>
+            <div class="log-entry log-battle-execution">
+                [14:23:45] BATTLE_EXECUTION: Battle completed: red victory in 38.2s
+            </div>
+            <div class="log-entry log-genome-evaluation">
+                [14:23:46] GENOME_EVALUATION: red genome performance evaluated - Effectiveness: 0.784
+            </div>
+            <div class="log-entry log-team-synergy">
+                [14:23:47] TEAM_SYNERGY: Team synergy calculated - Score: 0.692 (Good)
+            </div>
+            <div class="log-entry log-adaptability">
+                [14:23:48] ADAPTABILITY: Genome adaptability assessed - Category: Highly Adaptable
+            </div>
+            <div class="log-entry log-performance-analysis">
+                [14:23:50] PERFORMANCE_ANALYSIS: Comprehensive performance analysis completed
+            </div>
+            <div class="log-entry log-battle-setup">
+                [14:24:02] BATTLE_SETUP: Battle environment prepared - Expected: Balanced engagement
+            </div>
+            <div class="log-entry log-battle-execution">
+                [14:24:05] BATTLE_EXECUTION: Battle completed: blue victory in 45.7s
+            </div>
+            <div class="log-entry log-genome-evaluation">
+                [14:24:06] GENOME_EVALUATION: blue genome performance evaluated - Effectiveness: 0.821
+            </div>
+            <div class="log-entry log-team-synergy">
+                [14:24:07] TEAM_SYNERGY: Team synergy calculated - Score: 0.756 (Excellent)
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button class="btn" onclick="window.close()">⬅️ Return to Game</button>
+            <button class="btn" onclick="location.reload()">🔄 Refresh Demo</button>
+            <button class="btn" onclick="window.open('researcher-insights-demo.html', '_blank')">🔬 Researcher Demo</button>
+        </div>
+        
+        <div class="footer">
+            <p>Engineer Module Insights - Real-time battle engineering analysis</p>
+            <p>Part of the ASI-ARCH AlphaTanks Evolution System</p>
+        </div>
+    </div>
+    
+    <script>
+        // Demo animation for metrics
+        function animateMetrics() {
+            const metricValues = document.querySelectorAll('.metric-value');
+            metricValues.forEach(metric => {
+                const currentValue = parseInt(metric.textContent);
+                const increment = Math.floor(Math.random() * 3) - 1; // -1, 0, or 1
+                const newValue = Math.max(0, currentValue + increment);
+                metric.textContent = newValue;
+            });
+        }
+        
+        // Demo log generation
+        function addDemoLog() {
+            const logsContainer = document.querySelector('.demo-logs');
+            const logTypes = [
+                { class: 'log-battle-setup', category: 'BATTLE_SETUP', message: 'Battle environment prepared' },
+                { class: 'log-battle-execution', category: 'BATTLE_EXECUTION', message: 'Battle completed' },
+                { class: 'log-genome-evaluation', category: 'GENOME_EVALUATION', message: 'Genome performance evaluated' },
+                { class: 'log-team-synergy', category: 'TEAM_SYNERGY', message: 'Team synergy calculated' },
+                { class: 'log-adaptability', category: 'ADAPTABILITY', message: 'Adaptability assessed' },
+                { class: 'log-performance-analysis', category: 'PERFORMANCE_ANALYSIS', message: 'Performance analysis completed' }
+            ];
+            
+            const randomLog = logTypes[Math.floor(Math.random() * logTypes.length)];
+            const timestamp = new Date().toTimeString().substr(0, 8);
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${randomLog.class}`;
+            logEntry.textContent = `[${timestamp}] ${randomLog.category}: ${randomLog.message}`;
+            
+            // Add after the header
+            const headerDiv = logsContainer.querySelector('div:first-child');
+            headerDiv.insertAdjacentElement('afterend', logEntry);
+            
+            // Keep only last 8 entries
+            const logEntries = logsContainer.querySelectorAll('.log-entry');
+            if (logEntries.length > 8) {
+                logEntries[logEntries.length - 1].remove();
+            }
+            
+            logsContainer.scrollTop = 0;
+        }
+        
+        // Start demo animations
+        setInterval(animateMetrics, 3000);
+        setInterval(addDemoLog, 4000);
+        
+        // Initial demo setup
+        setTimeout(() => {
+            addDemoLog();
+        }, 1000);
+    </script>
+</body>
+</html>
