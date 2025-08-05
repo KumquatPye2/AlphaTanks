@@ -11,9 +11,6 @@ class ASIArchTestSuite {
 
     // Main test runner
     async runAllTests() {
-        console.log('🧪 Starting ASI-ARCH Test Suite...');
-        console.log('=' .repeat(60));
-
         // Test Categories
         await this.testResearcherModule();
         await this.testEngineerModule();
@@ -47,8 +44,6 @@ class ASIArchTestSuite {
 
     // Test 1: Researcher Module
     async testResearcherModule() {
-        console.log('\n🔬 Testing Researcher Module...');
-        
         const researcher = new TankResearcher();
         const mockCognitionBase = {
             formations: {
@@ -117,8 +112,6 @@ class ASIArchTestSuite {
 
     // Test 2: Engineer Module  
     async testEngineerModule() {
-        console.log('\n⚙️ Testing Engineer Module...');
-        
         const engineer = new TankEngineer();
         const researcher = new TankResearcher();
 
@@ -156,8 +149,6 @@ class ASIArchTestSuite {
 
     // Test 3: Analyst Module
     async testAnalystModule() {
-        console.log('\n📊 Testing Analyst Module...');
-        
         const analyst = new TankAnalyst();
         const mockBattleResult = {
             winner: 'red',
@@ -202,8 +193,6 @@ class ASIArchTestSuite {
 
     // Test 4: Cognition Module
     testCognitionModule() {
-        console.log('\n🧠 Testing Cognition Module...');
-        
         const researcher = new TankResearcher();
         const mockCognitionBase = {
             formations: {
@@ -261,8 +250,6 @@ class ASIArchTestSuite {
 
     // Test 5: Red Queen Race
     testRedQueenRace() {
-        console.log('\n🏁 Testing Red Queen Race...');
-        
         const researcher = new TankResearcher();
         
         // Test 5.1: Team Lineage Separation
@@ -334,8 +321,6 @@ class ASIArchTestSuite {
 
     // Test 6: Fitness Calculation
     testFitnessCalculation() {
-        console.log('\n💪 Testing Fitness Calculation...');
-        
         const evolution = new EvolutionEngine();
         const researcher = new TankResearcher();
         
@@ -375,8 +360,6 @@ class ASIArchTestSuite {
 
     // Test 7: Team Separation
     testTeamSeparation() {
-        console.log('\n🔄 Testing Team Separation...');
-        
         const evolution = new EvolutionEngine();
         
         // Test 7.1: Candidate Pool Separation
@@ -400,8 +383,6 @@ class ASIArchTestSuite {
 
     // Test 8: Visualization System
     testVisualizationSystem() {
-        console.log('\n📺 Testing Visualization System...');
-        
         // Test 8.1: Event Emission
         this.runTest('Visualization system emits and handles events', () => {
             const visualizer = new ASIArchVisualizer();
@@ -438,36 +419,22 @@ class ASIArchTestSuite {
     logPass(testName) {
         this.testResults.push({ name: testName, status: 'PASS' });
         this.passCount++;
-        console.log(`✅ ${testName}`);
     }
 
     logFail(testName, message) {
         this.testResults.push({ name: testName, status: 'FAIL', message });
         this.failCount++;
-        console.log(`❌ ${testName}: ${message}`);
     }
 
     // Summary and reporting
     printSummary() {
         const totalTests = this.passCount + this.failCount;
         const duration = ((Date.now() - this.startTime) / 1000).toFixed(2);
-        
-        console.log('\n' + '='.repeat(60));
-        console.log('🏁 ASI-ARCH Test Suite Complete');
-        console.log('='.repeat(60));
-        console.log(`📊 Results: ${this.passCount}/${totalTests} tests passed`);
-        console.log(`⏱️ Duration: ${duration}s`);
-        console.log(`✅ Passed: ${this.passCount}`);
-        console.log(`❌ Failed: ${this.failCount}`);
-        
         if (this.failCount > 0) {
-            console.log('\n💥 Failed Tests:');
             this.testResults
                 .filter(r => r.status === 'FAIL')
                 .forEach(r => console.log(`   - ${r.name}: ${r.message}`));
         }
-        
-        console.log('\n🎯 System Status:', this.failCount === 0 ? 'ALL SYSTEMS GO! 🚀' : 'ISSUES DETECTED ⚠️');
     }
 
     generateReport() {
@@ -494,7 +461,6 @@ if (typeof window !== 'undefined' && window.autoRunTests !== false) {
     // Add a delay to ensure all modules are loaded
     setTimeout(() => {
         if (window.TankResearcher && window.TankEngineer && window.EvolutionEngine) {
-            console.log('🧪 Auto-running ASI-ARCH tests...');
             window.runASIArchTests();
         }
     }, 1000);

@@ -4,6 +4,7 @@
  * how the TankResearcher module functions in the ASI-ARCH system.
  */
 
+// eslint-disable-next-line no-unused-vars
 class ResearcherInsights {
     constructor() {
         this.logs = [];
@@ -145,12 +146,10 @@ class ResearcherInsights {
         }
         
         this.updateLogsDisplay();
-        console.log(`[${timestamp}] RESEARCHER ${category}: ${message}`, data);
     }
 
     trackGenomeGeneration(genome, team = 'unknown', type = 'random') {
         this.metrics.genomeGenerations++;
-        console.log('🔬 INSIGHTS: Tracking genome generation for team:', team);
         this.log('GENERATION', `Generated ${type} genome`, { 
             type, 
             team, 
@@ -167,7 +166,6 @@ class ResearcherInsights {
 
     trackMutation(originalGenome, mutatedGenome, team) {
         this.metrics.mutations++;
-        console.log('🔬 INSIGHTS: Tracking mutation for team:', team);
         const changes = this.calculateGenomeChanges(originalGenome, mutatedGenome);
         
         this.log('MUTATION', `Genome mutated for ${team} team`, {
@@ -253,8 +251,6 @@ class ResearcherInsights {
     }
 
     trackGenerationComplete(generation, eventData) {
-        console.log('🔬 DEBUG: trackGenerationComplete called with:', { generation, eventData });
-        
         // Handle both old battleResults format and new generationComplete event format
         const battleResults = eventData.winner ? eventData : {
             winner: 'unknown',
@@ -263,22 +259,6 @@ class ResearcherInsights {
             blueTeamStats: undefined,
             generationData: eventData
         };
-        
-        // Debug: Check if eventData somehow has team stats
-        console.log('🔬 DEBUG: eventData structure:', {
-            hasWinner: !!eventData.winner,
-            hasRedTeamStats: !!eventData.redTeamStats,
-            hasBlueTeamStats: !!eventData.blueTeamStats,
-            keys: Object.keys(eventData)
-        });
-        
-        console.log('🔬 DEBUG: Final battleResults structure:', {
-            winner: battleResults.winner,
-            hasRedTeamStats: !!battleResults.redTeamStats,
-            hasBlueTeamStats: !!battleResults.blueTeamStats,
-            redTeamStats: battleResults.redTeamStats,
-            blueTeamStats: battleResults.blueTeamStats
-        });
         
         // Save the actual fitness values at the time of generation completion
         const redFitness = this.getTeamFitness(battleResults, eventData, 'red');
@@ -301,26 +281,17 @@ class ResearcherInsights {
         };
         
         this.generationData.push(generationData);
-        console.log('🔬 DEBUG: Added generation data:', generationData);
-        console.log('🔬 DEBUG: Total generationData entries:', this.generationData.length);
         
         this.log('GENERATION_COMPLETE', `Generation ${generation} evolution complete`, {
             generation,
             winner: battleResults.winner,
-            redFitness: (() => {
-                console.log(`🔬 DEBUG: Log red fitness for gen ${generation}:`, redFitness);
-                return redFitness;
-            })(),
-            blueFitness: (() => {
-                console.log(`🔬 DEBUG: Log blue fitness for gen ${generation}:`, blueFitness);
-                return blueFitness;
-            })(),
+            redFitness: redFitness,
+            blueFitness: blueFitness,
             evolutionaryPressure: this.calculateEvolutionaryPressure(generationData),
             topFitness: eventData.topFitness || 0,
             totalExperiments: eventData.totalExperiments || 0
         });
         
-        console.log('🔬 DEBUG: Calling updateEvolutionCharts...');
         this.updateEvolutionCharts();
     }
 
@@ -509,47 +480,26 @@ class ResearcherInsights {
         // First, try to get actual team stats if they exist
         const teamStats = team === 'red' ? battleResults.redTeamStats : battleResults.blueTeamStats;
         if (teamStats?.averageFitness !== undefined) {
-            console.log(`🔬 DEBUG: getTeamFitness(${team}) using team stats:`, teamStats.averageFitness);
             return teamStats.averageFitness;
         }
         
         // If no team stats, get the actual evolution engine stats
         if (window.evolution && typeof window.evolution.getEvolutionStats === 'function') {
             const evolutionStats = window.evolution.getEvolutionStats();
-            console.log(`🔬 DEBUG: Evolution stats available:`, {
-                redAvg: evolutionStats.redAverageFitness,
-                blueAvg: evolutionStats.blueAverageFitness,
-                redCandidates: evolutionStats.redCandidates,
-                blueCandidates: evolutionStats.blueCandidates
-            });
             
             const teamFitness = team === 'red' ? evolutionStats.redAverageFitness : evolutionStats.blueAverageFitness;
             if (teamFitness !== undefined) {
-                console.log(`🔬 DEBUG: getTeamFitness(${team}) using evolution stats:`, teamFitness);
                 return teamFitness;
             }
-        } else {
-            console.log(`🔬 DEBUG: Evolution engine not available:`, {
-                hasWindow: !!window.evolution,
-                hasFunction: window.evolution ? typeof window.evolution.getEvolutionStats : 'undefined'
-            });
         }
         
         // Final fallback - use generic average
         const fallbackFitness = eventData?.averageFitness || eventData?.topFitness || 0.5;
-        console.log(`🔬 DEBUG: getTeamFitness(${team}) using fallback:`, fallbackFitness);
         return fallbackFitness;
     }
 
     calculateEvolutionaryPressure(generationData) {
         // Calculate how much evolutionary pressure exists based on fitness differences
-        console.log('🔬 DEBUG: Calculating evolutionary pressure for:', generationData);
-        console.log('🔬 DEBUG: battleResults structure:', {
-            hasRedStats: !!generationData.battleResults?.redTeamStats,
-            hasBlueStats: !!generationData.battleResults?.blueTeamStats,
-            redFitness: generationData.battleResults?.redTeamStats?.averageFitness,
-            blueFitness: generationData.battleResults?.blueTeamStats?.averageFitness
-        });
         
         // Try multiple sources for fitness data
         let redFitness = 0;
@@ -570,11 +520,8 @@ class ResearcherInsights {
                 blueFitness = blueStat;
                 source = 'battleResults';
             } else {
-                console.log('🔬 DEBUG: Team stats exist but are identical, using synthetic approach');
                 source = 'synthetic_identical_stats';
             }
-        } else {
-            console.log('🔬 DEBUG: No valid team stats found, using synthetic approach');
         }
         
         // If we don't have valid different team stats, create meaningful differences
@@ -611,14 +558,6 @@ class ResearcherInsights {
             pressure = 0.02 + (gen % 5) * 0.01; // 0.02 to 0.06
             source += '_adjusted';
         }
-        
-        console.log('🔬 DEBUG: Evolutionary pressure calculation:', {
-            redFitness: redFitness.toFixed(3),
-            blueFitness: blueFitness.toFixed(3),
-            pressure: pressure.toFixed(3),
-            source: source,
-            generation: generationData.generation
-        });
         
         return pressure;
     }
@@ -660,19 +599,13 @@ class ResearcherInsights {
     }
 
     updateEvolutionCharts() {
-        console.log('🔬 DEBUG: updateEvolutionCharts called');
-        
         const chartsDiv = document.getElementById('evolution-charts');
         if (!chartsDiv) {
-            console.log('🔬 DEBUG: evolution-charts div not found');
             return;
         }
         
-        console.log('🔬 DEBUG: Charts div found, generationData length:', this.generationData.length);
-        
         // Always create canvas elements if they don't exist
         if (!document.getElementById('fitness-chart-canvas')) {
-            console.log('🔬 DEBUG: Creating chart canvases');
             chartsDiv.innerHTML = `
                 <div class="chart">
                     <canvas id="fitness-chart-canvas" width="400" height="200"></canvas>
@@ -684,15 +617,12 @@ class ResearcherInsights {
         }
         
         if (this.generationData.length === 0) {
-            console.log('🔬 DEBUG: No generation data, showing empty charts');
             // Show empty state message or empty charts
             this.renderEmptyCharts();
             return;
         }
         
-        console.log('🔬 DEBUG: Rendering charts with data:', this.generationData);
         const recentGenerations = this.generationData.slice(-10);
-        console.log('🔬 DEBUG: Recent generations for charts:', recentGenerations);
         this.renderFitnessChart(recentGenerations);
         this.renderPressureChart(recentGenerations);
     }
@@ -722,12 +652,10 @@ class ResearcherInsights {
             // Use the saved fitness values from when each generation completed
             redFitness = generations.map(g => {
                 const fitness = g.savedFitness ? g.savedFitness.red : this.getTeamFitness(g.battleResults, g.eventData, 'red');
-                console.log(`🔬 DEBUG: Chart red fitness for gen ${g.generation}:`, fitness, g.savedFitness ? '(saved)' : '(calculated)');
                 return fitness;
             });
             blueFitness = generations.map(g => {
                 const fitness = g.savedFitness ? g.savedFitness.blue : this.getTeamFitness(g.battleResults, g.eventData, 'blue');
-                console.log(`🔬 DEBUG: Chart blue fitness for gen ${g.generation}:`, fitness, g.savedFitness ? '(saved)' : '(calculated)');
                 return fitness;
             });
             labels = generations.map(g => `Gen ${g.generation}`);
@@ -812,7 +740,6 @@ class ResearcherInsights {
         if (generations.length > 0) {
             pressures = generations.map(g => this.calculateEvolutionaryPressure(g));
             labels = generations.map(g => `Gen ${g.generation}`);
-            console.log('🔬 DEBUG: Pressure chart data:', { labels, pressures });
         } else {
             // Empty state - show empty chart with placeholder
             labels = ['Waiting for evolution data...'];
@@ -886,8 +813,6 @@ class ResearcherInsights {
         if (button) {
             button.textContent = isHidden ? '🔬 Hide Insights' : '🔬 Show Insights';
         }
-        
-        console.log(`🔬 Researcher insights dashboard ${isHidden ? 'shown' : 'hidden'}`);
         
         if (isHidden) {
             // Update metrics and charts when showing
@@ -1069,8 +994,6 @@ class ResearcherInsights {
         
         // Refresh the charts to show empty state
         this.updateEvolutionCharts();
-        
-        console.log('🔬 Cleared all generation data and reset charts to empty state');
     }
 }
 

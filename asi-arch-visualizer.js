@@ -144,7 +144,6 @@ class ASIArchVisualizer {
                 this.logModuleActivity('engineer', `Calculating fitness scores...`);
                 break;
             case 'battle_complete':
-                console.log('🔍 Debug: battle_complete data:', data);
                 const winner = data.winner || 'unknown';
                 const winnerIcon = winner === 'red' ? '🔴' : winner === 'blue' ? '🔵' : '⚖️';
                 this.logModuleActivity('engineer', `Battle finished: ${winnerIcon} ${winner} wins`);
@@ -360,7 +359,6 @@ class ASIArchVisualizer {
     
     // General event handling method for validation compatibility
     handleEvent(eventType, eventData) {
-        console.log(`🎯 Handling ${eventType} event:`, eventData);
         // Delegate to specific module handlers
         if (eventData && eventData.module) {
             this.handleModuleEvent(eventData);
@@ -375,8 +373,6 @@ let asiArchVisualizer;
 document.addEventListener('DOMContentLoaded', function() {
     asiArchVisualizer = new ASIArchVisualizer();
     window.asiArchVisualizer = asiArchVisualizer;
-    
-    console.log('🎯 ASI-ARCH Visualizer initialized');
 });
 
 // Helper function to emit ASI-ARCH events

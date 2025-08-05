@@ -6,8 +6,6 @@ class TankResearcher {
     }
     
     proposeExperiment(candidatePool, history, cognitionBase) {
-        console.log('🔬 Researcher: Proposing new tank architectures...');
-        
         // Emit visualization event
         if (window.emitASIArchEvent) {
             window.emitASIArchEvent('researcher', 'propose_experiment');
@@ -573,8 +571,6 @@ class TankEngineer {
     }
     
     async runBattle(redGenomes, blueGenomes) {
-        console.log('⚔️ Engineer: Running battle simulation...');
-        
         // Emit visualization event for battle start
         if (window.emitASIArchEvent) {
             window.emitASIArchEvent('engineer', 'run_battle', { 
@@ -688,8 +684,6 @@ class TankAnalyst {
     }
     
     analyzeResults(battleResult, history) {
-        console.log('📊 Analyst: Analyzing battle results...');
-        
         // Emit visualization event for analysis start
         if (window.emitASIArchEvent) {
             window.emitASIArchEvent('analyst', 'analyze_results', { 

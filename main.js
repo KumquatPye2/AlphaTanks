@@ -3,19 +3,13 @@ let game;
 let evolution;
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Initializing AlphaTanks ASI-ARCH System... [Cache Test: ' + new Date().getTime() + ']');
-    console.log('📄 DOM Content Loaded event fired');
-    console.log('📄 Document ready state:', document.readyState);
-    
     // Check if canvas exists before creating GameEngine
     const canvas = document.getElementById('gameCanvas');
-    console.log('🎯 Canvas element check:', canvas);
     
     if (!canvas) {
         console.error('❌ Canvas not found! Retrying in 100ms...');
         setTimeout(() => {
             const retryCanvas = document.getElementById('gameCanvas');
-            console.log('🔄 Retry canvas check:', retryCanvas);
             if (retryCanvas) {
                 initializeGame();
             } else {
@@ -29,8 +23,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initializeGame() {
-    console.log('🎮 Starting game initialization...');
-    
     // Initialize game engine
     game = new GameEngine('gameCanvas');
     window.game = game; // Make globally accessible
@@ -43,7 +35,6 @@ function initializeGame() {
     if (typeof ResearcherInsights !== 'undefined') {
         // Clean up any existing instance first
         if (window.researcherInsights) {
-            console.log('🔬 Cleaning up existing researcher insights instance');
             // Remove existing dashboard if it exists
             const existingDashboard = document.getElementById('researcher-insights-dashboard');
             if (existingDashboard) {
@@ -53,15 +44,9 @@ function initializeGame() {
         
         // Create new instance
         window.researcherInsights = new ResearcherInsights();
-        console.log('🔬 Researcher insights initialized');
     } else {
         console.warn('🔬 ResearcherInsights class not available');
     }
-    
-    // DEBUG: Check evolution state immediately after initialization
-    console.log('🧬 Evolution engine initialized:');
-    console.log('🧬 Candidate pool size:', evolution.candidatePool?.length || 0);
-    console.log('🧬 Sample candidates:', evolution.candidatePool?.slice(0, 3) || []);
     
     // Setup UI event handlers
     setupEventHandlers();
@@ -69,13 +54,10 @@ function initializeGame() {
     // Initialize first battle
     game.initializeBattle(3, 3);
     
-    // DEBUG: Force update genome display immediately
+    // Force update genome display immediately
     setTimeout(() => {
-        console.log('🧬 Force updating genome display...');
         updateGenomeDisplay();
     }, 100);
-    
-    console.log('✅ AlphaTanks system ready!');
     
     // Auto-start if desired
     if (window.AUTO_START) {
@@ -116,13 +98,9 @@ function setupEventHandlers() {
     
     // Generation complete handler for researcher insights
     window.addEventListener('generationComplete', (event) => {
-        console.log('🔬 DEBUG: generationComplete event received:', event.detail);
-        
         // Track generation completion in researcher insights
         if (window.researcherInsights && event.detail) {
-            console.log('🔬 DEBUG: Calling trackGenerationComplete with:', event.detail.generation, event.detail);
             window.researcherInsights.trackGenerationComplete(event.detail.generation, event.detail);
-            console.log('🔬 Tracked generation completion for insights:', event.detail.generation);
         } else {
             console.warn('🔬 DEBUG: researcherInsights not available or no event detail');
         }
@@ -130,13 +108,9 @@ function setupEventHandlers() {
     
     // Keyboard shortcuts
     document.addEventListener('keydown', handleKeydown);
-    
-    console.log('🎮 Event handlers setup complete');
 }
 
     function startEvolution() {
-        console.log('🧬 Starting evolution system...');
-        
         // Check current game state and respond accordingly
         if (game.gameState === 'paused') {
             // Resume from pause - don't start new evolution experiment, just resume current battle
@@ -144,13 +118,11 @@ function setupEventHandlers() {
             game.resumedFromPause = true; // Flag to prevent genome selection
             evolution.isEvolutionRunning = true; // Resume evolution tracking
             evolution.logEvolutionEvent('AlphaTanks evolution system resumed', 'system');
-            console.log('🔄 Resuming from pause');
             
             // Clear the resumedFromPause flag after 5 seconds to allow normal genome display
             setTimeout(() => {
                 if (game) {
                     game.resumedFromPause = false;
-                    console.log('🎯 Cleared resumedFromPause flag - normal genome display can resume');
                 }
             }, 5000);
             
@@ -166,7 +138,6 @@ function setupEventHandlers() {
             
             game.start();
             evolution.startEvolution(); // This will start new experiments
-            console.log('🆕 Starting fresh battle and evolution');
             
             // Update genome display immediately for new battle (but don't spam it)
             setTimeout(() => {
@@ -174,7 +145,6 @@ function setupEventHandlers() {
             }, 1000);
         } else if (game.gameState === 'running') {
             // Already running, no action needed
-            console.log('⚠️ Evolution already running');
             return;
         }
         
@@ -187,8 +157,6 @@ function setupEventHandlers() {
             evolution.logEvolutionEvent('AlphaTanks evolution system resumed', 'system');
         }
     }function pauseEvolution() {
-    console.log('⏸️ Pausing evolution...');
-    
     // Pause evolution
     evolution.pauseEvolution();
     
@@ -202,8 +170,6 @@ function setupEventHandlers() {
 }
 
 function resetBattle() {
-    console.log('🔄 Resetting battle...');
-    
     // Reset evolution
     evolution.resetEvolution();
     
@@ -266,7 +232,6 @@ function handleKeydown(event) {
 
 function toggleDebugMode() {
     window.DEBUG = !window.DEBUG;
-    console.log(`🐛 Debug mode ${window.DEBUG ? 'enabled' : 'disabled'}`);
     
     if (window.DEBUG) {
         evolution.logEvolutionEvent('Debug mode enabled - Additional tank AI information displayed', 'system');
@@ -356,7 +321,6 @@ function updateDebugDisplay(stats) {
 // Auto-start for demonstration
 function enableAutoStart() {
     window.AUTO_START = true;
-    console.log('🤖 Auto-start enabled - System will begin evolution automatically');
 }
 
 // Export for global access
@@ -369,38 +333,12 @@ window.enableAutoStart = enableAutoStart;
 // Start performance monitoring
 startPerformanceMonitoring();
 
-// Welcome message
-console.log(`
-🔬 AlphaTanks: ASI-ARCH Coevolution System
-==========================================
-
-Controls:
-• SPACE: Start/Pause Evolution
-• R: Reset Battle
-• D: Toggle Debug Mode
-
-The system implements ASI-ARCH methodology:
-✅ Researcher: Proposes new tank architectures
-✅ Engineer: Evaluates performance in battle
-✅ Analyst: Generates insights from results
-✅ Cognition: Military tactics knowledge base
-
-Watch as tank AI evolves autonomously, demonstrating
-computational scaling of research breakthroughs!
-`);
-
 // Researcher Insights function - now toggleable
 function openResearcherInsights() {
-    console.log('🔬 Toggling Researcher Insights Dashboard');
-    
     // Initialize basic tracking only once (no test data)
     if (window.researcherInsights && !window.researcherInsights.testDataInitialized) {
-        console.log('🔬 Initializing researcher insights tracking...');
-        
         // Mark as initialized without adding test data
         window.researcherInsights.testDataInitialized = true;
-        
-        console.log('🔬 Researcher insights ready. Charts will populate with real evolution data.');
     }
     
     // Always toggle the dashboard
@@ -415,7 +353,6 @@ function openResearcherInsights() {
 function _clearResearcherTestData() {
     if (window.researcherInsights) {
         window.researcherInsights.clearGenerationData();
-        console.log('🔬 Test data cleared. Next toggle will regenerate.');
     } else {
         console.warn('🔬 Researcher insights not available');
     }
@@ -426,7 +363,6 @@ window.clearResearcherTestData = _clearResearcherTestData;
 
 // Credits modal functions
 function showCredits() {
-    console.log('📚 Showing credits and attribution');
     const modal = document.getElementById('creditsModal');
     modal.style.display = 'block';
     
@@ -443,7 +379,6 @@ function showCredits() {
 }
 
 function hideCredits() {
-    console.log('📚 Hiding credits modal');
     const modal = document.getElementById('creditsModal');
     const modalContent = modal.querySelector('.modal-content');
     
@@ -461,14 +396,12 @@ function hideCredits() {
 function updateGenomeDisplay() {
     // If we recently resumed from pause and tanks exist, show current tank genomes
     if (game && game.tanks && game.tanks.length > 0 && game.resumedFromPause) {
-        console.log('🎯 Using current tank genomes (resumed from pause)');
         displayCurrentTankGenomes();
         return;
     }
 
     // If game is paused, show genomes of current tanks instead of selecting new ones
     if (game && game.gameState === 'paused' && game.tanks && game.tanks.length > 0) {
-        console.log('🎯 Using current tank genomes (game paused)');
         displayCurrentTankGenomes();
         return;
     }
@@ -480,7 +413,6 @@ function updateGenomeDisplay() {
     }
 
     try {
-        console.log('🧬 Looking for proven champion genomes...');
         // Get best performing genomes for each team
         const redBest = getBestGenomeForTeam('red');
         const blueBest = getBestGenomeForTeam('blue');
@@ -585,7 +517,6 @@ const genomeCache = {
 
 function getBestGenomeForTeam(team) {
     if (!evolution || !evolution.candidatePool || evolution.candidatePool.length === 0) {
-        console.log(`🧬 No candidate pool available for team ${team}`);
         return null;
     }
     
@@ -601,32 +532,14 @@ function getBestGenomeForTeam(team) {
     if (cacheValid) {
         const cached = team === 'red' ? genomeCache.redBest : genomeCache.blueBest;
         if (cached) {
-            console.log(`🧬 Using cached genome for team ${team}`);
             return cached;
         }
     }
     
     try {
-        console.log(`🧬 Looking for proven champion for team ${team}, pool size: ${poolSize}`);
-        
-        // Debug: Log sample candidate to see format (only if not using cache)
-        if (!cacheValid && evolution.candidatePool.length > 0) {
-            const sample = evolution.candidatePool[0];
-            console.log(`🧬 Sample candidate:`, {
-                genome: sample.genome,
-                isArray: Array.isArray(sample.genome),
-                genomeType: typeof sample.genome,
-                genomeLength: sample.genome?.length,
-                fitness: sample.fitness,
-                battles: sample.battles,
-                wins: sample.wins
-            });
-        }
-        
         // First, try to filter candidates by actual team assignment AND battle experience
         let championCandidates = evolution.candidatePool.filter(candidate => {
             if (!candidate || !candidate.genome) {
-                console.log(`🧬 Invalid candidate: missing genome`);
                 return false;
             }
             
@@ -635,7 +548,6 @@ function getBestGenomeForTeam(team) {
             const isValidObject = !Array.isArray(candidate.genome) && typeof candidate.genome === 'object';
             
             if (!isValidArray && !isValidObject) {
-                console.log(`🧬 Invalid genome format:`, candidate.genome);
                 return false;
             }
             
@@ -645,15 +557,11 @@ function getBestGenomeForTeam(team) {
             const hasWins = candidate.wins && candidate.wins > 0;
             
             if (isTeamMember && hasBattleExperience && hasWins) {
-                console.log(`🧬 Found proven champion for ${team}: battles=${candidate.battles}, wins=${candidate.wins}`);
                 return true;
             }
             
             return false;
         });
-        
-        console.log(`🧬 Found ${championCandidates.length} proven champions for ${team}`);
-        
         // If no proven champions yet, fall back to experienced fighters (even without wins)
         if (championCandidates.length === 0) {
             championCandidates = evolution.candidatePool.filter(candidate => {
@@ -673,14 +581,11 @@ function getBestGenomeForTeam(team) {
                 const hasBattleExperience = candidate.battles && candidate.battles > 0;
                 
                 if (isTeamMember && hasBattleExperience) {
-                    console.log(`🧬 Found experienced fighter for ${team}: battles=${candidate.battles}`);
                     return true;
                 }
                 
                 return false;
             });
-            
-            console.log(`🧬 Found ${championCandidates.length} experienced fighters for ${team}`);
         }
         
         // If still no battle-tested candidates, use current generation team members (early generation case)
@@ -699,14 +604,11 @@ function getBestGenomeForTeam(team) {
                 
                 // Filter by team assignment only (for early generations)
                 if (candidate.team === team) {
-                    console.log(`🧬 Found current generation member for ${team} (early generation)`);
                     return true;
                 }
                 
                 return false;
             });
-            
-            console.log(`🧬 Found ${championCandidates.length} current generation members for ${team}`);
         }
         
         // If no team-specific candidates, get overall best and assign based on traits
@@ -721,9 +623,6 @@ function getBestGenomeForTeam(team) {
                 
                 return isValidArray || isValidObject;
             });
-            
-            console.log(`🧬 Using fallback: ${allCandidates.length} valid candidates total`);
-            
             if (allCandidates.length === 0) {
                 console.warn(`🧬 No valid candidates found for team ${team}`);
                 return null;
@@ -749,12 +648,10 @@ function getBestGenomeForTeam(team) {
                 
                 // Prefer different candidates for each team based on traits
                 if (team === 'red' && aggression > 0.3) {
-                    console.log(`🧬 Assigned red candidate based on aggression: ${aggression.toFixed(2)}`);
                     // Mark this candidate as used by red team (temporary assignment)
                     candidate.tempTeam = 'red';
                     return candidate;
                 } else if (team === 'blue' && (teamwork > 0.3 || defense > 0.3) && candidate.tempTeam !== 'red') {
-                    console.log(`🧬 Assigned blue candidate based on teamwork/defense: ${teamwork.toFixed(2)}/${defense.toFixed(2)}`);
                     // Mark this candidate as used by blue team (temporary assignment)
                     candidate.tempTeam = 'blue';
                     return candidate;
@@ -763,15 +660,12 @@ function getBestGenomeForTeam(team) {
             
             // Final fallback: assign different top candidates to each team
             if (team === 'red' && allCandidates.length > 0) {
-                console.log(`🧬 Using top candidate for red team (fallback)`);
                 allCandidates[0].tempTeam = 'red';
                 return allCandidates[0];
             } else if (team === 'blue' && allCandidates.length > 1) {
-                console.log(`🧬 Using second-best candidate for blue team (fallback)`);
                 allCandidates[1].tempTeam = 'blue';
                 return allCandidates[1];
             } else if (team === 'blue' && allCandidates.length > 0) {
-                console.log(`🧬 Using top candidate for blue team (only option)`);
                 return allCandidates[0];
             }
             
@@ -781,8 +675,6 @@ function getBestGenomeForTeam(team) {
         // Sort by fitness and return the best
         championCandidates.sort((a, b) => (b.fitness || 0) - (a.fitness || 0));
         const best = championCandidates[0];
-        console.log(`🧬 Best ${team} champion fitness: ${best.fitness?.toFixed(3) || 'N/A'}, battles: ${best.battles || 0}, wins: ${best.wins || 0}`);
-        
         // Update cache
         genomeCache.lastPoolSize = poolSize;
         genomeCache.lastCacheTime = currentTime;
@@ -870,8 +762,6 @@ function displayGenome(team, genome, fitness) {
             }
         }
     });
-    
-    console.log(`🧬 Updated ${team} champion genome - Fitness: ${fitness.toFixed(3)}`);
 }
 
 function displayGenomeWithEvolvingFitness(team, genome) {
@@ -932,8 +822,6 @@ function displayGenomeWithEvolvingFitness(team, genome) {
             }
         }
     });
-    
-    console.log(`🧬 Updated ${team} genome traits - Fitness still evolving...`);
 }
 
 // Demo data for initial showcase

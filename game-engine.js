@@ -91,8 +91,6 @@ class GameEngine {
             this.tanks.push(tank);
             this.blueTeam.push(tank);
         }
-        
-        console.log(`Battle initialized: ${redTanks} red vs ${blueTanks} blue tanks`);
     }
     
     generateBasicGenome() {
@@ -189,7 +187,6 @@ class GameEngine {
             
             if (anyTankMoved) {
                 this.battleStarted = true;
-                console.log('⏱️ Battle timer started - first tank moved');
             }
         }
         
@@ -269,10 +266,6 @@ class GameEngine {
                     tank.takeDamage(projectile.damage);
                     this.projectiles.splice(i, 1);
                     hit = true;
-                    
-                    if (!tank.isAlive) {
-                        console.log(`${tank.team} tank destroyed by ${projectile.team} team`);
-                    }
                 }
             }
         }
@@ -328,12 +321,8 @@ class GameEngine {
     
     endBattle(winner) {
         this.gameState = 'ended';
-        console.log(`🔍 Debug: endBattle called with winner: "${winner}"`);
-        console.log(`Battle ended: Winner is ${winner}`);
-        
         // Emit battle end event
         const battleResult = this.getBattleResult(winner);
-        console.log('🔍 Debug: battleResult:', battleResult);
         window.dispatchEvent(new CustomEvent('battleEnd', { detail: battleResult }));
     }
     

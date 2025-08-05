@@ -90,8 +90,6 @@ class EvolutionEngine {
             };
             this.candidatePool.push(candidate);
         }
-        
-        console.log(`🧬 Initialized candidate pool with ${this.candidatePool.length} team-specific genomes (10 red, 10 blue)`);
     }
     
     generateTankGenome() {
@@ -353,7 +351,6 @@ class EvolutionEngine {
     }
     
     startEvolution() {
-        console.log('🧬 Starting ASI-ARCH Evolution System');
         this.isEvolutionRunning = true;
         this.logEvolutionEvent('Evolution system started', 'system');
         
@@ -470,11 +467,6 @@ class EvolutionEngine {
         const redFitness = this.calculateTeamFitness(redGenomes, experiment.result, 'red');
         const blueFitness = this.calculateTeamFitness(blueGenomes, experiment.result, 'blue');
         
-        // DEBUG: Check if blue fitness is being calculated correctly
-        if (experiment.result.winner === 'blue') {
-            console.log(`🔬 Blue team won! Blue fitness values:`, blueFitness.map(f => f.toFixed(3)));
-        }
-        
         // RED QUEEN RACE: Add team-specific candidates to maintain lineages
         redGenomes.forEach((genome, index) => {
             this.addToPool({
@@ -508,9 +500,6 @@ class EvolutionEngine {
         if (this.totalExperiments % 5 === 0) {
             this.currentGeneration++;
             this.logEvolutionEvent(`Advanced to Generation ${this.currentGeneration}`, 'generation');
-            
-            console.log('🔬 DEBUG: Dispatching generationComplete event for generation:', this.currentGeneration);
-            
             // Dispatch generation complete event for tracking
             const generationCompleteEvent = new CustomEvent('generationComplete', {
                 detail: {
@@ -522,8 +511,6 @@ class EvolutionEngine {
                 }
             });
             window.dispatchEvent(generationCompleteEvent);
-            
-            console.log('🔬 DEBUG: generationComplete event dispatched with data:', generationCompleteEvent.detail);
         }
     }
     
@@ -640,13 +627,6 @@ class EvolutionEngine {
             
         const blueAvgFitness = blueCandidates.length > 0 ?
             blueCandidates.reduce((sum, c) => sum + c.fitness, 0) / blueCandidates.length : 0;
-            
-        // DEBUG: Only log if blue fitness is still 0 but blue has candidates
-        if (blueAvgFitness === 0 && blueCandidates.length > 0) {
-            console.log(`📊 Blue Fitness Debug: ${blueCandidates.length} blue candidates but avg fitness is 0`);
-            console.log('📊 Blue candidates sample:', blueCandidates.slice(0, 3).map(c => ({ fitness: c.fitness, team: c.team })));
-        }
-        
         // Overall average for compatibility
         const overallAvgFitness = this.candidatePool.length > 0 ?
             this.candidatePool.reduce((sum, c) => sum + c.fitness, 0) / this.candidatePool.length : 0;
@@ -682,12 +662,6 @@ class EvolutionEngine {
         const stats = this.getEvolutionStats();
         
         // DEBUG: Log fitness calculation details
-        if (stats.blueCandidates > 0) {
-            const blueCandidates = this.candidatePool.filter(c => c.team === 'blue');
-            console.log(`🐛 Blue UI Debug: ${blueCandidates.length} candidates, avg fitness: ${stats.blueAverageFitness.toFixed(3)}`);
-            console.log(`🐛 Recent blue fitness values:`, blueCandidates.slice(-3).map(c => c.fitness.toFixed(3)));
-        }
-        
         document.getElementById('generationDisplay').textContent = `Generation: ${stats.generation}`;
         document.getElementById('experiments').textContent = stats.experiments;
         document.getElementById('battles').textContent = stats.battles;
@@ -738,18 +712,14 @@ class EvolutionEngine {
                 log.removeChild(log.firstChild);
             }
         }
-        
-        console.log(`🧬 [${type.toUpperCase()}] ${message}`);
     }
     
     pauseEvolution() {
-        console.log('⏸️ Pausing ASI-ARCH Evolution System');
         this.isEvolutionRunning = false;
         this.logEvolutionEvent('Evolution system paused', 'system');
     }
     
     resetEvolution() {
-        console.log('🔄 Resetting ASI-ARCH Evolution System');
         this.isEvolutionRunning = false;
         this.currentGeneration = 0;
         this.generation = 1;
