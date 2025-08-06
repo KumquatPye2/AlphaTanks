@@ -1,0 +1,497 @@
+/**
+ * Enhanced Obstacle System for AlphaTanks
+ * Provides sophisticated pathfinding, improved collision detection,
+ * and better obstacle placement strategies.
+ */
+
+class EnhancedObstacleSystem {
+    constructor(width, height) {
+        this.width = width;
+        this.height = height;
+        this.obstacles = [];
+        this.pathfindingGrid = null;
+        this.gridSize = 20; // Grid cell size for pathfinding
+        this.gridWidth = Math.ceil(width / this.gridSize);
+        this.gridHeight = Math.ceil(height / this.gridSize);
+        
+        this.createStrategicObstacles();
+        this.buildPathfindingGrid();
+    }
+
+    createStrategicObstacles() {
+        // Clear existing obstacles
+        this.obstacles = [];
+
+        // Strategic obstacle placement that creates interesting tactical scenarios
+        const obstacles = [
+            // Central fortress - provides cover and strategic control point
+            { x: this.width * 0.45, y: this.height * 0.4, width: 80, height: 80, type: 'fortress' },
+            
+            // Flanking corridors - force tactical movement
+            { x: this.width * 0.25, y: this.height * 0.2, width: 40, height: 60, type: 'barrier' },
+            { x: this.width * 0.75, y: this.height * 0.2, width: 40, height: 60, type: 'barrier' },
+            
+            // Bottom defensive positions
+            { x: this.width * 0.3, y: this.height * 0.75, width: 60, height: 40, type: 'bunker' },
+            { x: this.width * 0.7, y: this.height * 0.75, width: 60, height: 40, type: 'bunker' },
+            
+            // Scattered cover points for dynamic positioning
+            { x: this.width * 0.15, y: this.height * 0.5, width: 30, height: 30, type: 'cover' },
+            { x: this.width * 0.85, y: this.height * 0.5, width: 30, height: 30, type: 'cover' },
+            
+            // Central lane dividers to create strategic chokepoints
+            { x: this.width * 0.48, y: this.height * 0.15, width: 24, height: 60, type: 'divider' },
+            { x: this.width * 0.52, y: this.height * 0.75, width: 24, height: 60, type: 'divider' }
+        ];
+
+        this.obstacles = obstacles.map(obs => new EnhancedObstacle(obs.x, obs.y, obs.width, obs.height, obs.type));
+        
+        // Validate that spawn areas are clear
+        this.validateSpawnAreas();
+    }
+
+    validateSpawnAreas() {
+        const spawnZones = [
+            { x: 0, y: 0, width: 200, height: this.height },     // Red spawn
+            { x: this.width - 200, y: 0, width: 200, height: this.height } // Blue spawn
+        ];
+
+        // Remove obstacles that interfere with spawn zones
+        this.obstacles = this.obstacles.filter(obstacle => {
+            return !spawnZones.some(zone => this.isOverlapping(obstacle, zone));
+        });
+    }
+
+    isOverlapping(rect1, rect2) {
+        return rect1.x < rect2.x + rect2.width &&
+               rect1.x + rect1.width > rect2.x &&
+               rect1.y < rect2.y + rect2.height &&
+               rect1.y + rect1.height > rect2.y;
+    }
+
+    buildPathfindingGrid() {
+        // Create a grid for A* pathfinding
+        this.pathfindingGrid = [];
+        
+        for (let y = 0; y < this.gridHeight; y++) {
+            this.pathfindingGrid[y] = [];
+            for (let x = 0; x < this.gridWidth; x++) {
+                const worldX = x * this.gridSize;
+                const worldY = y * this.gridSize;
+                
+                // Check if this grid cell intersects with any obstacle
+                const cellRect = {
+                    x: worldX,
+                    y: worldY,
+                    width: this.gridSize,
+                    height: this.gridSize
+                };
+                
+                const isBlocked = this.obstacles.some(obstacle => 
+                    this.isOverlapping(cellRect, obstacle)
+                );
+                
+                this.pathfindingGrid[y][x] = {
+                    x: x,
+                    y: y,
+                    walkable: !isBlocked,
+                    f: 0,
+                    g: 0,
+                    h: 0,
+                    parent: null
+                };
+            }
+        }
+    }
+
+    // A* Pathfinding implementation
+    findPath(startX, startY, endX, endY) {
+        // Convert world coordinates to grid coordinates
+        const startGridX = Math.floor(startX / this.gridSize);
+        const startGridY = Math.floor(startY / this.gridSize);
+        const endGridX = Math.floor(endX / this.gridSize);
+        const endGridY = Math.floor(endY / this.gridSize);
+
+        // Bounds checking
+        if (startGridX < 0 || startGridX >= this.gridWidth || 
+            startGridY < 0 || startGridY >= this.gridHeight ||
+            endGridX < 0 || endGridX >= this.gridWidth || 
+            endGridY < 0 || endGridY >= this.gridHeight) {
+            return null;
+        }
+
+        const startNode = this.pathfindingGrid[startGridY][startGridX];
+        const endNode = this.pathfindingGrid[endGridY][endGridX];
+        
+        if (!startNode.walkable || !endNode.walkable) {
+            return null;
+        }
+
+        // Reset grid
+        for (let y = 0; y < this.gridHeight; y++) {
+            for (let x = 0; x < this.gridWidth; x++) {
+                const node = this.pathfindingGrid[y][x];
+                node.f = 0;
+                node.g = 0;
+                node.h = 0;
+                node.parent = null;
+            }
+        }
+
+        const openSet = [startNode];
+        const closedSet = [];
+
+        while (openSet.length > 0) {
+            // Find node with lowest f score
+            let currentNode = openSet[0];
+            let currentIndex = 0;
+            
+            for (let i = 1; i < openSet.length; i++) {
+                if (openSet[i].f < currentNode.f) {
+                    currentNode = openSet[i];
+                    currentIndex = i;
+                }
+            }
+
+            // Move current node from open to closed set
+            openSet.splice(currentIndex, 1);
+            closedSet.push(currentNode);
+
+            // Check if we reached the goal
+            if (currentNode === endNode) {
+                return this.reconstructPath(currentNode);
+            }
+
+            // Check neighbors
+            const neighbors = this.getNeighbors(currentNode);
+            
+            for (const neighbor of neighbors) {
+                if (!neighbor.walkable || closedSet.includes(neighbor)) {
+                    continue;
+                }
+
+                const tentativeG = currentNode.g + this.getDistance(currentNode, neighbor);
+
+                if (!openSet.includes(neighbor)) {
+                    openSet.push(neighbor);
+                } else if (tentativeG >= neighbor.g) {
+                    continue;
+                }
+
+                neighbor.parent = currentNode;
+                neighbor.g = tentativeG;
+                neighbor.h = this.getDistance(neighbor, endNode);
+                neighbor.f = neighbor.g + neighbor.h;
+            }
+        }
+
+        return null; // No path found
+    }
+
+    getNeighbors(node) {
+        const neighbors = [];
+        const directions = [
+            [-1, -1], [-1, 0], [-1, 1],
+            [0, -1],           [0, 1],
+            [1, -1],  [1, 0],  [1, 1]
+        ];
+
+        for (const [dx, dy] of directions) {
+            const x = node.x + dx;
+            const y = node.y + dy;
+
+            if (x >= 0 && x < this.gridWidth && y >= 0 && y < this.gridHeight) {
+                neighbors.push(this.pathfindingGrid[y][x]);
+            }
+        }
+
+        return neighbors;
+    }
+
+    getDistance(nodeA, nodeB) {
+        const dx = nodeA.x - nodeB.x;
+        const dy = nodeA.y - nodeB.y;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    reconstructPath(endNode) {
+        const path = [];
+        let currentNode = endNode;
+
+        while (currentNode) {
+            // Convert grid coordinates back to world coordinates
+            path.unshift({
+                x: currentNode.x * this.gridSize + this.gridSize / 2,
+                y: currentNode.y * this.gridSize + this.gridSize / 2
+            });
+            currentNode = currentNode.parent;
+        }
+
+        return path;
+    }
+
+    // Improved collision detection with lookahead
+    predictCollision(tank, moveX, moveY) {
+        const futureX = tank.x + moveX;
+        const futureY = tank.y + moveY;
+        
+        const futureTank = {
+            x: futureX,
+            y: futureY,
+            width: tank.width,
+            height: tank.height
+        };
+
+        return this.obstacles.find(obstacle => this.isOverlapping(futureTank, obstacle));
+    }
+
+    // Smart obstacle avoidance with multiple strategies
+    calculateAvoidanceVector(tank, targetX, targetY) {
+        const moveX = Math.sign(targetX - tank.x) * tank.speed * 0.016; // Assume 60fps
+        const moveY = Math.sign(targetY - tank.y) * tank.speed * 0.016;
+
+        // Check for immediate collision
+        const collision = this.predictCollision(tank, moveX, moveY);
+        
+        if (!collision) {
+            return { x: moveX, y: moveY, strategy: 'direct' };
+        }
+
+        // Try different avoidance strategies
+        const strategies = [
+            this.trySlideAvoidance(tank, moveX, moveY, collision),
+            this.tryPerpendicularAvoidance(tank, moveX, moveY),
+            this.tryPathfinding(tank, targetX, targetY)
+        ];
+
+        // Return the first successful strategy
+        for (const strategy of strategies) {
+            if (strategy && !this.predictCollision(tank, strategy.x, strategy.y)) {
+                return strategy;
+            }
+        }
+
+        // Last resort: stop moving
+        return { x: 0, y: 0, strategy: 'stopped' };
+    }
+
+    trySlideAvoidance(tank, moveX, moveY, obstacle) {
+        // Try sliding along the obstacle edge
+        const tankCenterX = tank.x + tank.width / 2;
+        const tankCenterY = tank.y + tank.height / 2;
+        const obstacleCenterX = obstacle.x + obstacle.width / 2;
+        const obstacleCenterY = obstacle.y + obstacle.height / 2;
+
+        const dx = tankCenterX - obstacleCenterX;
+        const dy = tankCenterY - obstacleCenterY;
+
+        if (Math.abs(dx) > Math.abs(dy)) {
+            // Slide vertically
+            return { x: 0, y: moveY, strategy: 'slide_vertical' };
+        } else {
+            // Slide horizontally
+            return { x: moveX, y: 0, strategy: 'slide_horizontal' };
+        }
+    }
+
+    tryPerpendicularAvoidance(tank, moveX, moveY) {
+        // Try moving perpendicular to current direction
+        const perpX = -moveY;
+        const perpY = moveX;
+        
+        return { x: perpX, y: perpY, strategy: 'perpendicular' };
+    }
+
+    tryPathfinding(tank, targetX, targetY) {
+        // Use A* pathfinding for complex navigation
+        const path = this.findPath(
+            tank.x + tank.width / 2,
+            tank.y + tank.height / 2,
+            targetX,
+            targetY
+        );
+
+        if (path && path.length > 1) {
+            const nextWaypoint = path[1]; // Skip current position
+            const dx = nextWaypoint.x - (tank.x + tank.width / 2);
+            const dy = nextWaypoint.y - (tank.y + tank.height / 2);
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance > 0) {
+                const speed = tank.speed * 0.016; // Assume 60fps
+                return {
+                    x: (dx / distance) * speed,
+                    y: (dy / distance) * speed,
+                    strategy: 'pathfinding',
+                    path: path
+                };
+            }
+        }
+
+        return null;
+    }
+
+    // Visual debugging for pathfinding
+    renderPathfindingGrid(ctx) {
+        if (!window.DEBUG_PATHFINDING) {
+            return;
+        }
+
+        ctx.save();
+        ctx.globalAlpha = 0.3;
+        
+        for (let y = 0; y < this.gridHeight; y++) {
+            for (let x = 0; x < this.gridWidth; x++) {
+                const node = this.pathfindingGrid[y][x];
+                const worldX = x * this.gridSize;
+                const worldY = y * this.gridSize;
+                
+                ctx.fillStyle = node.walkable ? '#00ff00' : '#ff0000';
+                ctx.fillRect(worldX, worldY, this.gridSize, this.gridSize);
+                
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(worldX, worldY, this.gridSize, this.gridSize);
+            }
+        }
+        
+        ctx.restore();
+    }
+
+    render(ctx) {
+        this.obstacles.forEach(obstacle => obstacle.render(ctx));
+        this.renderPathfindingGrid(ctx);
+    }
+}
+
+class EnhancedObstacle {
+    constructor(x, y, width, height, type = 'barrier') {
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.type = type;
+    }
+
+    render(ctx) {
+        // Different visual styles based on obstacle type
+        const styles = {
+            fortress: { fill: '#666666', stroke: '#888888', strokeWidth: 3 },
+            barrier: { fill: '#555555', stroke: '#777777', strokeWidth: 2 },
+            bunker: { fill: '#444444', stroke: '#666666', strokeWidth: 2 },
+            cover: { fill: '#333333', stroke: '#555555', strokeWidth: 1 },
+            divider: { fill: '#444444', stroke: '#666666', strokeWidth: 1 }
+        };
+
+        const style = styles[this.type] || styles.barrier;
+
+        ctx.fillStyle = style.fill;
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+        
+        ctx.strokeStyle = style.stroke;
+        ctx.lineWidth = style.strokeWidth;
+        ctx.strokeRect(this.x, this.y, this.width, this.height);
+
+        // Add type indicator
+        if (window.DEBUG) {
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '10px monospace';
+            ctx.fillText(this.type, this.x + 5, this.y + 15);
+        }
+    }
+}
+
+// Enhanced Tank AI integration
+class EnhancedTankMovement {
+    constructor(tank, obstacleSystem) {
+        this.tank = tank;
+        this.obstacleSystem = obstacleSystem;
+        this.currentPath = null;
+        this.pathUpdateTimer = 0;
+        this.pathUpdateInterval = 1.0; // Update path every second
+    }
+
+    updateMovement(deltaTime, targetX, targetY) {
+        this.pathUpdateTimer += deltaTime;
+
+        // Update pathfinding periodically or when target changes significantly
+        if (this.pathUpdateTimer >= this.pathUpdateInterval || !this.currentPath) {
+            this.currentPath = this.obstacleSystem.findPath(
+                this.tank.x + this.tank.width / 2,
+                this.tank.y + this.tank.height / 2,
+                targetX,
+                targetY
+            );
+            this.pathUpdateTimer = 0;
+        }
+
+        let moveVector;
+
+        if (this.currentPath && this.currentPath.length > 1) {
+            // Follow the pathfinding route
+            const nextWaypoint = this.currentPath[1];
+            const dx = nextWaypoint.x - (this.tank.x + this.tank.width / 2);
+            const dy = nextWaypoint.y - (this.tank.y + this.tank.height / 2);
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < this.obstacleSystem.gridSize) {
+                // Close enough to waypoint, remove it from path
+                this.currentPath.shift();
+            }
+
+            if (distance > 0) {
+                const speed = this.tank.speed * deltaTime;
+                moveVector = {
+                    x: (dx / distance) * speed,
+                    y: (dy / distance) * speed
+                };
+            } else {
+                moveVector = { x: 0, y: 0 };
+            }
+        } else {
+            // Direct movement with obstacle avoidance
+            moveVector = this.obstacleSystem.calculateAvoidanceVector(this.tank, targetX, targetY);
+        }
+
+        // Apply movement
+        if (moveVector) {
+            this.tank.x += moveVector.x;
+            this.tank.y += moveVector.y;
+            
+            // Update tank angle to face movement direction
+            if (moveVector.x !== 0 || moveVector.y !== 0) {
+                this.tank.angle = Math.atan2(moveVector.y, moveVector.x);
+            }
+        }
+    }
+
+    renderDebugInfo(ctx) {
+        if (!window.DEBUG) {
+            return;
+        }
+
+        // Render current path
+        if (this.currentPath && this.currentPath.length > 1) {
+            ctx.save();
+            ctx.strokeStyle = this.tank.team === 'red' ? '#ff8888' : '#8888ff';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            
+            ctx.beginPath();
+            ctx.moveTo(this.currentPath[0].x, this.currentPath[0].y);
+            
+            for (let i = 1; i < this.currentPath.length; i++) {
+                ctx.lineTo(this.currentPath[i].x, this.currentPath[i].y);
+            }
+            
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.restore();
+        }
+    }
+}
+
+// Export classes
+window.EnhancedObstacleSystem = EnhancedObstacleSystem;
+window.EnhancedObstacle = EnhancedObstacle;
+window.EnhancedTankMovement = EnhancedTankMovement;

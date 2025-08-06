@@ -852,6 +852,11 @@ class MilitaryTacticsKnowledge {
             });
         }
         
+        // Track in cognition insights
+        if (window.cognitionInsights) {
+            window.cognitionInsights.trackKnowledgeSearch(query);
+        }
+        
         // Simple keyword matching for tactical knowledge
         const results = [];
         
@@ -869,6 +874,11 @@ class MilitaryTacticsKnowledge {
             });
         }
         
+        // Track knowledge search results in cognition insights
+        if (window.cognitionInsights) {
+            window.cognitionInsights.trackKnowledgeSearch(query, results.length);
+        }
+        
         return results;
     }
     
@@ -883,6 +893,11 @@ class MilitaryTacticsKnowledge {
                 trait: 'formation',
                 tactic: tactic.name 
             });
+        }
+        
+        // Track formation usage in cognition insights
+        if (window.cognitionInsights) {
+            window.cognitionInsights.trackFormationUsage(tactic.name);
         }
         
         return tactic;

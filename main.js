@@ -89,6 +89,7 @@ function setupEventHandlers() {
     document.getElementById('researcherInsightsButton').addEventListener('click', openResearcherInsights);
     document.getElementById('engineerInsightsButton').addEventListener('click', openEngineerInsights);
     document.getElementById('analystInsightsButton').addEventListener('click', openAnalystInsights);
+    document.getElementById('cognitionInsightsButton').addEventListener('click', openCognitionInsights);
     document.getElementById('creditsButton').addEventListener('click', showCredits);
     
     // Credits modal handlers
@@ -370,6 +371,15 @@ function openAnalystInsights() {
         window.analystInsights.toggle();
     } else {
         console.warn('📊 Analyst insights not initialized');
+    }
+}
+
+function openCognitionInsights() {
+    // Always toggle the dashboard
+    if (window.cognitionInsights) {
+        window.cognitionInsights.toggle();
+    } else {
+        console.warn('🧠 Cognition insights not initialized');
     }
 }
 

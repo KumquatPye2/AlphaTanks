@@ -355,6 +355,12 @@ class TankResearcher {
                     tactic: 'blitzkrieg',
                     improvement: totalImprovement.toFixed(3)
                 });
+                
+                // Track in cognition insights
+                if (window.cognitionInsights) {
+                    window.cognitionInsights.trackTacticApplication('red', 'blitzkrieg', totalImprovement.toFixed(3));
+                    window.cognitionInsights.trackTeamLearning('red', 'blitzkrieg', totalImprovement.toFixed(3));
+                }
             }
         } else if (team === 'blue') {
             // Blue team: Apply defensive phalanx tactics  
@@ -377,6 +383,12 @@ class TankResearcher {
                     tactic: 'phalanx',
                     improvement: totalImprovement.toFixed(3)
                 });
+                
+                // Track in cognition insights
+                if (window.cognitionInsights) {
+                    window.cognitionInsights.trackTacticApplication('blue', 'phalanx', totalImprovement.toFixed(3));
+                    window.cognitionInsights.trackTeamLearning('blue', 'phalanx', totalImprovement.toFixed(3));
+                }
             }
         }
         
@@ -1174,9 +1186,19 @@ class ASIArchModules {
             // Always increment adaptations when cognition is applied
             this.stats[team].adaptations++;
             
+            // Track cognitive adaptation in insights
+            if (window.cognitionInsights) {
+                window.cognitionInsights.trackCognitiveAdaptation();
+            }
+            
             // Additional adaptations for high-performing teams
             if (performance > 0.5) {
                 this.stats[team].adaptations++;
+                
+                // Track additional adaptation for high performance
+                if (window.cognitionInsights) {
+                    window.cognitionInsights.trackCognitiveAdaptation();
+                }
             }
             return individual;
         });
