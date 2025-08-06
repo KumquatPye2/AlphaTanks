@@ -95,6 +95,11 @@ class AnalystInsights {
                     <h3>📝 Analysis Logs</h3>
                     <div id="analyst-logs" style="height: 300px; overflow-y: scroll;"></div>
                 </div>
+                <!-- Hidden compatibility elements for dashboard-ui.js -->
+                <div id="evolution-charts" style="display: none;">
+                    <canvas id="fitness-chart-canvas" width="400" height="200"></canvas>
+                    <canvas id="pressure-chart-canvas" width="400" height="200"></canvas>
+                </div>
             </div>
         `;
         
@@ -221,6 +226,10 @@ class AnalystInsights {
         if (this.insightHistory.emergent_behaviors.length > 30) {
             this.insightHistory.emergent_behaviors.shift();
         }
+        
+        // Debug logging to help identify chart issues
+        console.log(`[AnalystInsights] Behaviors tracked: ${behaviors?.length || 0} behaviors [${behaviors?.join(', ') || 'none'}]`);
+        console.log(`[AnalystInsights] Total behavior history: ${this.insightHistory.emergent_behaviors.length} entries`);
         
         this.log('BEHAVIOR_DETECTION', `Emergent behaviors identified`, {
             behaviorsFound: behaviors?.length || 0,
@@ -738,11 +747,19 @@ class AnalystInsights {
         
         const recentBehaviors = this.insightHistory.emergent_behaviors.slice(-15);
         if (recentBehaviors.length === 0) {
+            chartDiv.innerHTML = `
+                <h4>🧠 Emergent Behaviors Detected</h4>
+                <p style="text-align: center; color: #888;">No behavior data yet</p>
+            `;
+            chartContainer.appendChild(chartDiv);
             return;
         }
         
         const labels = recentBehaviors.map((_, i) => `B${i + 1}`);
         const behaviorCounts = recentBehaviors.map(b => b.behaviors.length);
+        
+        // Debug: Log the behavior counts to help identify issues
+        console.log(`[AnalystInsights] Behavior chart update: ${recentBehaviors.length} entries, counts: [${behaviorCounts.join(', ')}]`);
         
         chartDiv.innerHTML = `
             <h4>🧠 Emergent Behaviors Detected</h4>
@@ -871,12 +888,19 @@ class AnalystInsights {
         ctx.font = '10px monospace';
         
         if (data.length === 0) {
+            // Draw "No Data" message
+            ctx.fillStyle = '#888888';
+            ctx.fillText('No data available', width / 2 - 50, height / 2);
             return;
         }
         
-        // Calculate scales
-        const maxValue = Math.max(...data.map(d => parseFloat(d)));
-        const minValue = Math.min(...data.map(d => parseFloat(d)));
+        // Debug: Log the data being rendered
+        console.log(`[AnalystInsights] Drawing chart with data: [${data.join(', ')}]`);
+        
+        // Calculate scales - ensure numbers are properly converted
+        const numericData = data.map(d => Number(d) || 0);
+        const maxValue = Math.max(...numericData);
+        const minValue = Math.min(...numericData);
         const range = maxValue - minValue || 1;
         
         const chartWidth = width - 2 * padding;
@@ -896,9 +920,9 @@ class AnalystInsights {
         ctx.lineWidth = 2;
         ctx.beginPath();
         
-        data.forEach((value, index) => {
-            const x = padding + (index / (data.length - 1)) * chartWidth;
-            const y = height - padding - ((parseFloat(value) - minValue) / range) * chartHeight;
+        numericData.forEach((value, index) => {
+            const x = padding + (index / Math.max(numericData.length - 1, 1)) * chartWidth;
+            const y = height - padding - ((value - minValue) / range) * chartHeight;
             
             if (index === 0) {
                 ctx.moveTo(x, y);
@@ -909,22 +933,31 @@ class AnalystInsights {
         
         ctx.stroke();
         
-        // Draw points
+        // Draw points with values
         ctx.fillStyle = color;
-        data.forEach((value, index) => {
-            const x = padding + (index / (data.length - 1)) * chartWidth;
-            const y = height - padding - ((parseFloat(value) - minValue) / range) * chartHeight;
+        ctx.font = '9px monospace';
+        numericData.forEach((value, index) => {
+            const x = padding + (index / Math.max(numericData.length - 1, 1)) * chartWidth;
+            const y = height - padding - ((value - minValue) / range) * chartHeight;
             
+            // Draw point
             ctx.beginPath();
             ctx.arc(x, y, 3, 0, 2 * Math.PI);
             ctx.fill();
+            
+            // Draw value label
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(value.toString(), x - 5, y - 8);
+            ctx.fillStyle = color;
         });
         
         // Draw labels
         ctx.fillStyle = '#cccccc';
+        ctx.font = '10px monospace';
         ctx.fillText(yLabel, 5, 15);
-        ctx.fillText(`Max: ${maxValue.toFixed(1)}`, width - 80, 15);
-        ctx.fillText(`Min: ${minValue.toFixed(1)}`, width - 80, height - 5);
+        ctx.fillText(`Max: ${maxValue}`, width - 60, 15);
+        ctx.fillText(`Min: ${minValue}`, width - 60, height - 5);
+        ctx.fillText(`Latest: ${numericData[numericData.length - 1] || 0}`, width - 80, 30);
     }
 
     // Public control methods

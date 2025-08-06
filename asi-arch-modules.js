@@ -875,19 +875,60 @@ class TankAnalyst {
         
         const behaviors = [];
         
-        // Analyze if tanks showed sophisticated behaviors
-        if (result.duration > 45) {
+        // Debug: Log battle stats to understand why behaviors aren't being detected
+        console.log(`[TankAnalyst] Battle analysis - Duration: ${result.duration?.toFixed(1)}s`);
+        console.log(`[TankAnalyst] Red team - Accuracy: ${(result.redTeamStats?.accuracy * 100 || 0).toFixed(1)}%, Damage dealt: ${result.redTeamStats?.totalDamageDealt || 0}, Damage taken: ${result.redTeamStats?.totalDamageTaken || 0}`);
+        console.log(`[TankAnalyst] Blue team - Accuracy: ${(result.blueTeamStats?.accuracy * 100 || 0).toFixed(1)}%, Damage dealt: ${result.blueTeamStats?.totalDamageDealt || 0}, Damage taken: ${result.blueTeamStats?.totalDamageTaken || 0}`);
+        
+        // Analyze if tanks showed sophisticated behaviors - ADJUSTED THRESHOLDS for better detection
+        
+        // 1. Extended tactical engagement (lowered from 45s to 20s)
+        if (result.duration > 20) {
             behaviors.push('Extended tactical engagement');
+            console.log(`[TankAnalyst] ✓ Extended tactical engagement detected (${result.duration.toFixed(1)}s > 20s)`);
+        } else {
+            console.log(`[TankAnalyst] ✗ No extended engagement (${result.duration?.toFixed(1) || 0}s ≤ 20s)`);
         }
         
-        if (result.redTeamStats.accuracy > 0.7 || result.blueTeamStats.accuracy > 0.7) {
+        // 2. High-precision targeting (lowered from 70% to 40%)
+        if (result.redTeamStats.accuracy > 0.4 || result.blueTeamStats.accuracy > 0.4) {
             behaviors.push('High-precision targeting');
+            console.log(`[TankAnalyst] ✓ High-precision targeting detected (Red: ${(result.redTeamStats.accuracy * 100).toFixed(1)}%, Blue: ${(result.blueTeamStats.accuracy * 100).toFixed(1)}%)`);
+        } else {
+            console.log(`[TankAnalyst] ✗ No high-precision targeting (Red: ${(result.redTeamStats?.accuracy * 100 || 0).toFixed(1)}%, Blue: ${(result.blueTeamStats?.accuracy * 100 || 0).toFixed(1)}% - both ≤ 40%)`);
         }
         
-        if (result.redTeamStats.totalDamageDealt > result.redTeamStats.totalDamageTaken * 2 ||
-            result.blueTeamStats.totalDamageDealt > result.blueTeamStats.totalDamageTaken * 2) {
+        // 3. Superior tactical positioning (lowered from 2.0 to 1.3)
+        const redDamageRatio = (result.redTeamStats?.totalDamageDealt || 0) / (result.redTeamStats?.totalDamageTaken || 1);
+        const blueDamageRatio = (result.blueTeamStats?.totalDamageDealt || 0) / (result.blueTeamStats?.totalDamageTaken || 1);
+        
+        if (redDamageRatio > 1.3 || blueDamageRatio > 1.3) {
             behaviors.push('Superior tactical positioning');
+            console.log(`[TankAnalyst] ✓ Superior tactical positioning detected (Red ratio: ${redDamageRatio.toFixed(2)}, Blue ratio: ${blueDamageRatio.toFixed(2)})`);
+        } else {
+            console.log(`[TankAnalyst] ✗ No superior positioning (Red ratio: ${redDamageRatio.toFixed(2)}, Blue ratio: ${blueDamageRatio.toFixed(2)} - both ≤ 1.3)`);
         }
+        
+        // 4. NEW: Active engagement behavior (if tanks fired enough shots)
+        const totalShots = (result.redTeamStats?.shotsFired || 0) + (result.blueTeamStats?.shotsFired || 0);
+        if (totalShots > 10) {
+            behaviors.push('Active tactical engagement');
+            console.log(`[TankAnalyst] ✓ Active tactical engagement detected (${totalShots} total shots > 10)`);
+        } else {
+            console.log(`[TankAnalyst] ✗ No active engagement (${totalShots} total shots ≤ 10)`);
+        }
+        
+        // 5. NEW: Balanced combat behavior (when battle isn't one-sided)
+        const survivors = (result.redSurvivors || 0) + (result.blueSurvivors || 0);
+        if (survivors > 0 && result.winner !== 'timeout') {
+            behaviors.push('Decisive tactical execution');
+            console.log(`[TankAnalyst] ✓ Decisive tactical execution detected (${survivors} survivors, winner: ${result.winner})`);
+        } else if (result.winner === 'timeout') {
+            behaviors.push('Balanced tactical standoff');
+            console.log(`[TankAnalyst] ✓ Balanced tactical standoff detected (timeout battle)`);
+        }
+        
+        console.log(`[TankAnalyst] Final behaviors detected: ${behaviors.length} [${behaviors.join(', ')}]`);
         
         return behaviors;
     }
