@@ -86,18 +86,24 @@ class CognitionInsights {
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                         <div class="insights-section">
                             <h3>📈 Tactical Evolution</h3>
-                            <canvas id="cognitionTacticsChart" width="400" height="200"></canvas>
+                            <div style="height: 150px;">
+                                <canvas id="cognitionTacticsChart"></canvas>
+                            </div>
                         </div>
                         
                         <div class="insights-section">
                             <h3>🧮 Learning Progress</h3>
-                            <canvas id="cognitionLearningChart" width="400" height="200"></canvas>
+                            <div style="height: 150px;">
+                                <canvas id="cognitionLearningChart"></canvas>
+                            </div>
                         </div>
                     </div>
                     
                     <div class="insights-section">
                         <h3>🏛️ Formation Usage</h3>
-                        <canvas id="cognitionFormationChart" width="600" height="300"></canvas>
+                        <div style="height: 200px;">
+                            <canvas id="cognitionFormationChart"></canvas>
+                        </div>
                     </div>
                     
                     <div class="insights-section" style="margin-top: 20px;">
@@ -182,18 +188,29 @@ class CognitionInsights {
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
                     scales: {
                         y: {
                             beginAtZero: true,
                             title: {
                                 display: true,
-                                text: 'Tactical Applications'
-                            }
+                                text: 'Tactical Applications',
+                                color: '#ffffff'
+                            },
+                            ticks: { color: '#ffffff' },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        },
+                        x: {
+                            ticks: { color: '#ffffff' },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
                         }
                     },
                     plugins: {
                         legend: {
-                            labels: { color: '#ffffff' }
+                            labels: { color: '#ffffff', font: { size: 10 } }
                         }
                     }
                 }
@@ -216,18 +233,29 @@ class CognitionInsights {
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
                     scales: {
                         y: {
                             beginAtZero: true,
                             title: {
                                 display: true,
-                                text: 'Event Count'
-                            }
+                                text: 'Event Count',
+                                color: '#ffffff'
+                            },
+                            ticks: { color: '#ffffff' },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        },
+                        x: {
+                            ticks: { color: '#ffffff' },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
                         }
                     },
                     plugins: {
                         legend: {
-                            labels: { color: '#ffffff' }
+                            labels: { color: '#ffffff', font: { size: 10 } }
                         }
                     }
                 }
@@ -249,10 +277,17 @@ class CognitionInsights {
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    interaction: {
+                        intersect: true
+                    },
                     plugins: {
                         legend: {
-                            position: 'right',
-                            labels: { color: '#ffffff' }
+                            position: 'bottom',
+                            labels: { 
+                                color: '#ffffff', 
+                                font: { size: 10 },
+                                padding: 10
+                            }
                         }
                     }
                 }
@@ -315,8 +350,23 @@ class CognitionInsights {
     }
 
     trackFormationUsage(formation) {
+        const timestamp = new Date().toISOString();
         this.metrics.formationsUsed++;
         this.log(`Formation applied: ${formation}`);
+        
+        // Store formation usage in history
+        this.learningHistory.formations_applied.push({
+            timestamp,
+            tactic: formation,
+            team: 'unknown', // Formation usage doesn't specify team
+            improvement: 0
+        });
+        
+        // Limit history size
+        if (this.learningHistory.formations_applied.length > 50) {
+            this.learningHistory.formations_applied.shift();
+        }
+        
         this.updateUI();
     }
 

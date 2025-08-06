@@ -1191,6 +1191,18 @@ class ASIArchModules {
                 window.cognitionInsights.trackCognitiveAdaptation();
             }
             
+            // Use cognition module to get tactical formation
+            if (this.cognitionModule && Math.random() > 0.3) { // Apply formation 70% of the time
+                const tactic = this.cognitionModule.getRandomTactic();
+                if (tactic) {
+                    // Track tactic application
+                    if (window.cognitionInsights) {
+                        const improvement = performance > 0.5 ? 0.1 : 0.05;
+                        window.cognitionInsights.trackTacticApplication(team, tactic.name, improvement);
+                    }
+                }
+            }
+            
             // Additional adaptations for high-performing teams
             if (performance > 0.5) {
                 this.stats[team].adaptations++;
@@ -1198,6 +1210,15 @@ class ASIArchModules {
                 // Track additional adaptation for high performance
                 if (window.cognitionInsights) {
                     window.cognitionInsights.trackCognitiveAdaptation();
+                }
+                
+                // High performing teams get extra tactical knowledge
+                if (this.cognitionModule && Math.random() > 0.5) {
+                    const query = `advanced_${team}_tactics`;
+                    const results = this.cognitionModule.searchKnowledge(query);
+                    if (window.cognitionInsights) {
+                        window.cognitionInsights.trackKnowledgeSearch(query, results ? results.length : 0);
+                    }
                 }
             }
             return individual;
