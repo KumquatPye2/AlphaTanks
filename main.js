@@ -88,6 +88,7 @@ function setupEventHandlers() {
     document.getElementById('resetBattle').addEventListener('click', resetBattle);
     document.getElementById('researcherInsightsButton').addEventListener('click', openResearcherInsights);
     document.getElementById('engineerInsightsButton').addEventListener('click', openEngineerInsights);
+    document.getElementById('analystInsightsButton').addEventListener('click', openAnalystInsights);
     document.getElementById('creditsButton').addEventListener('click', showCredits);
     
     // Credits modal handlers
@@ -360,6 +361,15 @@ function openEngineerInsights() {
         window.engineerInsights.toggle();
     } else {
         console.warn('⚙️ Engineer insights not initialized');
+    }
+}
+
+function openAnalystInsights() {
+    // Always toggle the dashboard
+    if (window.analystInsights) {
+        window.analystInsights.toggle();
+    } else {
+        console.warn('📊 Analyst insights not initialized');
     }
 }
 

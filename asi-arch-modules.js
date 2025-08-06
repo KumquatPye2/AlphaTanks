@@ -764,6 +764,11 @@ class TankAnalyst {
             });
         }
         
+        // Track analysis start in Analyst Insights
+        if (window.analystInsights) {
+            window.analystInsights.trackAnalysisStart(battleResult, history.length);
+        }
+        
         const analysis = {
             performance_trends: this.analyzePerformanceTrends(history),
             emergent_behaviors: this.identifyEmergentBehaviors(battleResult),
@@ -782,6 +787,28 @@ class TankAnalyst {
                     trait: 'insight',
                     type: 'significant_improvement' 
                 });
+            }
+            
+            // Track significant discovery in Analyst Insights
+            if (window.analystInsights) {
+                const improvement = this.calculateImprovement(battleResult, history);
+                window.analystInsights.trackSignificantDiscovery(analysis.significantDiscovery, improvement);
+            }
+        }
+        
+        // Track individual analysis components in Analyst Insights
+        if (window.analystInsights) {
+            if (analysis.performance_trends) {
+                window.analystInsights.trackPerformanceTrends(analysis.performance_trends);
+            }
+            if (analysis.emergent_behaviors) {
+                window.analystInsights.trackEmergentBehaviors(analysis.emergent_behaviors, battleResult);
+            }
+            if (analysis.strategic_insights) {
+                window.analystInsights.trackStrategicInsights(analysis.strategic_insights, battleResult);
+            }
+            if (analysis.fitness_progression) {
+                window.analystInsights.trackFitnessProgression(analysis.fitness_progression);
             }
         }
         
@@ -802,6 +829,11 @@ class TankAnalyst {
                 trait: 'report',
                 insights: analysis.strategic_insights ? analysis.strategic_insights.length : 0 
             });
+        }
+        
+        // Track analysis completion in Analyst Insights
+        if (window.analystInsights) {
+            window.analystInsights.trackAnalysisCompletion(analysis);
         }
         
         return analysis;
