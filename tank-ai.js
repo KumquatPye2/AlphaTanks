@@ -170,8 +170,8 @@ class Tank {
         } else if (this.state === 'patrol') {
             // Check if we need a new patrol target
             const distanceToTarget = Math.sqrt((this.targetX - this.x) ** 2 + (this.targetY - this.y) ** 2);
-            if (distanceToTarget < 20 || this.stateTimer > 8) {
-                this.setRandomPatrolTarget();
+            if (distanceToTarget < 30 || this.stateTimer > 10) {
+                this.setSmartPatrolTarget();
             }
         }
     }
@@ -194,7 +194,7 @@ class Tank {
                 this.findGroupPosition();
                 break;
             case 'patrol':
-                this.setRandomPatrolTarget();
+                this.setSmartPatrolTarget();
                 break;
         }
     }
@@ -203,6 +203,57 @@ class Tank {
         // Patrol within team's side of the battlefield
         this.targetX = Math.random() * 400 + (this.team === 'red' ? 50 : 350);
         this.targetY = 100 + Math.random() * 300;
+    }
+    
+    setSmartPatrolTarget() {
+        // Smarter patrol that avoids sudden direction changes
+        const teamSide = this.team === 'red';
+        const baseX = teamSide ? 50 : 350;
+        const patrolWidth = 400;
+        
+        // Calculate current position relative to patrol area
+        const currentRelativeX = this.x - baseX;
+        const currentRelativeY = this.y - 100;
+        
+        // Generate new target that's not too far from current direction
+        let newX, newY;
+        
+        // If we're near the edges, bias towards center
+        if (currentRelativeX < patrolWidth * 0.2) {
+            // Near left edge, bias right
+            newX = baseX + Math.random() * (patrolWidth * 0.6) + (patrolWidth * 0.3);
+        } else if (currentRelativeX > patrolWidth * 0.8) {
+            // Near right edge, bias left
+            newX = baseX + Math.random() * (patrolWidth * 0.6);
+        } else {
+            // In middle, can go anywhere but bias towards continuing current direction
+            const currentDirection = Math.atan2(this.targetY - this.y, this.targetX - this.x);
+            const forwardX = this.x + Math.cos(currentDirection) * 100;
+            const forwardY = this.y + Math.sin(currentDirection) * 100;
+            
+            // Clamp to patrol area
+            newX = Math.max(baseX, Math.min(baseX + patrolWidth, forwardX + (Math.random() - 0.5) * 150));
+            newY = Math.max(100, Math.min(400, forwardY + (Math.random() - 0.5) * 150));
+            
+            this.targetX = newX;
+            this.targetY = newY;
+            return;
+        }
+        
+        // Y coordinate with some randomness
+        if (currentRelativeY < 100) {
+            // Near top, bias down
+            newY = 100 + Math.random() * 200 + 100;
+        } else if (currentRelativeY > 200) {
+            // Near bottom, bias up
+            newY = 100 + Math.random() * 200;
+        } else {
+            // In middle
+            newY = 100 + Math.random() * 300;
+        }
+        
+        this.targetX = newX;
+        this.targetY = newY;
     }
     
     findRetreatPosition() {
@@ -233,7 +284,7 @@ class Tank {
         const dy = this.targetY - this.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
-        if (distance > 10) { // Increased threshold to reduce jittery movement
+        if (distance > 15) { // Increased threshold to reduce micro-movements
             // Normalize movement vector
             const moveX = (dx / distance) * this.speed * deltaTime;
             const moveY = (dy / distance) * this.speed * deltaTime;
@@ -254,7 +305,7 @@ class Tank {
                 const normalizedDiff = ((angleDiff + Math.PI) % (2 * Math.PI)) - Math.PI;
                 
                 // Gradual rotation instead of instant snap
-                const maxRotation = 3.0 * deltaTime; // Max rotation speed per frame
+                const maxRotation = 2.5 * deltaTime; // Slightly slower rotation for smoother movement
                 if (Math.abs(normalizedDiff) > maxRotation) {
                     this.angle += Math.sign(normalizedDiff) * maxRotation;
                 } else {
