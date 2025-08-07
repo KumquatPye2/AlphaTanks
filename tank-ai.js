@@ -370,7 +370,10 @@ class Tank {
         // Health bar
         this.renderHealthBar(ctx);
         
-        // State indicator (debug)
+        // Always show behavior state above tank
+        this.renderBehaviorState(ctx);
+        
+        // Additional debug info (only when DEBUG is enabled)
         if (window.DEBUG) {
             this.renderDebugInfo(ctx);
         }
@@ -389,6 +392,41 @@ class Tank {
         ctx.fillStyle = healthPercent > 0.6 ? '#00ff00' : 
                         healthPercent > 0.3 ? '#ffff00' : '#ff0000';
         ctx.fillRect(this.x, this.y - 8, barWidth * healthPercent, barHeight);
+    }
+    
+    renderBehaviorState(ctx) {
+        // Show current behavior state above the tank
+        ctx.save();
+        ctx.fillStyle = this.team === 'red' ? '#ffaaaa' : '#aaaaff';
+        ctx.font = 'bold 10px Arial';
+        ctx.textAlign = 'center';
+        
+        // Display state with some additional context
+        let stateText = this.state.toUpperCase();
+        
+        // Add additional context based on state
+        if (this.state === 'attack' && this.target) {
+            const distance = Math.round(this.distanceTo(this.target));
+            stateText += ` (${distance}px)`;
+        } else if (this.state === 'patrol') {
+            const patrolDistance = Math.round(Math.sqrt((this.targetX - this.x) ** 2 + (this.targetY - this.y) ** 2));
+            stateText += ` (${patrolDistance}px)`;
+        }
+        
+        // Position text above the tank
+        const textX = this.x + this.width / 2;
+        const textY = this.y - 18;
+        
+        // Background for better readability
+        const textWidth = ctx.measureText(stateText).width;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(textX - textWidth / 2 - 2, textY - 10, textWidth + 4, 12);
+        
+        // Text
+        ctx.fillStyle = this.team === 'red' ? '#ffdddd' : '#ddddff';
+        ctx.fillText(stateText, textX, textY);
+        
+        ctx.restore();
     }
     
     renderDebugInfo(ctx) {
