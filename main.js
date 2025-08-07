@@ -129,6 +129,17 @@ function setupEventHandlers() {
             if (battleResult.duration > 30) {
                 window.cognitionInsights.trackKnowledgeSearch('prolonged_battle_analysis', 3);
             }
+            
+            // Track cognitive adaptations based on battle outcome
+            if (battleResult.winner) {
+                // Teams adapt their strategies after each battle
+                window.cognitionInsights.trackCognitiveAdaptation();
+                
+                // Additional adaptation for decisive victories (short battles)
+                if (battleResult.duration < 15) {
+                    window.cognitionInsights.trackCognitiveAdaptation();
+                }
+            }
         }
     });
     
@@ -174,6 +185,9 @@ function setupEventHandlers() {
                 ];
                 const randomQuery = battleQueries[Math.floor(Math.random() * battleQueries.length)];
                 window.cognitionInsights.trackKnowledgeSearch(randomQuery, Math.floor(Math.random() * 3) + 1);
+                
+                // Track cognitive adaptations for battle preparation
+                window.cognitionInsights.trackCognitiveAdaptation();
             }
             
             // Update genome display immediately for new battle (but don't spam it)
