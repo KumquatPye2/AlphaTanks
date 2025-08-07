@@ -167,9 +167,12 @@ class Tank {
             this.setState('attack');
         } else if (shouldGroup > 0.4 && this.state !== 'group') {
             this.setState('group');
-        } else if (this.stateTimer > 3 && this.state === 'patrol') {
-            // Random patrol behavior
-            this.setRandomPatrolTarget();
+        } else if (this.state === 'patrol') {
+            // Check if we need a new patrol target
+            const distanceToTarget = Math.sqrt((this.targetX - this.x) ** 2 + (this.targetY - this.y) ** 2);
+            if (distanceToTarget < 20 || this.stateTimer > 8) {
+                this.setRandomPatrolTarget();
+            }
         }
     }
     
@@ -230,7 +233,7 @@ class Tank {
         const dy = this.targetY - this.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
-        if (distance > 5) {
+        if (distance > 10) { // Increased threshold to reduce jittery movement
             // Normalize movement vector
             const moveX = (dx / distance) * this.speed * deltaTime;
             const moveY = (dy / distance) * this.speed * deltaTime;
@@ -243,8 +246,20 @@ class Tank {
                 this.x = newX;
                 this.y = newY;
                 
-                // Update facing angle
-                this.angle = Math.atan2(dy, dx);
+                // Smooth angle updates - don't snap instantly
+                const targetAngle = Math.atan2(dy, dx);
+                const angleDiff = targetAngle - this.angle;
+                
+                // Normalize angle difference to [-π, π]
+                const normalizedDiff = ((angleDiff + Math.PI) % (2 * Math.PI)) - Math.PI;
+                
+                // Gradual rotation instead of instant snap
+                const maxRotation = 3.0 * deltaTime; // Max rotation speed per frame
+                if (Math.abs(normalizedDiff) > maxRotation) {
+                    this.angle += Math.sign(normalizedDiff) * maxRotation;
+                } else {
+                    this.angle = targetAngle;
+                }
             } else {
                 // Simple obstacle avoidance - try perpendicular movement
                 const perpAngle = this.angle + Math.PI / 2;
