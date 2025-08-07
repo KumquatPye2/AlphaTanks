@@ -278,6 +278,7 @@ class EvolutionEngine {
     }
 
     evolvePopulation(team) {
+        console.log('DEBUG: evolvePopulation called for team:', team);
         const population = team === 'red' ? this.redPopulation : this.bluePopulation;
         
         // Preserve elite individuals (top 20% by fitness)
@@ -286,12 +287,15 @@ class EvolutionEngine {
         const elites = sortedByFitness.slice(0, eliteCount);
         
         // Apply ASI-ARCH modules if available
+        console.log('DEBUG: Checking if asiArch is available:', !!this.asiArch);
         if (this.asiArch) {
+            console.log('DEBUG: Applying ASI-ARCH modules for team:', team);
             let evolvedPopulation = this.asiArch.applyResearcher(population, team);
             evolvedPopulation = this.asiArch.applyEngineer(evolvedPopulation, team);
             
             const otherPopulation = team === 'red' ? this.bluePopulation : this.redPopulation;
             evolvedPopulation = this.asiArch.applyAnalyst(evolvedPopulation, otherPopulation, team);
+            console.log('DEBUG: About to call applyCognition for team:', team);
             evolvedPopulation = this.asiArch.applyCognition(evolvedPopulation, team);
             
             // Preserve elites by replacing some evolved individuals

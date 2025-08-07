@@ -343,6 +343,14 @@ class TankResearcher {
             genome[1] = Math.max(genome[1], blitzkrieg.speed * 0.7); // Speed
             genome[0] = Math.max(genome[0], blitzkrieg.aggression * 0.7); // Aggression
             
+            // Track blitzkrieg formation usage
+            if (window.cognitionInsights && (genome[1] > oldSpeed || genome[0] > oldAggression)) {
+                window.cognitionInsights.trackFormationUsage('blitzkrieg');
+                // Also track as tactic application for chart
+                const totalChange = (genome[1] - oldSpeed) + (genome[0] - oldAggression);
+                window.cognitionInsights.trackTacticApplication('red', 'blitzkrieg', totalChange.toFixed(3));
+            }
+            
             // Only emit learning event if significant tactical improvement occurred
             const speedImprovement = genome[1] - oldSpeed;
             const aggressionImprovement = genome[0] - oldAggression;
@@ -370,6 +378,14 @@ class TankResearcher {
             
             genome[5] = Math.max(genome[5], phalanx.formation * 0.7); // Adaptability (was formation)
             genome[4] = Math.max(genome[4], phalanx.cooperation * 0.7); // Teamwork (was cooperation)
+            
+            // Track phalanx formation usage
+            if (window.cognitionInsights && genome[5] > oldAdaptability) {
+                window.cognitionInsights.trackFormationUsage('phalanx');
+                // Also track as tactic application for chart
+                const totalChange = (genome[5] - oldAdaptability) + (genome[4] - oldTeamwork);
+                window.cognitionInsights.trackTacticApplication('blue', 'phalanx', totalChange.toFixed(3));
+            }
             
             // Only emit learning event if significant tactical improvement occurred
             const adaptabilityImprovement = genome[5] - oldAdaptability;
@@ -472,7 +488,13 @@ class TankResearcher {
                     if (genome[0] > 0.7) {winningTactics.push('high_aggression');}
                     if (genome[1] > 0.7) {winningTactics.push('high_speed');}
                     if (genome[2] > 0.7) {winningTactics.push('high_accuracy');}
-                    if (genome[5] > 0.6) {winningTactics.push('formation_fighting');} // Adaptability (was formation)
+                    if (genome[5] > 0.6) {
+                        winningTactics.push('formation_fighting'); // Adaptability (was formation)
+                        // Track formation usage in cognition insights
+                        if (window.cognitionInsights) {
+                            window.cognitionInsights.trackFormationUsage('formation_fighting');
+                        }
+                    }
                 }
             });
         });
@@ -522,6 +544,10 @@ class TankResearcher {
                 genome[0] = Math.min(1, genome[0] + 0.1); // Aggression
                 counterTacticLearned = true;
                 tacticName = 'disruption_counter';
+                // Track disruption formation usage
+                if (window.cognitionInsights) {
+                    window.cognitionInsights.trackFormationUsage('disruption_counter');
+                }
             }
             
             // Emit counter-evolution event
@@ -1179,9 +1205,11 @@ class ASIArchModules {
     
     // Cognition Module Interface
     applyCognition(population, team) {
+        console.log('DEBUG: applyCognition called for team:', team, 'population size:', population.length);
         const enhanced = population.map(individual => {
             // Apply meta-learning based on team performance-based learning system
             const performance = this.getTeamPerformance(team);
+            console.log('DEBUG: Processing individual for team:', team, 'performance:', performance);
             
             // Always increment adaptations when cognition is applied
             this.stats[team].adaptations++;
@@ -1192,13 +1220,24 @@ class ASIArchModules {
             }
             
             // Use cognition module to get tactical formation
+            console.log('DEBUG: Checking cognition module availability:', !!this.cognitionModule);
             if (this.cognitionModule && Math.random() > 0.3) { // Apply formation 70% of the time
+                console.log('DEBUG: Getting random tactic for team:', team);
                 const tactic = this.cognitionModule.getRandomTactic();
                 if (tactic) {
+                    console.log('DEBUG: Got tactic:', tactic.name);
                     // Track tactic application
                     if (window.cognitionInsights) {
                         const improvement = performance > 0.5 ? 0.1 : 0.05;
                         window.cognitionInsights.trackTacticApplication(team, tactic.name, improvement);
+                    }
+                    
+                    // Search for related tactical knowledge
+                    if (window.cognitionInsights && Math.random() > 0.1) { // 90% chance to search for knowledge
+                        console.log('DEBUG: About to search knowledge for:', `${team}_${tactic.name}_counter`);
+                        const searchQuery = `${team}_${tactic.name}_counter`;
+                        const results = this.cognitionModule.searchKnowledge(searchQuery);
+                        window.cognitionInsights.trackKnowledgeSearch(searchQuery, results ? results.length : 0);
                     }
                 }
             }
@@ -1213,10 +1252,12 @@ class ASIArchModules {
                 }
                 
                 // High performing teams get extra tactical knowledge
-                if (this.cognitionModule && Math.random() > 0.5) {
+                if (this.cognitionModule && Math.random() > 0.2) { // 80% chance for high performers
+                    console.log('DEBUG: High performer knowledge search for team:', team);
                     const query = `advanced_${team}_tactics`;
                     const results = this.cognitionModule.searchKnowledge(query);
                     if (window.cognitionInsights) {
+                        console.log('DEBUG: Tracking high performer knowledge search:', query);
                         window.cognitionInsights.trackKnowledgeSearch(query, results ? results.length : 0);
                     }
                 }

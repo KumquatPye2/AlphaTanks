@@ -107,9 +107,28 @@ function setupEventHandlers() {
     window.addEventListener('resize', handleResize);
     
     // Battle end handler
-    window.addEventListener('battleEnd', (_event) => {
+    window.addEventListener('battleEnd', (event) => {
         if (game) {
             game.resumedFromPause = false; // Clear resume flag when battle ends
+        }
+        
+        // Track knowledge searches in cognition insights after each battle
+        if (window.cognitionInsights && event.detail) {
+            const battleResult = event.detail;
+            
+            // Search for tactics based on battle outcome
+            if (battleResult.winner === 'red') {
+                window.cognitionInsights.trackKnowledgeSearch('red_victory_tactics', 2);
+            } else if (battleResult.winner === 'blue') {
+                window.cognitionInsights.trackKnowledgeSearch('blue_victory_tactics', 2);
+            } else {
+                window.cognitionInsights.trackKnowledgeSearch('defensive_stalemate_tactics', 1);
+            }
+            
+            // Search for counter-tactics based on battle duration
+            if (battleResult.duration > 30) {
+                window.cognitionInsights.trackKnowledgeSearch('prolonged_battle_analysis', 3);
+            }
         }
     });
     
@@ -145,6 +164,17 @@ function setupEventHandlers() {
             
             game.start();
             evolution.startEvolution(); // This will start new experiments
+            
+            // Track knowledge search for battle preparation
+            if (window.cognitionInsights) {
+                const battleQueries = [
+                    'pre_battle_reconnaissance',
+                    'tactical_formation_analysis', 
+                    'enemy_pattern_assessment'
+                ];
+                const randomQuery = battleQueries[Math.floor(Math.random() * battleQueries.length)];
+                window.cognitionInsights.trackKnowledgeSearch(randomQuery, Math.floor(Math.random() * 3) + 1);
+            }
             
             // Update genome display immediately for new battle (but don't spam it)
             setTimeout(() => {

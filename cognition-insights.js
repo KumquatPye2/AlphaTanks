@@ -330,6 +330,7 @@ class CognitionInsights {
     }
 
     trackKnowledgeSearch(query, results) {
+        console.log('DEBUG: trackKnowledgeSearch called with:', query, results);
         const timestamp = new Date().toISOString();
         this.metrics.knowledgeSearches++;
         
@@ -536,15 +537,49 @@ class CognitionInsights {
     updateCharts() {
         // Update tactics chart
         if (this.tacticsChart) {
-            const redTactics = this.learningHistory.red_tactics.slice(-10);
-            const blueTactics = this.learningHistory.blue_tactics.slice(-10);
+            const redTactics = this.learningHistory.red_tactics;
+            const blueTactics = this.learningHistory.blue_tactics;
             
-            const maxLength = Math.max(redTactics.length, blueTactics.length);
-            const labels = Array.from({length: maxLength}, (_, i) => `T${i+1}`);
+            // Create a timeline of all tactic applications
+            const allTactics = [...redTactics, ...blueTactics].sort((a, b) => 
+                new Date(a.timestamp) - new Date(b.timestamp)
+            );
             
-            this.tacticsChart.data.labels = labels;
-            this.tacticsChart.data.datasets[0].data = redTactics.map((_, i) => redTactics.slice(0, i+1).length);
-            this.tacticsChart.data.datasets[1].data = blueTactics.map((_, i) => blueTactics.slice(0, i+1).length);
+            if (allTactics.length > 0) {
+                // Create meaningful labels for tactical applications
+                const labels = allTactics.map((tactic) => {
+                    const time = new Date(tactic.timestamp);
+                    const minutes = time.getMinutes().toString().padStart(2, '0');
+                    const seconds = time.getSeconds().toString().padStart(2, '0');
+                    return `${tactic.team.charAt(0).toUpperCase()}:${minutes}:${seconds}`;
+                });
+                
+                // Calculate cumulative counts for each team
+                let redCount = 0;
+                let blueCount = 0;
+                const redData = [];
+                const blueData = [];
+                
+                allTactics.forEach(tactic => {
+                    if (tactic.team === 'red') {
+                        redCount++;
+                    } else if (tactic.team === 'blue') {
+                        blueCount++;
+                    }
+                    redData.push(redCount);
+                    blueData.push(blueCount);
+                });
+                
+                this.tacticsChart.data.labels = labels;
+                this.tacticsChart.data.datasets[0].data = redData;
+                this.tacticsChart.data.datasets[1].data = blueData;
+            } else {
+                // No data yet
+                this.tacticsChart.data.labels = [];
+                this.tacticsChart.data.datasets[0].data = [];
+                this.tacticsChart.data.datasets[1].data = [];
+            }
+            
             this.tacticsChart.update();
         }
         
@@ -620,6 +655,7 @@ class CognitionInsights {
         };
         
         this.log('Cognition insights data reset');
+        this.updateCharts();
         this.updateUI();
     }
 
