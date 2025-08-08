@@ -14,7 +14,7 @@ function createTestEnvironment() {
     // Set up minimal DOM elements with proper canvas mocking
     document.body.innerHTML = `
         <div id="cognitionInsightsDashboard" style="display: none;">
-            <canvas id="cognitionTacticChart" width="400" height="200"></canvas>
+            <canvas id="cognitionTacticsChart" width="400" height="200"></canvas>
             <canvas id="cognitionLearningChart" width="400" height="200"></canvas>
             <canvas id="cognitionFormationChart" width="400" height="200"></canvas>
             <span id="totalTacticApplications">0</span>
@@ -86,10 +86,15 @@ describe('Cognition Insights Module', () => {
             expect(cognitionInsights.learningHistory.learning_events).toEqual([]);
         });
 
-        test('should initialize chart instances as null', () => {
-            expect(cognitionInsights.tacticsChart).toBeNull();
-            expect(cognitionInsights.learningChart).toBeNull();
-            expect(cognitionInsights.formationChart).toBeNull();
+        test('should initialize chart instances correctly', () => {
+            // Since we provide canvas elements in test setup, charts should be initialized
+            expect(cognitionInsights.tacticsChart).toBeDefined();
+            expect(cognitionInsights.learningChart).toBeDefined();
+            expect(cognitionInsights.formationChart).toBeDefined();
+            
+            // Charts should be mock objects with expected methods
+            expect(cognitionInsights.tacticsChart.destroy).toBeDefined();
+            expect(cognitionInsights.tacticsChart.update).toBeDefined();
         });
     });
 
@@ -100,7 +105,8 @@ describe('Cognition Insights Module', () => {
             expect(cognitionInsights.metrics.tacticsApplied).toBe(1);
             expect(cognitionInsights.metrics.tacticalImprovements).toBe(0.15);
             expect(cognitionInsights.learningHistory.red_tactics).toHaveLength(1);
-            expect(cognitionInsights.learningHistory.formations_applied).toHaveLength(1);
+            // trackTacticApplication should NOT add to formations_applied - that's for trackFormationUsage
+            expect(cognitionInsights.learningHistory.formations_applied).toHaveLength(0);
             
             const tacticData = cognitionInsights.learningHistory.red_tactics[0];
             expect(tacticData.team).toBe('red');
@@ -220,7 +226,7 @@ describe('Cognition Insights Module', () => {
         test('should limit formation applications to 50 entries', () => {
             // Add 60 entries
             for (let i = 0; i < 60; i++) {
-                cognitionInsights.trackTacticApplication('red', 'blitzkrieg', '0.1');
+                cognitionInsights.trackFormationUsage('blitzkrieg');
             }
             
             expect(cognitionInsights.learningHistory.formations_applied).toHaveLength(50);

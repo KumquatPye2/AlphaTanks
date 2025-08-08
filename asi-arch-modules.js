@@ -33,12 +33,13 @@ class TankResearcher {
     }
     
     getTeamCandidates(candidatePool, history, team) {
-        // Get candidates that performed well for this specific team
+        // STRICT TEAM SEPARATION: Only get candidates that belong to this specific team
         const teamCandidates = candidatePool.filter(candidate => 
-            candidate.team === team || !candidate.team // Include unassigned for initial pool
+            candidate.team === team && 
+            (candidate.lineage === team || !candidate.lineage) // Must match lineage too
         );
         
-        // If not enough team-specific candidates, analyze recent history
+        // If not enough PURE team candidates, analyze recent history for this team only
         if (teamCandidates.length < 3 && history.length > 0) {
             const recentBattles = history.slice(-3);
             recentBattles.forEach(battle => {
@@ -77,16 +78,19 @@ class TankResearcher {
             });
         }
         
-        // If still not enough, create team-specific genomes
+        // If still not enough, create team-specific genomes with strict lineage
         if (teamCandidates.length < 2) {
             for (let i = teamCandidates.length; i < 4; i++) {
                 teamCandidates.push({
                     genome: this.generateTeamSpecificGenome(team),
                     fitness: 0.3,
-                    team,
+                    team, // Strict team assignment
+                    lineage: team, // Pure team lineage
+                    parentTeam: team, // Source team tracking
                     generation: 0,
                     battles: 0,
-                    wins: 0
+                    wins: 0,
+                    isTeamGenerated: true // Flag for generated team-specific genomes
                 });
             }
         }
@@ -1179,7 +1183,7 @@ class ASIArchModules {
             this.updateDisplay();
             return optimized;
         }    // Analyst Module Interface
-    applyAnalyst(redPopulation, bluePopulation, team) {
+    applyAnalyst(evolvedPopulation, otherPopulation, team) {
         this.analystModule.analyzeResults(
             { 
                 winner: team,
@@ -1192,7 +1196,7 @@ class ASIArchModules {
         
         // Conditional tactical learning - only when performing well
         // This implements conditional learning based on performance thresholds
-        const teamPopulation = team === 'red' ? redPopulation : bluePopulation;
+        const teamPopulation = evolvedPopulation; // Use the evolved population directly
         const avgFitness = teamPopulation.reduce((sum, t) => sum + t.fitness, 0) / teamPopulation.length;
         
         if (avgFitness > 0.6) {

@@ -300,14 +300,20 @@ function startPerformanceMonitoring() {
         };
         
         // Only update genome display if game is not actively running a battle
-        // AND initialization is not yet complete (to avoid heavy processing during gameplay)
+        // AND reduce frequency during gameplay to improve performance
         if ((!game || game.gameState !== 'running') && (!game || !game.initializationComplete)) {
             updateGenomeDisplay();
+        } else if (game && game.gameState === 'running') {
+            // During battles, only update genome display every 10 seconds to reduce load
+            if (!window.lastGenomeUpdate || Date.now() - window.lastGenomeUpdate > 10000) {
+                updateGenomeDisplay();
+                window.lastGenomeUpdate = Date.now();
+            }
         }
         
         // Log performance issues (throttled to avoid spam)
         if (stats.fps < 30 && game && game.gameState === 'running') {
-            if (!window.lastPerfWarning || Date.now() - window.lastPerfWarning > 5000) {
+            if (!window.lastPerfWarning || Date.now() - window.lastPerfWarning > 10000) {
                 console.warn(`⚠️ Performance warning: FPS dropped to ${stats.fps.toFixed(1)}`);
                 window.lastPerfWarning = Date.now();
             }
@@ -317,7 +323,7 @@ function startPerformanceMonitoring() {
         if (window.DEBUG) {
             updateDebugDisplay(stats);
         }
-    }, 2000);
+    }, 5000); // Reduced frequency from 2s to 5s to improve performance
 }
 
 let frameCount = 0;
@@ -471,6 +477,7 @@ function hideCredits() {
 }
 
 // Genome display functionality
+// NOTE: Team selection logic is tested in tests/blue-team-core.test.js
 function updateGenomeDisplay() {
     // If we recently resumed from pause and tanks exist, show current tank genomes
     if (game && game.tanks && game.tanks.length > 0 && game.resumedFromPause) {
@@ -518,7 +525,32 @@ function updateGenomeDisplay() {
                 displayGenomeWithEvolvingFitness('blue', blueBest.genome);
             }
         } else {
-            displayNoGenomeDataForTeam('blue');
+            // EMERGENCY FALLBACK: If Blue team has no champion, ensure it gets one
+            console.warn(`🧬 Emergency fallback: Blue team has no champion, creating one...`);
+            
+            // If Red has a champion, create a Blue variant
+            if (redBest && redBest.genome) {
+                // Create a Blue team variant by modifying Red's genome slightly
+                const blueGenome = Array.isArray(redBest.genome) ? [...redBest.genome] : { ...redBest.genome };
+                
+                // Slightly modify some traits to differentiate Blue from Red
+                if (Array.isArray(blueGenome)) {
+                    // Array format: [aggression, speed, accuracy, defense, teamwork, adaptability, learning, riskTaking, evasion]
+                    blueGenome[0] = Math.max(0, Math.min(1, (blueGenome[0] || 0.5) * 0.9)); // Slightly less aggressive
+                    blueGenome[1] = Math.max(0, Math.min(1, (blueGenome[1] || 0.5) * 1.1)); // Slightly faster
+                    blueGenome[3] = Math.max(0, Math.min(1, (blueGenome[3] || 0.5) * 1.1)); // More defensive
+                } else {
+                    // Object format
+                    blueGenome.aggression = Math.max(0, Math.min(1, (blueGenome.aggression || 0.5) * 0.9));
+                    blueGenome.speed = Math.max(0, Math.min(1, (blueGenome.speed || 0.5) * 1.1));
+                    blueGenome.defense = Math.max(0, Math.min(1, (blueGenome.defense || blueGenome.caution || 0.5) * 1.1));
+                }
+                
+                displayGenomeWithEvolvingFitness('blue', blueGenome);
+                console.log(`🧬 ✅ Emergency Blue champion created from Red template`);
+            } else {
+                displayNoGenomeDataForTeam('blue');
+            }
         }
     } catch (error) {
         console.error('Error updating genome display:', error);
@@ -589,6 +621,7 @@ function displayNoGenomeDataForTeam(team) {
 const genomeCache = {
     lastPoolSize: 0,
     lastCacheTime: 0,
+    lastPoolChecksum: null, // Track actual pool content changes
     redBest: null,
     blueBest: null
 };
@@ -601,18 +634,43 @@ function getBestGenomeForTeam(team) {
     const currentTime = Date.now();
     const poolSize = evolution.candidatePool.length;
     
-    // Use cache if pool hasn't changed and cache is less than 5 seconds old
+    // Calculate a simple checksum of pool content to detect fitness updates
+    const poolChecksum = evolution.candidatePool.reduce((sum, candidate, index) => {
+        const fitness = candidate.fitness || 0;
+        const battles = candidate.battles || 0;
+        const wins = candidate.wins || 0;
+        return sum + (fitness * 1000 + battles * 100 + wins * 10) * (index + 1);
+    }, 0);
+    
+    // Debug logging (reduced frequency to improve performance)
+    const shouldLog = !window.lastDebugLog || (currentTime - window.lastDebugLog > 5000);
+    if (window.DEBUG_GENOME && shouldLog) {
+        console.log(`🧬 getBestGenomeForTeam(${team}): Pool size=${poolSize}, Checksum=${poolChecksum}`);
+        console.log(`  Team candidates in pool: ${evolution.candidatePool.filter(c => c.team === team).length}`);
+        window.lastDebugLog = currentTime;
+    }
+    
+    // Check team-specific cache validity
+    const teamCacheKey = team === 'red' ? 'redBest' : 'blueBest';
+    const cached = genomeCache[teamCacheKey];
+    
+    // Use cache if pool hasn't changed (size AND content) and team-specific cache is less than 2 seconds old
     const cacheValid = (
         poolSize === genomeCache.lastPoolSize && 
-        currentTime - genomeCache.lastCacheTime < 5000
+        poolChecksum === genomeCache.lastPoolChecksum &&
+        currentTime - genomeCache.lastCacheTime < 2000 &&
+        cached !== null
     );
     
-    if (cacheValid) {
-        const cached = team === 'red' ? genomeCache.redBest : genomeCache.blueBest;
-        if (cached) {
-            return cached;
+    if (cacheValid && cached) {
+        if (window.DEBUG_GENOME && shouldLog) {
+            console.log(`🧬 ${team} using cached result: fitness=${cached.fitness?.toFixed(3)}, battles=${cached.battles}`);
         }
+        return cached;
     }
+    
+    // Force fresh selection for this team - clear its cache entry
+    genomeCache[teamCacheKey] = null;
     
     try {
         // First, try to filter candidates by actual team assignment AND battle experience
@@ -640,8 +698,27 @@ function getBestGenomeForTeam(team) {
             
             return false;
         });
+        
+        if (window.DEBUG_GENOME) {
+            console.log(`🧬 ${team} proven champions found: ${championCandidates.length}`);
+        }
         // If no proven champions yet, fall back to experienced fighters (even without wins)
         if (championCandidates.length === 0) {
+            // Reduce debug logging frequency for performance
+            const shouldLogSearch = !window.lastSearchLog || (currentTime - window.lastSearchLog > 10000);
+            if (shouldLogSearch) {
+                console.log(`🔍 getBestGenomeForTeam(${team}): No proven champions, searching experienced fighters...`);
+                if (evolution.candidatePool.length > 0) {
+                    const teamBreakdown = evolution.candidatePool.reduce((acc, c) => {
+                        const teamKey = c.team || 'unassigned';
+                        acc[teamKey] = (acc[teamKey] || 0) + 1;
+                        return acc;
+                    }, {});
+                    console.log(`📊 Pool breakdown: Red=${teamBreakdown.red || 0}, Blue=${teamBreakdown.blue || 0}, Unassigned=${teamBreakdown.unassigned || 0}`);
+                }
+                window.lastSearchLog = currentTime;
+            }
+            
             championCandidates = evolution.candidatePool.filter(candidate => {
                 if (!candidate || !candidate.genome) {
                     return false;
@@ -687,6 +764,12 @@ function getBestGenomeForTeam(team) {
                 
                 return false;
             });
+            // Reduce debug logging frequency for performance  
+            const shouldLogTeam = !window.lastTeamLog || (currentTime - window.lastTeamLog > 10000);
+            if (shouldLogTeam) {
+                console.log(`🔍 Team ${team}: Found ${championCandidates.length} early generation team candidates`);
+                window.lastTeamLog = currentTime;
+            }
         }
         
         // If no team-specific candidates, get overall best and assign based on traits
@@ -701,6 +784,7 @@ function getBestGenomeForTeam(team) {
                 
                 return isValidArray || isValidObject;
             });
+            
             if (allCandidates.length === 0) {
                 console.warn(`🧬 No valid candidates found for team ${team}`);
                 return null;
@@ -708,43 +792,28 @@ function getBestGenomeForTeam(team) {
             
             allCandidates.sort((a, b) => (b.fitness || 0) - (a.fitness || 0));
             
-            // Try to find team-appropriate candidates by traits, avoiding already assigned ones
-            for (const candidate of allCandidates) {
-                const genome = candidate.genome;
-                let aggression, teamwork, defense;
-                
-                // Handle both array and object formats
-                if (Array.isArray(genome)) {
-                    aggression = genome[0] || 0;
-                    teamwork = genome[4] || 0;
-                    defense = genome[3] || 0;
-                } else {
-                    aggression = genome.aggression || 0;
-                    teamwork = genome.cooperation || genome.teamwork || 0;
-                    defense = genome.caution || genome.defense || 0;
-                }
-                
-                // Prefer different candidates for each team based on traits
-                if (team === 'red' && aggression > 0.3) {
-                    // Mark this candidate as used by red team (temporary assignment)
-                    candidate.tempTeam = 'red';
-                    return candidate;
-                } else if (team === 'blue' && (teamwork > 0.3 || defense > 0.3) && candidate.tempTeam !== 'red') {
-                    // Mark this candidate as used by blue team (temporary assignment)
-                    candidate.tempTeam = 'blue';
-                    return candidate;
-                }
+            // IMPROVED TEAM DISTRIBUTION: Ensure both teams get fair representation
+            if (window.DEBUG_GENOME) {
+                console.log(`🧬 ${team} fallback selection from ${allCandidates.length} candidates`);
             }
             
-            // Final fallback: assign different top candidates to each team
-            if (team === 'red' && allCandidates.length > 0) {
-                allCandidates[0].tempTeam = 'red';
-                return allCandidates[0];
-            } else if (team === 'blue' && allCandidates.length > 1) {
-                allCandidates[1].tempTeam = 'blue';
-                return allCandidates[1];
-            } else if (team === 'blue' && allCandidates.length > 0) {
-                return allCandidates[0];
+            // Find a candidate that isn't already assigned to the other team
+            let selectedCandidate = null;
+            
+            if (team === 'red') {
+                // For Red, prefer candidates that aren't explicitly assigned to Blue
+                selectedCandidate = allCandidates.find(c => c.team !== 'blue') || allCandidates[0];
+            } else if (team === 'blue') {
+                // For Blue, prefer candidates that aren't explicitly assigned to Red  
+                selectedCandidate = allCandidates.find(c => c.team !== 'red') || allCandidates[Math.min(1, allCandidates.length - 1)];
+            }
+            
+            if (selectedCandidate) {
+                selectedCandidate.tempTeam = team;
+                if (window.DEBUG_GENOME) {
+                    console.log(`🧬 ${team} assigned fallback candidate: fitness=${selectedCandidate.fitness?.toFixed(3)}, original_team=${selectedCandidate.team}`);
+                }
+                return selectedCandidate;
             }
             
             return null;
@@ -753,14 +822,29 @@ function getBestGenomeForTeam(team) {
         // Sort by fitness and return the best
         championCandidates.sort((a, b) => (b.fitness || 0) - (a.fitness || 0));
         const best = championCandidates[0];
-        // Update cache
-        genomeCache.lastPoolSize = poolSize;
-        genomeCache.lastCacheTime = currentTime;
+        
+        if (best) {
+            // Reduce success logging frequency for performance
+            const shouldLogSuccess = !window.lastSuccessLog || (currentTime - window.lastSuccessLog > 15000);
+            if (shouldLogSuccess) {
+                console.log(`✅ Selected ${team} champion: fitness=${best.fitness?.toFixed(3) || 'N/A'}, team=${best.team}, battles=${best.battles || 0}, strategy=${best.strategy || 'Unknown'}`);
+                window.lastSuccessLog = currentTime;
+            }
+        } else {
+            console.warn(`❌ No champion found for team ${team}`);
+        }
+        
+        // Update cache - but don't override other team's cache unless both teams are being updated
         if (team === 'red') {
             genomeCache.redBest = best;
         } else {
             genomeCache.blueBest = best;
         }
+        
+        // Update global cache metadata only if this is a fresh fetch (not using cached data)
+        genomeCache.lastPoolSize = poolSize;
+        genomeCache.lastPoolChecksum = poolChecksum;
+        genomeCache.lastCacheTime = currentTime;
         
         return best;
     } catch (error) {

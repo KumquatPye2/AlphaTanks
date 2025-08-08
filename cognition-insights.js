@@ -319,13 +319,6 @@ class CognitionInsights {
             this.learningHistory.blue_tactics.push(tacticData);
         }
         
-        this.learningHistory.formations_applied.push(tacticData);
-        
-        // Limit history size
-        if (this.learningHistory.formations_applied.length > 50) {
-            this.learningHistory.formations_applied.shift();
-        }
-        
         this.updateUI();
     }
 
@@ -536,7 +529,7 @@ class CognitionInsights {
 
     updateCharts() {
         // Update tactics chart
-        if (this.tacticsChart) {
+        if (this.tacticsChart && this.tacticsChart.data) {
             const redTactics = this.learningHistory.red_tactics;
             const blueTactics = this.learningHistory.blue_tactics;
             
@@ -584,7 +577,7 @@ class CognitionInsights {
         }
         
         // Update learning chart
-        if (this.learningChart) {
+        if (this.learningChart && this.learningChart.data) {
             this.learningChart.data.datasets[0].data = [
                 this.metrics.knowledgeSearches,
                 this.metrics.teamLearningEvents,
@@ -594,7 +587,7 @@ class CognitionInsights {
         }
         
         // Update formation chart
-        if (this.formationChart) {
+        if (this.formationChart && this.formationChart.data) {
             const formations = this.learningHistory.formations_applied;
             const counts = { phalanx: 0, pincer: 0, blitzkrieg: 0, guerrilla: 0 };
             

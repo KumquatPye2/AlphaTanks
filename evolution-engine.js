@@ -71,6 +71,8 @@ class EvolutionEngine {
                 fitness: Math.random() * 0.3 + 0.4, // Random fitness between 0.4 and 0.7
                 generation: 0,
                 team: 'red', // Assign to red team
+                lineage: 'red', // Track pure red lineage
+                parentTeam: 'red', // Source team for evolution tracking
                 id: `red_init_${i}`,
                 isInitial: true // Flag to identify initial placeholder fitness
             };
@@ -96,6 +98,8 @@ class EvolutionEngine {
                 fitness: Math.random() * 0.3 + 0.4, // Random fitness between 0.4 and 0.7
                 generation: 0,
                 team: 'blue', // Assign to blue team
+                lineage: 'blue', // Track pure blue lineage
+                parentTeam: 'blue', // Source team for evolution tracking
                 id: `blue_init_${i}`,
                 isInitial: true // Flag to identify initial placeholder fitness
             };
@@ -281,16 +285,25 @@ class EvolutionEngine {
         console.log('DEBUG: evolvePopulation called for team:', team);
         const population = team === 'red' ? this.redPopulation : this.bluePopulation;
         
+        // TEAM SEPARATION: Validate population contains only the correct team
+        const validatedPopulation = population.filter(tank => 
+            !tank.team || tank.team === team
+        );
+        
+        if (validatedPopulation.length !== population.length) {
+            console.warn(`⚠️ Removed ${population.length - validatedPopulation.length} cross-team tanks from ${team} population`);
+        }
+        
         // Preserve elite individuals (top 20% by fitness)
-        const sortedByFitness = [...population].sort((a, b) => (b.fitness || 0) - (a.fitness || 0));
-        const eliteCount = Math.floor(population.length * 0.2);
+        const sortedByFitness = [...validatedPopulation].sort((a, b) => (b.fitness || 0) - (a.fitness || 0));
+        const eliteCount = Math.floor(validatedPopulation.length * 0.2);
         const elites = sortedByFitness.slice(0, eliteCount);
         
         // Apply ASI-ARCH modules if available
         console.log('DEBUG: Checking if asiArch is available:', !!this.asiArch);
         if (this.asiArch) {
             console.log('DEBUG: Applying ASI-ARCH modules for team:', team);
-            let evolvedPopulation = this.asiArch.applyResearcher(population, team);
+            let evolvedPopulation = this.asiArch.applyResearcher(validatedPopulation, team);
             evolvedPopulation = this.asiArch.applyEngineer(evolvedPopulation, team);
             
             const otherPopulation = team === 'red' ? this.bluePopulation : this.redPopulation;
@@ -303,6 +316,16 @@ class EvolutionEngine {
                 evolvedPopulation[i] = { ...elites[i] };
             }
             
+            // TEAM SEPARATION: Ensure all evolved tanks maintain team identity
+            evolvedPopulation.forEach(tank => {
+                tank.team = team; // Force correct team assignment
+                if (tank.genome) {
+                    // Mark genome with team lineage
+                    tank.lineage = team;
+                    tank.parentTeam = team;
+                }
+            });
+            
             // Update the actual population
             if (team === 'red') {
                 this.redPopulation = evolvedPopulation;
@@ -311,11 +334,16 @@ class EvolutionEngine {
             }
         } else {
             // Basic mutation if no ASI-ARCH modules - ensure genomes actually change
-            population.forEach((tank, index) => {
+            validatedPopulation.forEach((tank, index) => {
                 // Skip elite individuals
                 if (index < eliteCount) {
                     return;
                 }
+                
+                // TEAM SEPARATION: Maintain team identity during mutation
+                tank.team = team;
+                tank.lineage = team;
+                tank.parentTeam = team;
                 
                 tank.genome = tank.genome.map(gene => {
                     // 30% mutation chance to ensure changes
@@ -493,7 +521,8 @@ class EvolutionEngine {
         const redFitness = this.calculateTeamFitness(redGenomes, experiment.result, 'red');
         const blueFitness = this.calculateTeamFitness(blueGenomes, experiment.result, 'blue');
         
-        // RED QUEEN RACE: Add team-specific candidates to maintain lineages
+        // SEPARATE EVOLUTION: Ensure strict team lineage separation
+        // Red team genomes ONLY go to red candidate pool
         redGenomes.forEach((genome, index) => {
             this.addToPool({
                 genome,
@@ -501,11 +530,14 @@ class EvolutionEngine {
                 generation: this.currentGeneration,
                 battles: 1,
                 wins: experiment.result.winner === 'red' ? 1 : 0,
-                team: 'red', // RED QUEEN: Track team lineage
-                strategy: this.classifyStrategy(genome)
+                team: 'red', // STRICT: Red lineage only
+                strategy: this.classifyStrategy(genome),
+                lineage: 'red', // Additional lineage tracking
+                parentTeam: 'red' // Ensure no cross-team contamination
             });
         });
         
+        // Blue team genomes ONLY go to blue candidate pool
         blueGenomes.forEach((genome, index) => {
             this.addToPool({
                 genome,
@@ -513,14 +545,50 @@ class EvolutionEngine {
                 generation: this.currentGeneration,
                 battles: 1,
                 wins: experiment.result.winner === 'blue' ? 1 : 0,
-                team: 'blue', // RED QUEEN: Track team lineage
-                strategy: this.classifyStrategy(genome)
+                team: 'blue', // STRICT: Blue lineage only
+                strategy: this.classifyStrategy(genome),
+                lineage: 'blue', // Additional lineage tracking
+                parentTeam: 'blue' // Ensure no cross-team contamination
             });
         });
         
-        // Keep only top performers (like ASI-ARCH's top-50)
-        this.candidatePool.sort((a, b) => b.fitness - a.fitness);
-        this.candidatePool = this.candidatePool.slice(0, 20);
+        // STRICT TEAM SEPARATION: Filter candidates by exact team and lineage
+        const redCandidates = this.candidatePool.filter(c => 
+            c.team === 'red' && (c.lineage === 'red' || !c.lineage)
+        );
+        const blueCandidates = this.candidatePool.filter(c => 
+            c.team === 'blue' && (c.lineage === 'blue' || !c.lineage)
+        );
+        const otherCandidates = this.candidatePool.filter(c => 
+            !c.team || (c.team !== 'red' && c.team !== 'blue')
+        );
+        
+        // Log team separation before sorting
+        this.logEvolutionEvent(
+            `Candidate Pool Separation - Red: ${redCandidates.length}, Blue: ${blueCandidates.length}, Others: ${otherCandidates.length}`,
+            'pool_management'
+        );
+        
+        // Sort each team by fitness and keep top 8 from each team (16 total)
+        redCandidates.sort((a, b) => b.fitness - a.fitness);
+        blueCandidates.sort((a, b) => b.fitness - a.fitness);
+        otherCandidates.sort((a, b) => b.fitness - a.fitness);
+        
+        // Ensure equal representation: 8 red, 8 blue, 4 others/unassigned
+        const topRed = redCandidates.slice(0, 8);
+        const topBlue = blueCandidates.slice(0, 8);
+        const topOthers = otherCandidates.slice(0, 4);
+        
+        // Validate team purity before reconstruction
+        const redPurity = topRed.every(c => c.team === 'red');
+        const bluePurity = topBlue.every(c => c.team === 'blue');
+        
+        if (!redPurity || !bluePurity) {
+            this.logEvolutionEvent('⚠️ Team purity violation detected in candidate pool!', 'error');
+        }
+        
+        // Reconstruct candidate pool with strict team separation
+        this.candidatePool = [...topRed, ...topBlue, ...topOthers];
         
         // Check for generation advancement
         if (this.totalExperiments % 5 === 0) {
@@ -543,18 +611,21 @@ class EvolutionEngine {
     }
     
     addToPool(candidate) {
-        // Check if similar genome already exists FROM THE SAME TEAM
+        // STRICT TEAM SEPARATION: Only compare with same team lineage
         const existingIndex = this.candidatePool.findIndex(c => 
-            c.team === candidate.team && // Must be same team
+            c.team === candidate.team && // Must be exact same team
+            c.lineage === candidate.lineage && // Must be same lineage
             this.genomeSimilarity(c.genome, candidate.genome) > 0.9
         );
         
         if (existingIndex !== -1) {
-            // Update existing candidate from same team
+            // Update existing candidate from same team lineage only
             const existing = this.candidatePool[existingIndex];
             existing.battles++;
             existing.wins += candidate.wins;
-            existing.fitness = (existing.fitness + candidate.fitness) / 2;
+            // Use the better fitness value, not average (rewards improvement)
+            existing.fitness = Math.max(existing.fitness, candidate.fitness);
+            existing.generation = Math.max(existing.generation, candidate.generation);
         } else {
             // Add new candidate (different team or different genome)
             this.candidatePool.push(candidate);
@@ -628,20 +699,33 @@ class EvolutionEngine {
     }
     
     getBestGenome(team = null) {
+        console.log(`🧬 EvolutionEngine.getBestGenome called for team: ${team}, pool size: ${this.candidatePool.length}`);
+        
         if (this.candidatePool.length === 0) {return null;}
         
-        let pool = this.candidatePool;
+        // TEAM SEPARATION: If team is specified, only return genomes from that team's lineage
         if (team) {
-            // Filter by team preference if needed
-            pool = this.candidatePool.filter(c => {
-                const strategy = this.classifyStrategy(c.genome);
-                return team === 'red' ? 
-                    (strategy === 'Aggressive' || strategy === 'Balanced') :
-                    (strategy === 'Defensive' || strategy === 'Cooperative');
-            });
+            const teamCandidates = this.candidatePool.filter(c => 
+                c.team === team && (c.lineage === team || !c.lineage)
+            );
+            
+            console.log(`🔍 getBestGenome for ${team}: Found ${teamCandidates.length} team candidates out of ${this.candidatePool.length} total`);
+            
+            if (teamCandidates.length > 0) {
+                // Sort by fitness and return the best from this team
+                teamCandidates.sort((a, b) => b.fitness - a.fitness);
+                const best = teamCandidates[0];
+                console.log(`✅ Best ${team} genome: fitness=${best.fitness.toFixed(3)}, generation=${best.generation}, strategy=${best.strategy}`);
+                return best;
+            }
+            
+            // Fallback: if no team-specific candidates, return null rather than cross-contaminate
+            console.warn(`⚠️ No candidates found for team ${team} in candidate pool`);
+            return null;
         }
         
-        return pool.length > 0 ? pool[0] : this.candidatePool[0];
+        // If no team specified, return overall best
+        return this.candidatePool.length > 0 ? this.candidatePool[0] : null;
     }
     
     getEvolutionStats() {
@@ -797,9 +881,23 @@ class EvolutionEngine {
         });
         window.dispatchEvent(generationCompleteEvent);
         
-        // Trigger evolution for both teams
+        // Trigger evolution for both teams SEPARATELY
+        console.log('🔴 Evolving Red Team Population - Generation', this.generation);
         this.evolvePopulation('red');
+        console.log('🔵 Evolving Blue Team Population - Generation', this.generation);
         this.evolvePopulation('blue');
+        
+        // Log team separation validation
+        const redCount = this.redPopulation.filter(tank => tank.team === 'red' || !tank.team).length;
+        const blueCount = this.bluePopulation.filter(tank => tank.team === 'blue' || !tank.team).length;
+        const redContamination = this.redPopulation.filter(tank => tank.team === 'blue').length;
+        const blueContamination = this.bluePopulation.filter(tank => tank.team === 'red').length;
+        
+        this.logEvolutionEvent(
+            `Team Validation - Red: ${redCount}/${this.redPopulation.length} valid (${redContamination} contamination), ` +
+            `Blue: ${blueCount}/${this.bluePopulation.length} valid (${blueContamination} contamination)`,
+            'validation'
+        );
         
         // Update generation display
         try {
