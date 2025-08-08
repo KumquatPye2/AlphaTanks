@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Early Termination Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #1e1e1e;
+            color: #ffffff;
+        }
+        
+        #gameCanvas {
+            border: 2px solid #00ff88;
+            display: block;
+            margin: 20px auto;
+            background-color: #000;
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 20px;
+        }
+        
+        button {
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        
+        button:hover {
+            background: #555;
+        }
+        
+        .info {
+            background: #2a2a2a;
+            padding: 15px;
+            margin: 10px auto;
+            max-width: 800px;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        
+        .test-case {
+            background: #333;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border: 1px solid #555;
+        }
+        
+        .success {
+            color: #00ff88;
+        }
+        
+        .warning {
+            color: #ffaa00;
+        }
+        
+        .error {
+            color: #ff4444;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Early Battle Termination Test</h1>
+    
+    <div class="info">
+        <h3>Test Objectives:</h3>
+        <p>This test verifies that battles can end early when all tanks of one or both colors are destroyed, regardless of the minimum battle time restriction.</p>
+        
+        <div class="test-case">
+            <strong>Test Case 1:</strong> Start a battle with very few tanks per team (1v1) to increase the chance of quick elimination.
+        </div>
+        
+        <div class="test-case">
+            <strong>Test Case 2:</strong> Monitor battle outcomes to ensure early termination occurs when appropriate.
+        </div>
+        
+        <div class="test-case">
+            <strong>Test Case 3:</strong> Verify that draw conditions are handled correctly when both teams are eliminated simultaneously.
+        </div>
+    </div>
+
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    
+    <div class="controls">
+        <button onclick="startQuickTest()">🚀 Start Quick Test (1v1)</button>
+        <button onclick="startTinyTest()">⚡ Start Tiny Test (2v2)</button>
+        <button onclick="resetGame()">🔄 Reset</button>
+        <button onclick="toggleDebug()">🐛 Toggle Debug</button>
+    </div>
+    
+    <div id="testResults" class="info">
+        <h3>Test Results:</h3>
+        <div id="battleLog">No battles run yet...</div>
+    </div>
+
+    <!-- Core AlphaTanks Scripts -->
+    <script src="tank-ai.js"></script>
+    <script src="game-engine.js"></script>
+
+    <script>
+        let game = null;
+        let battleCount = 0;
+        let earlyTerminations = 0;
+        let draws = 0;
+        
+        function log(message, type = 'info') {
+            const battleLog = document.getElementById('battleLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'success' ? 'success' : type === 'warning' ? 'warning' : type === 'error' ? 'error' : '';
+            battleLog.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            battleLog.scrollTop = battleLog.scrollHeight;
+        }
+
+        function initializeGame() {
+            if (game) {
+                game = null;
+            }
+            
+            try {
+                game = new GameEngine('gameCanvas');
+                log('✅ Game engine initialized successfully', 'success');
+                
+                // Set up battle end event listener
+                window.addEventListener('battleEnd', (event) => {
+                    const result = event.detail;
+                    battleCount++;
+                    
+                    const duration = result.duration.toFixed(1);
+                    const redSurvivors = result.redSurvivors || 0;
+                    const blueSurvivors = result.blueSurvivors || 0;
+                    
+                    if (result.winner === 'draw') {
+                        draws++;
+                        earlyTerminations++;
+                        log(`🏁 Battle ${battleCount}: DRAW - All tanks destroyed in ${duration}s (Early termination!)`, 'warning');
+                    } else if (result.winner === 'timeout') {
+                        log(`⏰ Battle ${battleCount}: TIMEOUT after ${duration}s (Red: ${redSurvivors}, Blue: ${blueSurvivors})`, 'info');
+                    } else {
+                        if (parseFloat(duration) < 15) {
+                            earlyTerminations++;
+                            log(`🏁 Battle ${battleCount}: ${result.winner.toUpperCase()} wins in ${duration}s (Early termination!)`, 'success');
+                        } else {
+                            log(`🏁 Battle ${battleCount}: ${result.winner.toUpperCase()} wins in ${duration}s`, 'info');
+                        }
+                    }
+                    
+                    // Update statistics
+                    const earlyRate = ((earlyTerminations / battleCount) * 100).toFixed(1);
+                    log(`📊 Stats: ${battleCount} battles, ${earlyTerminations} early terminations (${earlyRate}%), ${draws} draws`, 'info');
+                });
+                
+            } catch (error) {
+                log(`❌ Failed to initialize game: ${error.message}`, 'error');
+            }
+        }
+
+        function startQuickTest() {
+            if (!game) {
+                initializeGame();
+            }
+            
+            try {
+                game.reset();
+                game.initializeBattle(1, 1); // 1v1 for quick resolution
+                game.start();
+                log('🚀 Started quick test battle (1v1)', 'info');
+            } catch (error) {
+                log(`❌ Failed to start quick test: ${error.message}`, 'error');
+            }
+        }
+
+        function startTinyTest() {
+            if (!game) {
+                initializeGame();
+            }
+            
+            try {
+                game.reset();
+                game.initializeBattle(2, 2); // 2v2 for slightly longer battles
+                game.start();
+                log('⚡ Started tiny test battle (2v2)', 'info');
+            } catch (error) {
+                log(`❌ Failed to start tiny test: ${error.message}`, 'error');
+            }
+        }
+
+        function resetGame() {
+            if (game) {
+                game.reset();
+                log('🔄 Game reset', 'info');
+            }
+            
+            // Reset statistics
+            battleCount = 0;
+            earlyTerminations = 0;
+            draws = 0;
+            
+            const battleLog = document.getElementById('battleLog');
+            battleLog.innerHTML = 'Test environment reset...<br>';
+        }
+
+        function toggleDebug() {
+            window.DEBUG = !window.DEBUG;
+            log(`🐛 Debug mode: ${window.DEBUG ? 'ON' : 'OFF'}`, 'info');
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            log('🧪 Early termination test environment loaded', 'success');
+            log('ℹ️ Click "Start Quick Test" to begin testing early battle termination', 'info');
+        });
+    </script>
+</body>
+</html>

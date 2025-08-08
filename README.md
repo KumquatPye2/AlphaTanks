@@ -27,12 +27,14 @@ The system showcases how AI can conduct independent research, discovering novel 
 - **Dynamic Fitness Thresholds**: Escalating performance requirements
 - **Battle-tested Fitness**: Performance measured through actual combat, not simulation
 - **Emergent Tactics**: Unexpected strategies like flanking, ambush, and sacrifice patterns
+- **Early Battle Termination**: Battles end immediately when all tanks of one or both teams are destroyed
 
 ### 📊 **Live Monitoring Dashboard**
 - **Real-time Statistics**: Track mutations, insights, tactics, and fitness scores
 - **Generation Counter**: Monitor evolutionary progress
 - **Battle Visualization**: Watch combat unfold with detailed unit tracking
 - **Performance Analytics**: Comprehensive team statistics and battle outcomes
+- **Dynamic Victory Conditions**: Support for team elimination, draws, and timeouts
 
 ### 🔬 **ASI-ARCH Framework**
 - **Four-Module Architecture**: Researcher, Engineer, Analyst, Cognition
@@ -72,10 +74,11 @@ The system showcases how AI can conduct independent research, discovering novel 
 - 🧬 **Autonomous Evolution**: Tank AI evolves without human intervention
 - ⚔️ **Real-time Battles**: Watch evolution in action through engaging combat
 - 📊 **ASI-ARCH Framework**: Complete four-module implementation
-- � **Red Queen Race**: Competitive coevolution drives continuous improvement
-- �🎮 **Interactive Dashboard**: Control and observe the evolution process
+- 🏆 **Red Queen Race**: Competitive coevolution drives continuous improvement
+- 🎮 **Interactive Dashboard**: Control and observe the evolution process
 - 📈 **Fitness Tracking**: Monitor performance improvements over generations
 - 🔬 **Emergent Behaviors**: Discover unexpected tactical patterns
+- ⚡ **Dynamic Battle Outcomes**: Early termination based on team elimination
 
 ## 🏗️ ASI-ARCH Implementation
 

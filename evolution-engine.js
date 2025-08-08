@@ -359,15 +359,19 @@ class EvolutionEngine {
     }
     
     recordBattleResult(winner) {
-        if (this.battleResults[winner]) {
+        if (winner === 'draw') {
+            // For draws, increment total battles for both teams but no wins
+            this.battleResults.red.totalBattles++;
+            this.battleResults.blue.totalBattles++;
+        } else if (this.battleResults[winner]) {
             this.battleResults[winner].wins++;
             this.battleResults[winner].totalBattles++;
-        }
-        
-        // Also increment the other team's total battles
-        const otherTeam = winner === 'red' ? 'blue' : 'red';
-        if (this.battleResults[otherTeam]) {
-            this.battleResults[otherTeam].totalBattles++;
+            
+            // Also increment the other team's total battles
+            const otherTeam = winner === 'red' ? 'blue' : 'red';
+            if (this.battleResults[otherTeam]) {
+                this.battleResults[otherTeam].totalBattles++;
+            }
         }
     }
     
@@ -498,16 +502,26 @@ class EvolutionEngine {
             this.redTeamWins++;
         } else if (battleResult.winner === 'blue') {
             this.blueTeamWins++;
+        } else if (battleResult.winner === 'draw') {
+            this.draws++;
         } else {
+            // Handle timeout as draw for statistics
             this.draws++;
         }
         
         this.updateUI();
         
-        this.logEvolutionEvent(
-            `Battle ${this.totalBattles}: ${battleResult.winner} wins in ${battleResult.duration.toFixed(1)}s`,
-            'battle'
-        );
+        // Provide more descriptive logging for battle outcomes
+        let outcomeText = '';
+        if (battleResult.winner === 'draw') {
+            outcomeText = `Battle ${this.totalBattles}: DRAW - All tanks destroyed in ${battleResult.duration.toFixed(1)}s`;
+        } else if (battleResult.winner === 'timeout') {
+            outcomeText = `Battle ${this.totalBattles}: TIMEOUT after ${battleResult.duration.toFixed(1)}s`;
+        } else {
+            outcomeText = `Battle ${this.totalBattles}: ${battleResult.winner.toUpperCase()} wins in ${battleResult.duration.toFixed(1)}s`;
+        }
+        
+        this.logEvolutionEvent(outcomeText, 'battle');
         
         // If evolution is running and this was a manual battle, don't interfere
         // The evolution system handles its own battle flow through runNextExperiment

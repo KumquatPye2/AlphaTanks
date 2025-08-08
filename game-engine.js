@@ -312,19 +312,26 @@ class GameEngine {
         const aliveRed = this.redTeam.filter(tank => tank.isAlive).length;
         const aliveBlue = this.blueTeam.filter(tank => tank.isAlive).length;
         
-        if (aliveRed === 0 && aliveBlue > 0) {
+        // Check for early battle termination when all tanks of one or both colors are destroyed
+        if (aliveRed === 0 && aliveBlue === 0) {
+            // Both teams eliminated - draw
+            this.endBattle('draw');
+        } else if (aliveRed === 0 && aliveBlue > 0) {
+            // Red team eliminated - Blue wins
             this.endBattle('blue');
         } else if (aliveBlue === 0 && aliveRed > 0) {
+            // Blue team eliminated - Red wins
             this.endBattle('red');
         }
     }
     
     endBattle(winner) {
-        // Enforce minimum battle duration of 15 seconds if battle has started
+        // Allow immediate battle termination when all tanks of one or both teams are destroyed
+        // Only apply minimum battle time restriction for timeout scenarios
         const minimumBattleTime = 15; // seconds
         
-        if (this.battleStarted && this.battleTime < minimumBattleTime) {
-            // Don't end battle yet, let it continue until minimum time
+        if (winner === 'timeout' && this.battleStarted && this.battleTime < minimumBattleTime) {
+            // Don't end battle yet for timeout, let it continue until minimum time
             return;
         }
         
@@ -408,6 +415,8 @@ class GameEngine {
         // Show battle time or waiting status
         if (!this.battleStarted) {
             this.ctx.fillText(`Status: Waiting for tanks to move...`, 10, 25);
+        } else if (this.gameState === 'ended') {
+            this.ctx.fillText(`Battle Ended at: ${this.battleTime.toFixed(1)}s`, 10, 25);
         } else {
             this.ctx.fillText(`Battle Time: ${this.battleTime.toFixed(1)}s`, 10, 25);
         }
@@ -420,6 +429,25 @@ class GameEngine {
         
         this.ctx.fillStyle = '#4444ff';
         this.ctx.fillText(`Blue: ${aliveBlue}`, 10, 75);
+        
+        // Show battle result when game has ended
+        if (this.gameState === 'ended') {
+            this.ctx.fillStyle = '#ffff00';
+            this.ctx.font = '16px Courier New';
+            let resultText = '';
+            
+            if (aliveRed === 0 && aliveBlue === 0) {
+                resultText = 'DRAW - All tanks destroyed!';
+            } else if (aliveRed === 0) {
+                resultText = 'BLUE TEAM WINS!';
+            } else if (aliveBlue === 0) {
+                resultText = 'RED TEAM WINS!';
+            } else {
+                resultText = 'BATTLE TIMEOUT';
+            }
+            
+            this.ctx.fillText(resultText, 10, 105);
+        }
     }
     
     updateUI() {
