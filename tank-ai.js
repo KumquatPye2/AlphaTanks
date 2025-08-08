@@ -86,7 +86,7 @@ class Tank {
         this.updatePerception(gameState);
         
         // Make decisions based on AI behavior
-        this.makeDecisions(deltaTime);
+        this.makeDecisions(deltaTime, gameState);
         
         // Execute movement
         this.updateMovement(deltaTime, gameState);
@@ -107,35 +107,63 @@ class Tank {
             tank.team !== this.team && tank.isAlive
         );
         
-        // Find closest enemy
+        // Find closest enemy with preference for those with clear line of sight
         let closestEnemy = null;
         let closestDistance = Infinity;
+        let closestVisibleEnemy = null;
+        let closestVisibleDistance = Infinity;
         
         this.enemies.forEach(enemy => {
             const distance = this.distanceTo(enemy);
+            
+            // Check if we have line of sight to this enemy
+            const hasLOS = gameState?.obstacles ? this.hasLineOfSight(enemy, gameState.obstacles) : true;
+            
+            // Track closest enemy overall
             if (distance < closestDistance) {
                 closestDistance = distance;
                 closestEnemy = enemy;
             }
+            
+            // Track closest visible enemy (prioritize these)
+            if (hasLOS && distance < closestVisibleDistance) {
+                closestVisibleDistance = distance;
+                closestVisibleEnemy = enemy;
+            }
         });
         
-        this.target = closestEnemy;
+        // Prefer visible enemies, fall back to closest if no visible enemies
+        this.target = closestVisibleEnemy || closestEnemy;
     }
     
     // Alternative method name for validation compatibility
-    findClosestEnemy() {
+    findClosestEnemy(gameState = null) {
         let closestEnemy = null;
         let closestDistance = Infinity;
+        let closestVisibleEnemy = null;
+        let closestVisibleDistance = Infinity;
         
         this.enemies.forEach(enemy => {
             const distance = this.distanceTo(enemy);
+            
+            // Check if we have line of sight to this enemy
+            const hasLOS = gameState?.obstacles ? this.hasLineOfSight(enemy, gameState.obstacles) : true;
+            
+            // Track closest enemy overall
             if (distance < closestDistance) {
                 closestDistance = distance;
                 closestEnemy = enemy;
             }
+            
+            // Track closest visible enemy (prioritize these)
+            if (hasLOS && distance < closestVisibleDistance) {
+                closestVisibleDistance = distance;
+                closestVisibleEnemy = enemy;
+            }
         });
         
-        return closestEnemy;
+        // Prefer visible enemies, fall back to closest if no visible enemies
+        return closestVisibleEnemy || closestEnemy;
     }
     
     // Combat decision method for validation
@@ -148,21 +176,28 @@ class Tank {
         return canFire && Math.random() < this.accuracy;
     }
     
-    makeDecisions(deltaTime) {
+    makeDecisions(deltaTime, gameState = null) {
         this.stateTimer += deltaTime;
         
         const healthRatio = this.health / this.maxHealth;
         const enemyDistance = this.target ? this.distanceTo(this.target) : Infinity;
         const allyCount = this.allies.length;
         
+        // Check if we have line of sight to current target
+        const hasLOSToTarget = this.target && gameState?.obstacles ? 
+            this.hasLineOfSight(this.target, gameState.obstacles) : true;
+        
         // Decision weights based on genome
-        const shouldAttack = this.aggressionWeight * (enemyDistance < this.range ? 1 : 0);
+        const shouldAttack = this.aggressionWeight * (enemyDistance < this.range ? 1 : 0) * (hasLOSToTarget ? 1 : 0);
+        const shouldReposition = this.target && !hasLOSToTarget && enemyDistance < this.range ? 0.8 : 0;
         const shouldRetreat = this.cautionWeight * (1 - healthRatio) * (enemyDistance < 100 ? 1 : 0);
         const shouldGroup = this.formationWeight * (allyCount > 0 ? 1 : 0) * (this.getNearbyAllies(100).length === 0 ? 1 : 0);
         
-        // State transitions
+        // State transitions with new repositioning logic
         if (shouldRetreat > 0.5 && this.state !== 'retreat') {
             this.setState('retreat');
+        } else if (shouldReposition > 0.6 && this.state !== 'reposition') {
+            this.setState('reposition');
         } else if (shouldAttack > 0.6 && this.target && this.state !== 'attack') {
             this.setState('attack');
         } else if (shouldGroup > 0.4 && this.state !== 'group') {
@@ -186,6 +221,9 @@ class Tank {
                     this.targetX = this.target.x;
                     this.targetY = this.target.y;
                 }
+                break;
+            case 'reposition':
+                this.findRepositionTarget();
                 break;
             case 'retreat':
                 this.findRetreatPosition();
@@ -279,6 +317,79 @@ class Tank {
         this.targetY = avgY / this.allies.length;
     }
     
+    findRepositionTarget() {
+        if (!this.target) {
+            this.setState('patrol');
+            return;
+        }
+        
+        // Try to find a position that gives line of sight to the target
+        const targetX = this.target.x + (this.target.width || 24) / 2;
+        const targetY = this.target.y + (this.target.height || 16) / 2;
+        
+        // Try multiple angles around our current position
+        const attempts = 8;
+        const repositionDistance = 80; // How far to move when repositioning
+        
+        for (let i = 0; i < attempts; i++) {
+            const angle = (i / attempts) * 2 * Math.PI;
+            const newX = this.x + Math.cos(angle) * repositionDistance;
+            const newY = this.y + Math.sin(angle) * repositionDistance;
+            
+            // Check if this position would give us line of sight and no obstacle collision
+            if (window.game && window.game.gameState && window.game.gameState.obstacles) {
+                const obstacles = window.game.gameState.obstacles;
+                
+                // Check if new position doesn't collide with obstacles
+                if (!this.wouldCollideWithObstacles(newX, newY, obstacles)) {
+                    // Create temporary position to test line of sight
+                    const tempTank = {
+                        x: newX + this.width / 2,
+                        y: newY + this.height / 2,
+                        width: this.width,
+                        height: this.height
+                    };
+                    
+                    // Test if we'd have line of sight from this position
+                    if (this.hasLineOfSightFromPosition(tempTank, this.target, obstacles)) {
+                        this.targetX = newX;
+                        this.targetY = newY;
+                        return;
+                    }
+                }
+            }
+        }
+        
+        // If no good repositioning spot found, try flanking around the obstacle
+        const dx = targetX - (this.x + this.width / 2);
+        const dy = targetY - (this.y + this.height / 2);
+        const perpX = -dy; // Perpendicular direction
+        const perpY = dx;
+        const perpLength = Math.sqrt(perpX * perpX + perpY * perpY);
+        
+        if (perpLength > 0) {
+            const flankX = this.x + (perpX / perpLength) * repositionDistance;
+            const flankY = this.y + (perpY / perpLength) * repositionDistance;
+            
+            this.targetX = flankX;
+            this.targetY = flankY;
+        } else {
+            // Fallback to patrol if all else fails
+            this.setState('patrol');
+        }
+    }
+    
+    hasLineOfSightFromPosition(fromPos, target, obstacles) {
+        const startX = fromPos.x;
+        const startY = fromPos.y;
+        const endX = target.x + (target.width || 24) / 2;
+        const endY = target.y + (target.height || 16) / 2;
+        
+        return !obstacles.some(obstacle => 
+            this.lineIntersectsRectangle(startX, startY, endX, endY, obstacle)
+        );
+    }
+    
     updateMovement(deltaTime, gameState) {
         const dx = this.targetX - this.x;
         const dy = this.targetY - this.y;
@@ -334,8 +445,66 @@ class Tank {
         );
     }
     
+    hasLineOfSight(target, obstacles) {
+        // Start from tank center
+        const startX = this.x + this.width / 2;
+        const startY = this.y + this.height / 2;
+        
+        // End at target center
+        const endX = target.x + (target.width || 24) / 2;
+        const endY = target.y + (target.height || 16) / 2;
+        
+        // Use line-rectangle intersection to check if line passes through any obstacle
+        return !obstacles.some(obstacle => 
+            this.lineIntersectsRectangle(startX, startY, endX, endY, obstacle)
+        );
+    }
+    
+    lineIntersectsRectangle(x1, y1, x2, y2, rect) {
+        // Check if line segment intersects with rectangle
+        const rectLeft = rect.x;
+        const rectRight = rect.x + rect.width;
+        const rectTop = rect.y;
+        const rectBottom = rect.y + rect.height;
+        
+        // Check if either endpoint is inside the rectangle
+        if (this.pointInRectangle(x1, y1, rect) || this.pointInRectangle(x2, y2, rect)) {
+            return true;
+        }
+        
+        // Check intersection with each edge of the rectangle
+        return this.lineIntersectsLine(x1, y1, x2, y2, rectLeft, rectTop, rectRight, rectTop) ||     // Top edge
+               this.lineIntersectsLine(x1, y1, x2, y2, rectRight, rectTop, rectRight, rectBottom) || // Right edge
+               this.lineIntersectsLine(x1, y1, x2, y2, rectRight, rectBottom, rectLeft, rectBottom) || // Bottom edge
+               this.lineIntersectsLine(x1, y1, x2, y2, rectLeft, rectBottom, rectLeft, rectTop);     // Left edge
+    }
+    
+    pointInRectangle(x, y, rect) {
+        return x >= rect.x && x <= rect.x + rect.width &&
+               y >= rect.y && y <= rect.y + rect.height;
+    }
+    
+    lineIntersectsLine(x1, y1, x2, y2, x3, y3, x4, y4) {
+        // Check if line segment (x1,y1)-(x2,y2) intersects line segment (x3,y3)-(x4,y4)
+        const denominator = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+        
+        if (Math.abs(denominator) < 1e-10) {
+            return false; // Lines are parallel
+        }
+        
+        const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denominator;
+        const u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denominator;
+        
+        return t >= 0 && t <= 1 && u >= 0 && u <= 1;
+    }
+    
     updateCombat(deltaTime, gameState) {
         if (!this.target || !this.isInRange(this.target)) {return;}
+        
+        // Check line of sight before attempting to shoot
+        if (!this.hasLineOfSight(this.target, gameState.obstacles)) {
+            return;
+        }
         
         const currentTime = gameState.battleTime;
         const timeSinceLastShot = currentTime - this.lastShotTime;
@@ -474,6 +643,8 @@ class Tank {
         if (this.state === 'attack' && this.target) {
             const distance = Math.round(this.distanceTo(this.target));
             stateText += ` (${distance}px)`;
+        } else if (this.state === 'reposition') {
+            stateText += ` (NO LOS)`;
         } else if (this.state === 'patrol') {
             const patrolDistance = Math.round(Math.sqrt((this.targetX - this.x) ** 2 + (this.targetY - this.y) ** 2));
             stateText += ` (${patrolDistance}px)`;
@@ -483,13 +654,14 @@ class Tank {
         const textX = this.x + this.width / 2;
         const textY = this.y - 18;
         
-        // Background for better readability
+        // Background for better readability - different color for repositioning
         const textWidth = ctx.measureText(stateText).width;
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillStyle = this.state === 'reposition' ? 'rgba(255, 165, 0, 0.8)' : 'rgba(0, 0, 0, 0.7)';
         ctx.fillRect(textX - textWidth / 2 - 2, textY - 10, textWidth + 4, 12);
         
-        // Text
-        ctx.fillStyle = this.team === 'red' ? '#ffdddd' : '#ddddff';
+        // Text - highlight repositioning in orange
+        ctx.fillStyle = this.state === 'reposition' ? '#ffaa00' : 
+                       (this.team === 'red' ? '#ffdddd' : '#ddddff');
         ctx.fillText(stateText, textX, textY);
         
         ctx.restore();
@@ -500,16 +672,24 @@ class Tank {
         ctx.font = '10px Courier New';
         ctx.fillText(this.state, this.x, this.y - 12);
         
-        // Target line
+        // Target line with line-of-sight indication
         if (this.target) {
-            ctx.strokeStyle = '#ff88aa';
-            ctx.lineWidth = 1;
-            ctx.setLineDash([2, 2]);
+            // Check if we have line of sight
+            const hasLOS = window.game?.gameState?.obstacles ? 
+                this.hasLineOfSight(this.target, window.game.gameState.obstacles) : true;
+            
+            ctx.strokeStyle = hasLOS ? '#88ff88' : '#ff8888'; // Green if clear, red if blocked
+            ctx.lineWidth = hasLOS ? 1 : 2;
+            ctx.setLineDash(hasLOS ? [2, 2] : [4, 4]);
             ctx.beginPath();
             ctx.moveTo(this.x + this.width / 2, this.y + this.height / 2);
-            ctx.lineTo(this.target.x + this.target.width / 2, this.target.y + this.target.height / 2);
+            ctx.lineTo(this.target.x + (this.target.width || 24) / 2, this.target.y + (this.target.height || 16) / 2);
             ctx.stroke();
-            ctx.setLineDash([]);
+            ctx.setLineDash([]); // Reset dash pattern
+            
+            // Show LOS status text
+            ctx.fillStyle = hasLOS ? '#88ff88' : '#ff8888';
+            ctx.fillText(hasLOS ? 'LOS OK' : 'LOS BLOCKED', this.x, this.y - 24);
         }
     }
 }
