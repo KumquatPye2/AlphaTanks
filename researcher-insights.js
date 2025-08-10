@@ -72,6 +72,17 @@ class ResearcherInsights {
                 </div>
             </div>
             <div class="insights-content">
+                <div id="llm-researcher-status" style="
+                    margin-bottom: 15px; 
+                    padding: 12px; 
+                    background: rgba(0, 255, 136, 0.1); 
+                    border-radius: 8px; 
+                    border: 2px solid #00ff88;
+                    font-size: 13px;
+                ">
+                    <div style="color: #00ff88; font-weight: bold; margin-bottom: 8px;">🤖 LLM Integration Status</div>
+                    <div>Loading LLM status...</div>
+                </div>
                 <div class="metrics-panel">
                     <h3>📊 Real-time Metrics</h3>
                     <div id="live-metrics"></div>
@@ -127,6 +138,76 @@ class ResearcherInsights {
         dashboard.style.display = 'none';
         
         this.updateMetricsDisplay();
+        this.updateLLMStatus();
+    }
+    
+    updateLLMStatus() {
+        const statusDiv = document.getElementById('llm-researcher-status');
+        if (!statusDiv) {
+            return;
+        }
+        
+        const hasLLM = window.asiArch && window.asiArch.isEnabled;
+        const hasApiKey = window.CONFIG?.deepseek?.apiKey && window.CONFIG.deepseek.apiKey.length > 0;
+        const isMockMode = window.CONFIG?.development?.enableMockMode;
+        
+        let statusColor = '#ff4444';
+        let statusText = 'Disabled';
+        let capabilities = [];
+        
+        if (hasLLM) {
+            if (hasApiKey && !isMockMode) {
+                statusColor = '#00ff88';
+                statusText = 'Active (Real LLM)';
+                capabilities = [
+                    '✅ AI-guided genome generation',
+                    '✅ Intelligent mutation strategies',
+                    '✅ Adaptive crossover techniques',
+                    '✅ Evolution pressure analysis'
+                ];
+            } else if (isMockMode) {
+                statusColor = '#ffaa00';
+                statusText = 'Active (Mock Mode)';
+                capabilities = [
+                    '🟡 Simulated LLM responses',
+                    '🟡 Development/testing mode',
+                    '✅ Full interface functionality',
+                    '⚠️ No real AI research'
+                ];
+            } else {
+                statusColor = '#ffaa00';
+                statusText = 'Configured (No API Key)';
+                capabilities = [
+                    '⚠️ API key not configured',
+                    '✅ Ready for LLM integration',
+                    '🔧 Add key to config.js to activate'
+                ];
+            }
+        } else {
+            capabilities = [
+                '❌ LLM integration disabled',
+                '🧬 Traditional genetic algorithms',
+                '🔧 Enable with: window.asiArch.enableLLMFeatures()'
+            ];
+        }
+        
+        statusDiv.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="color: ${statusColor}; font-weight: bold;">● ${statusText}</span>
+                <span style="color: #888; font-size: 11px;">ASI-ARCH Researcher</span>
+            </div>
+            <div style="font-size: 12px; line-height: 1.4;">
+                ${capabilities.map(cap => `<div style="margin: 2px 0;">${cap}</div>`).join('')}
+            </div>
+            ${hasLLM && hasApiKey && !isMockMode ? `
+                <div style="margin-top: 8px; padding: 6px; background: rgba(0,255,136,0.1); border-radius: 3px; font-size: 11px;">
+                    <strong>🚀 Enhanced Research Active:</strong><br>
+                    • AI-guided evolutionary strategies<br>
+                    • Intelligent fitness landscape exploration<br>
+                    • Adaptive mutation rate optimization
+                </div>
+            ` : ''}
+        `;
     }
 
     log(category, message, data = {}) {
@@ -818,6 +899,7 @@ class ResearcherInsights {
             // Update metrics and charts when showing
             this.updateMetricsDisplay();
             this.updateEvolutionCharts();
+            this.updateLLMStatus(); // Refresh LLM status when dialog is shown
         } else {
             // Clean up charts when hiding to save memory
             if (this.fitnessChart) {

@@ -73,6 +73,17 @@ class EngineerInsights {
                 </div>
             </div>
             <div class="insights-content">
+                <div id="llm-engineer-status" style="
+                    margin-bottom: 15px; 
+                    padding: 12px; 
+                    background: rgba(255, 102, 0, 0.1); 
+                    border-radius: 8px; 
+                    border: 2px solid #ff6600;
+                    font-size: 13px;
+                ">
+                    <div style="color: #ff6600; font-weight: bold; margin-bottom: 8px;">🤖 LLM Integration Status</div>
+                    <div>Loading LLM status...</div>
+                </div>
                 <div class="metrics-panel">
                     <h3>⚡ Real-time Engineering Metrics</h3>
                     <div id="live-engineer-metrics"></div>
@@ -133,6 +144,76 @@ class EngineerInsights {
         dashboard.style.display = 'none';
         
         this.updateMetricsDisplay();
+        this.updateLLMStatus();
+    }
+    
+    updateLLMStatus() {
+        const statusDiv = document.getElementById('llm-engineer-status');
+        if (!statusDiv) {
+            return;
+        }
+        
+        const hasLLM = window.asiArch && window.asiArch.isEnabled;
+        const hasApiKey = window.CONFIG?.deepseek?.apiKey && window.CONFIG.deepseek.apiKey.length > 0;
+        const isMockMode = window.CONFIG?.development?.enableMockMode;
+        
+        let statusColor = '#ff4444';
+        let statusText = 'Disabled';
+        let capabilities = [];
+        
+        if (hasLLM) {
+            if (hasApiKey && !isMockMode) {
+                statusColor = '#00ff88';
+                statusText = 'Active (Real LLM)';
+                capabilities = [
+                    '✅ Genome engineering with DeepSeek',
+                    '✅ Performance optimization strategies',
+                    '✅ Synergy analysis and recommendations',
+                    '✅ Adaptive architecture tuning'
+                ];
+            } else if (isMockMode) {
+                statusColor = '#ffaa00';
+                statusText = 'Active (Mock Mode)';
+                capabilities = [
+                    '🟡 Simulated LLM responses',
+                    '🟡 Development/testing mode',
+                    '✅ Full interface functionality',
+                    '⚠️ No real AI optimization'
+                ];
+            } else {
+                statusColor = '#ffaa00';
+                statusText = 'Configured (No API Key)';
+                capabilities = [
+                    '⚠️ API key not configured',
+                    '✅ Ready for LLM integration',
+                    '🔧 Add key to config.js to activate'
+                ];
+            }
+        } else {
+            capabilities = [
+                '❌ LLM integration disabled',
+                '⚙️ Traditional rule-based engineering',
+                '🔧 Enable with: window.asiArch.enableLLMFeatures()'
+            ];
+        }
+        
+        statusDiv.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="color: ${statusColor}; font-weight: bold;">● ${statusText}</span>
+                <span style="color: #888; font-size: 11px;">ASI-ARCH Engineer</span>
+            </div>
+            <div style="font-size: 12px; line-height: 1.4;">
+                ${capabilities.map(cap => `<div style="margin: 2px 0;">${cap}</div>`).join('')}
+            </div>
+            ${hasLLM && hasApiKey && !isMockMode ? `
+                <div style="margin-top: 8px; padding: 6px; background: rgba(0,255,136,0.1); border-radius: 3px; font-size: 11px;">
+                    <strong>🚀 Enhanced Engineering Active:</strong><br>
+                    • Intelligent genome parameter tuning<br>
+                    • Multi-dimensional performance analysis<br>
+                    • Emergent synergy detection
+                </div>
+            ` : ''}
+        `;
     }
 
     log(category, message, data = {}) {
@@ -738,6 +819,7 @@ class EngineerInsights {
     show() {
         if (this.dashboard) {
             this.dashboard.style.display = 'block';
+            this.updateLLMStatus(); // Refresh LLM status when dialog is shown
         }
     }
 

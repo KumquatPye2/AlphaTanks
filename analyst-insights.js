@@ -75,6 +75,10 @@ class AnalystInsights {
                 </div>
             </div>
             <div class="insights-content">
+                <div class="llm-integration-panel" style="background: #1a1a2e; border: 1px solid #00ff88; border-radius: 5px; padding: 10px; margin-bottom: 15px;">
+                    <h3>🤖 LLM Integration Status</h3>
+                    <div id="llm-analyst-status"></div>
+                </div>
                 <div class="metrics-panel">
                     <h3>📈 Real-time Analysis Metrics</h3>
                     <div id="live-analyst-metrics"></div>
@@ -145,6 +149,76 @@ class AnalystInsights {
         dashboard.style.display = 'none';
         
         this.updateMetricsDisplay();
+        this.updateLLMStatus();
+    }
+    
+    updateLLMStatus() {
+        const statusDiv = document.getElementById('llm-analyst-status');
+        if (!statusDiv) {
+            return;
+        }
+        
+        const hasLLM = window.asiArch && window.asiArch.isEnabled;
+        const hasApiKey = window.CONFIG?.deepseek?.apiKey && window.CONFIG.deepseek.apiKey.length > 0;
+        const isMockMode = window.CONFIG?.development?.enableMockMode;
+        
+        let statusColor = '#ff4444';
+        let statusText = 'Disabled';
+        let capabilities = [];
+        
+        if (hasLLM) {
+            if (hasApiKey && !isMockMode) {
+                statusColor = '#00ff88';
+                statusText = 'Active (Real LLM)';
+                capabilities = [
+                    '✅ Deep battle analysis with DeepSeek',
+                    '✅ Pattern recognition beyond rule-based',
+                    '✅ Natural language insights generation',
+                    '✅ Qualitative tactical assessment'
+                ];
+            } else if (isMockMode) {
+                statusColor = '#ffaa00';
+                statusText = 'Active (Mock Mode)';
+                capabilities = [
+                    '🟡 Simulated LLM responses',
+                    '🟡 Development/testing mode',
+                    '✅ Full interface functionality',
+                    '⚠️ No real AI analysis'
+                ];
+            } else {
+                statusColor = '#ffaa00';
+                statusText = 'Configured (No API Key)';
+                capabilities = [
+                    '⚠️ API key not configured',
+                    '✅ Ready for LLM integration',
+                    '🔧 Add key to config.js to activate'
+                ];
+            }
+        } else {
+            capabilities = [
+                '❌ LLM integration disabled',
+                '📊 Rule-based analysis only',
+                '🔧 Enable with: window.asiArch.enableLLMFeatures()'
+            ];
+        }
+        
+        statusDiv.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="color: ${statusColor}; font-weight: bold;">● ${statusText}</span>
+                <span style="color: #888; font-size: 11px;">ASI-ARCH Analyst</span>
+            </div>
+            <div style="font-size: 12px; line-height: 1.4;">
+                ${capabilities.map(cap => `<div style="margin: 2px 0;">${cap}</div>`).join('')}
+            </div>
+            ${hasLLM && hasApiKey && !isMockMode ? `
+                <div style="margin-top: 8px; padding: 6px; background: rgba(0,255,136,0.1); border-radius: 3px; font-size: 11px;">
+                    <strong>🚀 Enhanced Capabilities Active:</strong><br>
+                    • Composite fitness scoring (ASI-ARCH Equation 2)<br>
+                    • Emergent pattern discovery<br>
+                    • Strategic recommendation generation
+                </div>
+            ` : ''}
+        `;
     }
 
     log(category, message, data = {}) {
@@ -971,6 +1045,7 @@ class AnalystInsights {
     show() {
         if (this.dashboard) {
             this.dashboard.style.display = 'block';
+            this.updateLLMStatus(); // Refresh LLM status when dialog is shown
         }
     }
 
