@@ -15,9 +15,11 @@ class GameEngine {
         this.tanks = [];
         this.projectiles = [];
         this.obstacles = [];
+        this.hill = null; // King of the Hill control point
         
         this.lastTime = 0;
         this.gameState = 'ready'; // 'ready', 'running', 'paused', 'ended'
+        this.gameMode = 'classic'; // 'classic', 'king_of_hill'
         this.battleTime = 0;
         this.maxBattleTime = 120; // 2 minutes max battle time
         this.battleStarted = false; // Flag to track when battle timer should start
@@ -59,7 +61,7 @@ class GameEngine {
         window.addEventListener('resize', () => this.setupCanvas());
     }
     
-    initializeBattle(redTanks = 5, blueTanks = 5) {
+    initializeBattle(redTanks = 5, blueTanks = 5, mode = 'classic') {
         this.tanks = [];
         this.projectiles = [];
         this.redTeam = [];
@@ -67,6 +69,14 @@ class GameEngine {
         this.battleTime = 0;
         this.gameState = 'ready'; // Don't automatically start - let start() method handle it
         this.battleStarted = false; // Reset battle started flag
+        this.gameMode = mode;
+        
+        // Initialize King of the Hill mode
+        if (mode === 'king_of_hill') {
+            this.initializeKingOfHill();
+        } else {
+            this.hill = null;
+        }
         
         // Create red team (left side)
         for (let i = 0; i < redTanks; i++) {
@@ -107,6 +117,11 @@ class GameEngine {
             0.3 + Math.random() * 0.4,  // 7: RiskTaking
             0.3 + Math.random() * 0.4   // 8: Evasion
         ];
+    }
+    
+    initializeKingOfHill() {
+        // Create hill in the center of the battlefield
+        this.hill = new Hill(this.width / 2, this.height / 2, 60);
     }
     
     start() {
@@ -201,6 +216,11 @@ class GameEngine {
             tank.update(deltaTime, this.getGameState());
         });
         
+        // Update King of the Hill
+        if (this.hill) {
+            this.hill.update(deltaTime, aliveTanks);
+        }
+        
         // Optimize: Batch update projectiles and filter in one pass
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             const projectile = this.projectiles[i];
@@ -232,9 +252,11 @@ class GameEngine {
             tanks: this.tanks,
             obstacles: this.obstacles,
             projectiles: this.projectiles,
+            hill: this.hill,
             battleTime: this.battleTime,
             width: this.width,
-            height: this.height
+            height: this.height,
+            gameMode: this.gameMode
         };
     }
     
@@ -309,6 +331,12 @@ class GameEngine {
     }
     
     checkWinConditions() {
+        // King of the Hill win condition
+        if (this.hill && this.hill.isGameWon()) {
+            this.endBattle(this.hill.getWinner());
+            return;
+        }
+        
         const aliveRed = this.redTeam.filter(tank => tank.isAlive).length;
         const aliveBlue = this.blueTeam.filter(tank => tank.isAlive).length;
         
@@ -377,6 +405,11 @@ class GameEngine {
         
         // Draw obstacles
         this.obstacles.forEach(obstacle => obstacle.render(this.ctx));
+        
+        // Draw King of the Hill
+        if (this.hill) {
+            this.hill.render(this.ctx);
+        }
         
         // Draw tanks
         this.tanks.forEach(tank => tank.render(this.ctx));

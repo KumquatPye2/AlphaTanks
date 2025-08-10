@@ -72,6 +72,11 @@ class Tank {
         this.riskTakingWeight = this.genome[7];  // RiskTaking
         this.evasionWeight = this.genome[8];     // Evasion
         
+        // King of the Hill behavior weights
+        this.objectiveFocus = 0.3 + this.genome[4] * 0.4; // Based on teamwork
+        this.hillPriority = 0.2 + this.genome[0] * 0.6;   // Based on aggression
+        this.contestWillingness = this.genome[7];          // Based on risk-taking
+        
         // Access genome[0] through genome[8] for 9-trait validation
         this.trait0 = this.genome[0];
         this.trait8 = this.genome[8];
@@ -106,6 +111,18 @@ class Tank {
         this.enemies = gameState.tanks.filter(tank => 
             tank.team !== this.team && tank.isAlive
         );
+        
+        // Hill awareness for King of the Hill mode
+        if (gameState.hill) {
+            this.hillInfo = gameState.hill.getStrategicInfo();
+            this.distanceToHill = this.distanceToPoint(this.hillInfo.position.x, this.hillInfo.position.y);
+            this.isOnHill = this.distanceToHill <= this.hillInfo.contestRadius;
+            this.isNearHill = this.distanceToHill <= this.hillInfo.contestRadius + 50;
+            
+            // Analyze hill situation
+            this.hillThreat = this.assessHillThreat(gameState);
+            this.hillOpportunity = this.assessHillOpportunity(gameState);
+        }
         
         // Find closest enemy with preference for those with clear line of sight
         let closestEnemy = null;
@@ -187,15 +204,27 @@ class Tank {
         const hasLOSToTarget = this.target && gameState?.obstacles ? 
             this.hasLineOfSight(this.target, gameState.obstacles) : true;
         
+        // King of the Hill decision factors
+        let shouldContestHill = 0;
+        if (gameState?.hill) {
+            const hillContest = this.shouldContestHill();
+            const hillPriority = this.hillPriority;
+            const isNearHill = this.isNearHill;
+            
+            shouldContestHill = hillContest ? (hillPriority * (isNearHill ? 1.5 : 1.0)) : 0;
+        }
+        
         // Decision weights based on genome
         const shouldAttack = this.aggressionWeight * (enemyDistance < this.range ? 1 : 0) * (hasLOSToTarget ? 1 : 0);
         const shouldReposition = this.target && !hasLOSToTarget && enemyDistance < this.range ? 0.8 : 0;
         const shouldRetreat = this.cautionWeight * (1 - healthRatio) * (enemyDistance < 100 ? 1 : 0);
         const shouldGroup = this.formationWeight * (allyCount > 0 ? 1 : 0) * (this.getNearbyAllies(100).length === 0 ? 1 : 0);
         
-        // State transitions with new repositioning logic
+        // State transitions with hill objectives priority
         if (shouldRetreat > 0.5 && this.state !== 'retreat') {
             this.setState('retreat');
+        } else if (shouldContestHill > 0.7 && this.state !== 'contest_hill') {
+            this.setState('contest_hill');
         } else if (shouldReposition > 0.6 && this.state !== 'reposition') {
             this.setState('reposition');
         } else if (shouldAttack > 0.6 && this.target && this.state !== 'attack') {
@@ -230,6 +259,9 @@ class Tank {
                 break;
             case 'group':
                 this.findGroupPosition();
+                break;
+            case 'contest_hill':
+                this.moveToContestHill();
                 break;
             case 'patrol':
                 this.setSmartPatrolTarget();
@@ -315,6 +347,36 @@ class Tank {
         
         this.targetX = avgX / this.allies.length;
         this.targetY = avgY / this.allies.length;
+    }
+    
+    moveToContestHill() {
+        if (!this.hillInfo) {
+            this.setState('patrol');
+            return;
+        }
+        
+        // Move to hill with tactical positioning
+        const hillX = this.hillInfo.position.x;
+        const hillY = this.hillInfo.position.y;
+        
+        // If we're already on the hill, find a good defensive position
+        if (this.isOnHill) {
+            // Find a position on the hill that provides good coverage
+            const angle = Math.random() * Math.PI * 2;
+            const radius = this.hillInfo.radius * 0.7; // Stay well within the hill
+            this.targetX = hillX + Math.cos(angle) * radius;
+            this.targetY = hillY + Math.sin(angle) * radius;
+        } else {
+            // Approach the hill, but consider tactical factors
+            const directAngle = Math.atan2(hillY - this.y, hillX - this.x);
+            
+            // Add some randomness for flanking
+            const tacticalAngle = directAngle + (Math.random() - 0.5) * 0.5;
+            const approachDistance = this.hillInfo.contestRadius * 0.8;
+            
+            this.targetX = hillX + Math.cos(tacticalAngle) * approachDistance;
+            this.targetY = hillY + Math.sin(tacticalAngle) * approachDistance;
+        }
     }
     
     findRepositionTarget() {
@@ -557,6 +619,12 @@ class Tank {
         return Math.sqrt(dx * dx + dy * dy);
     }
     
+    distanceToPoint(x, y) {
+        const dx = x - (this.x + this.width / 2);
+        const dy = y - (this.y + this.height / 2);
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+    
     getNearbyAllies(radius) {
         return this.allies.filter(ally => this.distanceTo(ally) <= radius);
     }
@@ -748,6 +816,93 @@ class Projectile {
         ctx.fillRect(-this.width / 2 - 2, -this.height / 4, 2, this.height / 2);
         
         ctx.restore();
+    }
+    
+    // King of the Hill AI Methods
+    assessHillThreat(_gameState) {
+        if (!this.hillInfo) {
+            return 0;
+        }
+        
+        // Count enemies on or near the hill
+        const enemiesOnHill = this.enemies.filter(_enemy => {
+            const distToHill = this.distanceToPoint(this.hillInfo.position.x, this.hillInfo.position.y);
+            return distToHill <= this.hillInfo.contestRadius;
+        }).length;
+        
+        const enemiesNearHill = this.enemies.filter(_enemy => {
+            const distToHill = this.distanceToPoint(this.hillInfo.position.x, this.hillInfo.position.y);
+            return distToHill <= this.hillInfo.contestRadius + 50;
+        }).length;
+        
+        // Higher threat if enemies control or are contesting the hill
+        let threat = 0;
+        if (this.hillInfo.controllingTeam === (this.team === 'red' ? 'blue' : 'red')) {
+            threat += 0.7; // Enemy controls the hill
+        }
+        
+        threat += enemiesOnHill * 0.3;
+        threat += enemiesNearHill * 0.1;
+        
+        return Math.min(1, threat);
+    }
+    
+    assessHillOpportunity(_gameState) {
+        if (!this.hillInfo) {
+            return 0;
+        }
+        
+        // Count allies on or near the hill
+        const alliesOnHill = this.allies.filter(ally => {
+            const distToHill = ally.distanceToPoint ? 
+                ally.distanceToPoint(this.hillInfo.position.x, this.hillInfo.position.y) :
+                this.distanceToPoint(this.hillInfo.position.x, this.hillInfo.position.y);
+            return distToHill <= this.hillInfo.contestRadius;
+        }).length;
+        
+        let opportunity = 0;
+        
+        // Higher opportunity if hill is neutral or we control it
+        if (this.hillInfo.isNeutral) {
+            opportunity += 0.6;
+        } else if (this.hillInfo.controllingTeam === this.team) {
+            opportunity += 0.4;
+        }
+        
+        // More opportunity with allied support
+        opportunity += alliesOnHill * 0.2;
+        
+        // Less opportunity if we're heavily outnumbered
+        const enemiesOnHill = this.enemies.filter(_enemy => {
+            const distToHill = this.distanceToPoint(this.hillInfo.position.x, this.hillInfo.position.y);
+            return distToHill <= this.hillInfo.contestRadius;
+        }).length;
+        
+        if (enemiesOnHill > alliesOnHill + 1) {
+            opportunity *= 0.3; // Reduce opportunity if outnumbered
+        }
+        
+        return Math.min(1, opportunity);
+    }
+    
+    shouldContestHill() {
+        if (!this.hillInfo) {
+            return false;
+        }
+        
+        const threat = this.hillThreat || 0;
+        const opportunity = this.hillOpportunity || 0;
+        const healthRatio = this.health / this.maxHealth;
+        
+        // Decision based on personality and situation
+        const contestScore = (
+            this.hillPriority * 0.4 +
+            this.contestWillingness * 0.3 +
+            opportunity * 0.2 +
+            (1 - threat) * 0.1
+        ) * healthRatio;
+        
+        return contestScore > 0.5;
     }
 }
 
