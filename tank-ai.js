@@ -189,6 +189,28 @@ class Tank {
         return canFire && Math.random() < this.accuracy;
     }
     
+    // King of the Hill decision method
+    shouldContestHill() {
+        if (!this.hillInfo) {
+            return false;
+        }
+        
+        // Compute threat and opportunity on-demand
+        const threat = this.assessHillThreat(null);
+        const opportunity = this.assessHillOpportunity(null);
+        const healthRatio = this.health / this.maxHealth;
+        
+        // Decision based on personality and situation
+        const contestScore = (
+            this.hillPriority * 0.4 +
+            this.contestWillingness * 0.3 +
+            opportunity * 0.2 +
+            (1 - threat) * 0.1
+        ) * healthRatio;
+        
+        return contestScore > 0.5;
+    }
+    
     makeDecisions(deltaTime, gameState = null) {
         this.stateTimer += deltaTime;
         
@@ -885,27 +907,6 @@ class Projectile {
         }
         
         return Math.min(1, opportunity);
-    }
-    
-    shouldContestHill() {
-        if (!this.hillInfo) {
-            return false;
-        }
-        
-        // Compute threat and opportunity on-demand
-        const threat = this.assessHillThreat(null);
-        const opportunity = this.assessHillOpportunity(null);
-        const healthRatio = this.health / this.maxHealth;
-        
-        // Decision based on personality and situation
-        const contestScore = (
-            this.hillPriority * 0.4 +
-            this.contestWillingness * 0.3 +
-            opportunity * 0.2 +
-            (1 - threat) * 0.1
-        ) * healthRatio;
-        
-        return contestScore > 0.5;
     }
 }
 
