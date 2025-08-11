@@ -189,6 +189,79 @@ class Tank {
         return canFire && Math.random() < this.accuracy;
     }
     
+    // King of the Hill AI Assessment Methods
+    assessHillThreat(_gameState) {
+        if (!this.hillInfo) {
+            return 0;
+        }
+        
+        // Count enemies on or near the hill
+        const enemiesOnHill = this.enemies.filter(enemy => {
+            const dx = enemy.x + enemy.width / 2 - this.hillInfo.position.x;
+            const dy = enemy.y + enemy.height / 2 - this.hillInfo.position.y;
+            const distToHill = Math.sqrt(dx * dx + dy * dy);
+            return distToHill <= this.hillInfo.contestRadius;
+        }).length;
+        
+        const enemiesNearHill = this.enemies.filter(enemy => {
+            const dx = enemy.x + enemy.width / 2 - this.hillInfo.position.x;
+            const dy = enemy.y + enemy.height / 2 - this.hillInfo.position.y;
+            const distToHill = Math.sqrt(dx * dx + dy * dy);
+            return distToHill <= this.hillInfo.contestRadius + 50;
+        }).length;
+        
+        // Higher threat if enemies control or are contesting the hill
+        let threat = 0;
+        if (this.hillInfo.controllingTeam === (this.team === 'red' ? 'blue' : 'red')) {
+            threat += 0.7; // Enemy controls the hill
+        }
+        
+        threat += enemiesOnHill * 0.3;
+        threat += enemiesNearHill * 0.1;
+        
+        return Math.min(1, threat);
+    }
+    
+    assessHillOpportunity(_gameState) {
+        if (!this.hillInfo) {
+            return 0;
+        }
+        
+        // Count allies on or near the hill
+        const alliesOnHill = this.allies.filter(ally => {
+            const dx = ally.x + ally.width / 2 - this.hillInfo.position.x;
+            const dy = ally.y + ally.height / 2 - this.hillInfo.position.y;
+            const distToHill = Math.sqrt(dx * dx + dy * dy);
+            return distToHill <= this.hillInfo.contestRadius;
+        }).length;
+        
+        let opportunity = 0;
+        
+        // Higher opportunity if hill is neutral or we control it
+        if (this.hillInfo.isNeutral) {
+            opportunity += 0.6;
+        } else if (this.hillInfo.controllingTeam === this.team) {
+            opportunity += 0.4;
+        }
+        
+        // More opportunity with allied support
+        opportunity += alliesOnHill * 0.2;
+        
+        // Less opportunity if we're heavily outnumbered
+        const enemiesOnHill = this.enemies.filter(enemy => {
+            const dx = enemy.x + enemy.width / 2 - this.hillInfo.position.x;
+            const dy = enemy.y + enemy.height / 2 - this.hillInfo.position.y;
+            const distToHill = Math.sqrt(dx * dx + dy * dy);
+            return distToHill <= this.hillInfo.contestRadius;
+        }).length;
+        
+        if (enemiesOnHill > alliesOnHill + 1) {
+            opportunity *= 0.3; // Reduce opportunity if outnumbered
+        }
+        
+        return Math.min(1, opportunity);
+    }
+    
     // King of the Hill decision method
     shouldContestHill() {
         if (!this.hillInfo) {
@@ -834,79 +907,6 @@ class Projectile {
         ctx.fillRect(-this.width / 2 - 2, -this.height / 4, 2, this.height / 2);
         
         ctx.restore();
-    }
-    
-    // King of the Hill AI Methods
-    assessHillThreat(_gameState) {
-        if (!this.hillInfo) {
-            return 0;
-        }
-        
-        // Count enemies on or near the hill
-        const enemiesOnHill = this.enemies.filter(enemy => {
-            const dx = enemy.x + enemy.width / 2 - this.hillInfo.position.x;
-            const dy = enemy.y + enemy.height / 2 - this.hillInfo.position.y;
-            const distToHill = Math.sqrt(dx * dx + dy * dy);
-            return distToHill <= this.hillInfo.contestRadius;
-        }).length;
-        
-        const enemiesNearHill = this.enemies.filter(enemy => {
-            const dx = enemy.x + enemy.width / 2 - this.hillInfo.position.x;
-            const dy = enemy.y + enemy.height / 2 - this.hillInfo.position.y;
-            const distToHill = Math.sqrt(dx * dx + dy * dy);
-            return distToHill <= this.hillInfo.contestRadius + 50;
-        }).length;
-        
-        // Higher threat if enemies control or are contesting the hill
-        let threat = 0;
-        if (this.hillInfo.controllingTeam === (this.team === 'red' ? 'blue' : 'red')) {
-            threat += 0.7; // Enemy controls the hill
-        }
-        
-        threat += enemiesOnHill * 0.3;
-        threat += enemiesNearHill * 0.1;
-        
-        return Math.min(1, threat);
-    }
-    
-    assessHillOpportunity(_gameState) {
-        if (!this.hillInfo) {
-            return 0;
-        }
-        
-        // Count allies on or near the hill
-        const alliesOnHill = this.allies.filter(ally => {
-            const dx = ally.x + ally.width / 2 - this.hillInfo.position.x;
-            const dy = ally.y + ally.height / 2 - this.hillInfo.position.y;
-            const distToHill = Math.sqrt(dx * dx + dy * dy);
-            return distToHill <= this.hillInfo.contestRadius;
-        }).length;
-        
-        let opportunity = 0;
-        
-        // Higher opportunity if hill is neutral or we control it
-        if (this.hillInfo.isNeutral) {
-            opportunity += 0.6;
-        } else if (this.hillInfo.controllingTeam === this.team) {
-            opportunity += 0.4;
-        }
-        
-        // More opportunity with allied support
-        opportunity += alliesOnHill * 0.2;
-        
-        // Less opportunity if we're heavily outnumbered
-        const enemiesOnHill = this.enemies.filter(enemy => {
-            const dx = enemy.x + enemy.width / 2 - this.hillInfo.position.x;
-            const dy = enemy.y + enemy.height / 2 - this.hillInfo.position.y;
-            const distToHill = Math.sqrt(dx * dx + dy * dy);
-            return distToHill <= this.hillInfo.contestRadius;
-        }).length;
-        
-        if (enemiesOnHill > alliesOnHill + 1) {
-            opportunity *= 0.3; // Reduce opportunity if outnumbered
-        }
-        
-        return Math.min(1, opportunity);
     }
 }
 
