@@ -262,6 +262,8 @@
             initializeGame() {
                 try {
                     this.game = new GameEngine('gameCanvas');
+                    // Set global reference for tank AI compatibility
+                    window.game = this.game;
                     console.log('✅ King of the Hill demo initialized');
                 } catch (error) {
                     console.error('❌ Failed to initialize game:', error);
@@ -409,56 +411,7 @@
             }
         }
 
-        // Create missing classes for compatibility
-        class Obstacle {
-            constructor(x, y, width, height) {
-                this.x = x;
-                this.y = y;
-                this.width = width;
-                this.height = height;
-            }
-            
-            render(ctx) {
-                ctx.fillStyle = '#444';
-                ctx.fillRect(this.x, this.y, this.width, this.height);
-                ctx.strokeStyle = '#666';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(this.x, this.y, this.width, this.height);
-            }
-        }
-
-        class Projectile {
-            constructor(x, y, angle, team, damage) {
-                this.x = x;
-                this.y = y;
-                this.angle = angle;
-                this.team = team;
-                this.damage = damage;
-                this.speed = 300;
-                this.size = 3;
-                this.shouldRemove = false;
-                this.life = 2.0; // 2 seconds max life
-            }
-            
-            update(deltaTime) {
-                this.x += Math.cos(this.angle) * this.speed * deltaTime;
-                this.y += Math.sin(this.angle) * this.speed * deltaTime;
-                this.life -= deltaTime;
-                
-                if (this.life <= 0) {
-                    this.shouldRemove = true;
-                }
-            }
-            
-            render(ctx) {
-                ctx.save();
-                ctx.fillStyle = this.team === 'red' ? '#ff6666' : '#6666ff';
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-            }
-        }
+        // Classes are already defined in the included JS files
 
         // Initialize the demo when page loads
         window.addEventListener('load', () => {
