@@ -14,7 +14,7 @@ class GameEngine {
         this.hill = null; // King of the Hill control point
         this.lastTime = 0;
         this.gameState = 'ready'; // 'ready', 'running', 'paused', 'ended'
-        this.gameMode = 'classic'; // 'classic', 'king_of_hill'
+        this.gameMode = 'king_of_hill'; // King of the Hill mode
         this.battleTime = 0;
         this.maxBattleTime = 120; // 2 minutes max battle time
         this.battleStarted = false; // Flag to track when battle timer should start
@@ -47,7 +47,7 @@ class GameEngine {
     bindEvents() {
         window.addEventListener('resize', () => this.setupCanvas());
     }
-    initializeBattle(redTanks = 5, blueTanks = 5, mode = 'classic') {
+    initializeBattle(redTanks = 5, blueTanks = 5, mode = 'king_of_hill') {
         this.tanks = [];
         this.projectiles = [];
         this.redTeam = [];
@@ -283,19 +283,7 @@ class GameEngine {
             this.endBattle(this.hill.getWinner());
             return;
         }
-        const aliveRed = this.redTeam.filter(tank => tank.isAlive).length;
-        const aliveBlue = this.blueTeam.filter(tank => tank.isAlive).length;
-        // Check for early battle termination when all tanks of one or both colors are destroyed
-        if (aliveRed === 0 && aliveBlue === 0) {
-            // Both teams eliminated - draw
-            this.endBattle('draw');
-        } else if (aliveRed === 0 && aliveBlue > 0) {
-            // Red team eliminated - Blue wins
-            this.endBattle('blue');
-        } else if (aliveBlue === 0 && aliveRed > 0) {
-            // Blue team eliminated - Red wins
-            this.endBattle('red');
-        }
+        // Continue battle - no elimination victory conditions in King of Hill mode
     }
     endBattle(winner) {
         // Allow immediate battle termination when all tanks of one or both teams are destroyed
