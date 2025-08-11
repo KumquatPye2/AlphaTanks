@@ -1,782 +1,1 @@
-/**
- * Tests for Genome Display and Team Selection functionality
- * Tests the fix for Blue team genome values not updating
- */
-
-const fs = require('fs');
-const path = require('path');
-
-// Load source files
-const evolutionEngineSource = fs.readFileSync(path.join(__dirname, '../evolution-engine.js'), 'utf8');
-const gameEngineSource = fs.readFileSync(path.join(__dirname, '../game-engine.js'), 'utf8');
-
-function createGenomeTestEnvironment() {
-  // Create mock DOM elements for genome display
-  document.body.innerHTML = `
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
-    
-    <!-- Red Team Genome Display -->
-    <div id="redChampionFitness">0.000</div>
-    <div id="redAggression">0.50</div>
-    <div id="redSpeed">0.50</div>
-    <div id="redAccuracy">0.50</div>
-    <div id="redDefense">0.50</div>
-    <div id="redTeamwork">0.50</div>
-    <div id="redAdaptability">0.50</div>
-    <div id="redLearning">0.50</div>
-    <div id="redRiskTaking">0.50</div>
-    <div id="redEvasion">0.50</div>
-    
-    <!-- Red Team Bars -->
-    <div id="redAggressionBar" style="width: 50%;"></div>
-    <div id="redSpeedBar" style="width: 50%;"></div>
-    <div id="redAccuracyBar" style="width: 50%;"></div>
-    <div id="redDefenseBar" style="width: 50%;"></div>
-    <div id="redTeamworkBar" style="width: 50%;"></div>
-    <div id="redAdaptabilityBar" style="width: 50%;"></div>
-    <div id="redLearningBar" style="width: 50%;"></div>
-    <div id="redRiskTakingBar" style="width: 50%;"></div>
-    <div id="redEvasionBar" style="width: 50%;"></div>
-    
-    <!-- Blue Team Genome Display -->
-    <div id="blueChampionFitness">0.000</div>
-    <div id="blueAggression">0.50</div>
-    <div id="blueSpeed">0.50</div>
-    <div id="blueAccuracy">0.50</div>
-    <div id="blueDefense">0.50</div>
-    <div id="blueTeamwork">0.50</div>
-    <div id="blueAdaptability">0.50</div>
-    <div id="blueLearning">0.50</div>
-    <div id="blueRiskTaking">0.50</div>
-    <div id="blueEvasion">0.50</div>
-    
-    <!-- Blue Team Bars -->
-    <div id="blueAggressionBar" style="width: 50%;"></div>
-    <div id="blueSpeedBar" style="width: 50%;"></div>
-    <div id="blueAccuracyBar" style="width: 50%;"></div>
-    <div id="blueDefenseBar" style="width: 50%;"></div>
-    <div id="blueTeamworkBar" style="width: 50%;"></div>
-    <div id="blueAdaptabilityBar" style="width: 50%;"></div>
-    <div id="blueLearningBar" style="width: 50%;"></div>
-    <div id="blueRiskTakingBar" style="width: 50%;"></div>
-    <div id="blueEvasionBar" style="width: 50%;"></div>
-  `;
-
-  // Mock global variables and classes
-  global.window = {
-    DEBUG_GENOME: false,
-    lastDebugLog: 0,
-    lastSearchLog: 0,
-    lastTeamLog: 0,
-    lastSuccessLog: 0
-  };
-
-  // Evaluate the evolution engine
-  eval(evolutionEngineSource);
-  
-  // Evaluate the game engine  
-  eval(gameEngineSource);
-
-  // Create simplified versions of the functions we need to test
-  global.genomeCache = {
-    lastPoolSize: 0,
-    lastCacheTime: 0,
-    lastPoolChecksum: null,
-    redBest: null,
-    blueBest: null
-  };
-
-  // Simplified getBestGenomeForTeam function for testing
-  global.getBestGenomeForTeam = function(team) {
-    if (!global.evolution || !global.evolution.candidatePool || global.evolution.candidatePool.length === 0) {
-      return null;
-    }
-
-    // Filter candidates by team
-    const teamCandidates = global.evolution.candidatePool.filter(candidate => {
-      return candidate && candidate.genome && candidate.team === team;
-    });
-
-    // If no team-specific candidates, use fallback logic
-    if (teamCandidates.length === 0) {
-      const allCandidates = global.evolution.candidatePool.filter(candidate => {
-        return candidate && candidate.genome;
-      });
-      
-      if (allCandidates.length === 0) {
-        return null;
-      }
-      
-      allCandidates.sort((a, b) => (b.fitness || 0) - (a.fitness || 0));
-      
-      if (team === 'red') {
-        const candidate = allCandidates[0];
-        candidate.tempTeam = 'red';
-        return candidate;
-      } else {
-        const candidate = allCandidates.length > 1 ? allCandidates[1] : allCandidates[0];
-        candidate.tempTeam = 'blue';
-        return candidate;
-      }
-    }
-
-    // Sort by fitness and return best
-    teamCandidates.sort((a, b) => (b.fitness || 0) - (a.fitness || 0));
-    return teamCandidates[0];
-  };
-
-  // Simplified displayGenome function
-  global.displayGenome = function(team, genome, fitness) {
-    const traitNames = ['Aggression', 'Speed', 'Accuracy', 'Defense', 'Teamwork', 'Adaptability', 'Learning', 'RiskTaking', 'Evasion'];
-    
-    if (!genome || typeof fitness !== 'number') {
-      console.warn('Invalid genome data provided to displayGenome:', { team, genome, fitness });
-      return;
-    }
-
-    // Convert object genome to array format if needed
-    let genomeArray;
-    if (Array.isArray(genome)) {
-      genomeArray = genome;
-    } else if (typeof genome === 'object') {
-      genomeArray = [
-        genome.aggression || 0,
-        genome.speed || 0,
-        genome.accuracy || 0,
-        genome.defense || genome.caution || 0,
-        genome.teamwork || genome.cooperation || 0,
-        genome.adaptability || 0,
-        genome.learning || 0,
-        genome.riskTaking || 0,
-        genome.evasion || 0
-      ];
-    } else {
-      console.warn('Invalid genome format provided to displayGenome:', { team, genome, fitness });
-      return;
-    }
-
-    // Update fitness display
-    const fitnessElement = document.getElementById(`${team}ChampionFitness`);
-    if (fitnessElement) {
-      fitnessElement.textContent = fitness.toFixed(3);
-    }
-
-    // Update each trait
-    traitNames.forEach((traitName, index) => {
-      const value = genomeArray[index];
-      
-      if (typeof value !== 'number' || isNaN(value)) {
-        return;
-      }
-
-      const displayValue = value.toFixed(2);
-      const percentage = Math.max(0, Math.min(100, (value * 100))).toFixed(0);
-
-      // Update trait value
-      const valueElement = document.getElementById(`${team}${traitName}`);
-      if (valueElement) {
-        valueElement.textContent = displayValue;
-      }
-
-      // Update trait bar
-      const barElement = document.getElementById(`${team}${traitName}Bar`);
-      if (barElement) {
-        barElement.style.width = `${percentage}%`;
-        
-        // Color coding based on value
-        if (value < 0.3) {
-          barElement.style.background = '#ff4444'; // Low - Red
-        } else if (value < 0.7) {
-          barElement.style.background = '#ffaa00'; // Medium - Orange
-        } else {
-          barElement.style.background = '#00ff88'; // High - Green
-        }
-      }
-    });
-  };
-
-  // Simplified displayGenomeWithEvolvingFitness function
-  global.displayGenomeWithEvolvingFitness = function(team, genome) {
-    const traitNames = ['Aggression', 'Speed', 'Accuracy', 'Defense', 'Teamwork', 'Adaptability', 'Learning', 'RiskTaking', 'Evasion'];
-    
-    let genomeArray;
-    if (Array.isArray(genome)) {
-      genomeArray = genome;
-    } else if (typeof genome === 'object' && genome) {
-      genomeArray = [
-        genome.aggression || 0,
-        genome.speed || 0,
-        genome.accuracy || 0,
-        genome.defense || genome.caution || 0,
-        genome.teamwork || genome.cooperation || 0,
-        genome.adaptability || 0,
-        genome.learning || 0,
-        genome.riskTaking || 0,
-        genome.evasion || 0
-      ];
-    } else {
-      genomeArray = null;
-    }
-
-    // Update fitness display to show "Evolving..."
-    const fitnessElement = document.getElementById(`${team}ChampionFitness`);
-    if (fitnessElement) {
-      fitnessElement.textContent = 'Evolving...';
-    }
-
-    // Update each trait with actual values
-    traitNames.forEach((traitName, index) => {
-      const valueElement = document.getElementById(`${team}${traitName}`);
-      if (valueElement && genomeArray && genomeArray[index] !== undefined) {
-        const value = genomeArray[index];
-        valueElement.textContent = value.toFixed(2);
-      } else if (valueElement) {
-        valueElement.textContent = '—';
-      }
-
-      const barElement = document.getElementById(`${team}${traitName}Bar`);
-      if (barElement && genomeArray && genomeArray[index] !== undefined) {
-        const value = genomeArray[index];
-        barElement.style.width = `${value * 100}%`;
-        
-        if (value < 0.3) {
-          barElement.style.background = '#ff4444';
-        } else if (value < 0.7) {
-          barElement.style.background = '#ffaa00';
-        } else {
-          barElement.style.background = '#00ff88';
-        }
-      }
-    });
-  };
-
-  // Simplified displayNoGenomeDataForTeam function
-  global.displayNoGenomeDataForTeam = function(team) {
-    const traitNames = ['Aggression', 'Speed', 'Accuracy', 'Defense', 'Teamwork', 'Adaptability', 'Learning', 'RiskTaking', 'Evasion'];
-    
-    const fitnessElement = document.getElementById(`${team}ChampionFitness`);
-    if (fitnessElement) {
-      fitnessElement.textContent = 'Evolving...';
-    }
-
-    traitNames.forEach((traitName) => {
-      const valueElement = document.getElementById(`${team}${traitName}`);
-      if (valueElement) {
-        valueElement.textContent = '—';
-      }
-
-      const barElement = document.getElementById(`${team}${traitName}Bar`);
-      if (barElement) {
-        barElement.style.width = '0%';
-        barElement.style.background = '#333';
-      }
-    });
-  };
-
-  return {
-    EvolutionEngine: global.EvolutionEngine,
-    GameEngine: global.GameEngine,
-    getBestGenomeForTeam: global.getBestGenomeForTeam,
-    displayGenome: global.displayGenome,
-    displayGenomeWithEvolvingFitness: global.displayGenomeWithEvolvingFitness,
-    displayNoGenomeDataForTeam: global.displayNoGenomeDataForTeam,
-    genomeCache: global.genomeCache
-  };
-}
-
-describe('Genome Display and Team Selection', () => {
-  let testEnv;
-  let evolutionEngine;
-  let gameEngine;
-
-  beforeEach(() => {
-    // Reset global state
-    global.window = {
-      DEBUG_GENOME: false,
-      lastDebugLog: 0,
-      lastSearchLog: 0,
-      lastTeamLog: 0,
-      lastSuccessLog: 0
-    };
-    
-    testEnv = createGenomeTestEnvironment();
-    evolutionEngine = new testEnv.EvolutionEngine();
-    gameEngine = new testEnv.GameEngine('gameCanvas');
-    
-    // Set up global references for the functions
-    global.evolution = evolutionEngine;
-    global.game = gameEngine;
-    
-    // Clear genome cache
-    global.genomeCache = {
-      lastPoolSize: 0,
-      lastCacheTime: 0,
-      lastPoolChecksum: null,
-      redBest: null,
-      blueBest: null
-    };
-  });
-
-  describe('getBestGenomeForTeam', () => {
-    test('should return null when evolution engine is not available', () => {
-      global.evolution = null;
-      const result = testEnv.getBestGenomeForTeam('red');
-      expect(result).toBeNull();
-    });
-
-    test('should return null when candidate pool is empty', () => {
-      evolutionEngine.candidatePool = [];
-      const result = testEnv.getBestGenomeForTeam('red');
-      expect(result).toBeNull();
-    });
-
-    test('should select Red team champion correctly', () => {
-      // Create mock candidates with Red team assignment
-      evolutionEngine.candidatePool = [
-        {
-          team: 'red',
-          fitness: 0.8,
-          battles: 5,
-          wins: 3,
-          genome: [0.7, 0.5, 0.9, 0.4, 0.6, 0.5, 0.3, 0.8, 0.6]
-        },
-        {
-          team: 'red',
-          fitness: 0.6,
-          battles: 3,
-          wins: 1,
-          genome: [0.5, 0.7, 0.6, 0.8, 0.4, 0.7, 0.5, 0.6, 0.5]
-        }
-      ];
-
-      const result = testEnv.getBestGenomeForTeam('red');
-      
-      expect(result).not.toBeNull();
-      expect(result.team).toBe('red');
-      expect(result.fitness).toBe(0.8); // Should select the highest fitness
-      expect(Array.isArray(result.genome)).toBe(true);
-      expect(result.genome.length).toBe(9);
-    });
-
-    test('should select Blue team champion correctly', () => {
-      // Create mock candidates with Blue team assignment
-      evolutionEngine.candidatePool = [
-        {
-          team: 'blue',
-          fitness: 0.75,
-          battles: 4,
-          wins: 2,
-          genome: [0.4, 0.8, 0.6, 0.7, 0.9, 0.5, 0.6, 0.4, 0.8]
-        },
-        {
-          team: 'blue',
-          fitness: 0.65,
-          battles: 2,
-          wins: 1,
-          genome: [0.6, 0.6, 0.7, 0.5, 0.8, 0.6, 0.4, 0.5, 0.7]
-        }
-      ];
-
-      const result = testEnv.getBestGenomeForTeam('blue');
-      
-      expect(result).not.toBeNull();
-      expect(result.team).toBe('blue');
-      expect(result.fitness).toBe(0.75); // Should select the highest fitness
-      expect(Array.isArray(result.genome)).toBe(true);
-      expect(result.genome.length).toBe(9);
-    });
-
-    test('should handle mixed team candidate pool correctly', () => {
-      // Create mixed candidate pool
-      evolutionEngine.candidatePool = [
-        {
-          team: 'red',
-          fitness: 0.8,
-          battles: 5,
-          wins: 3,
-          genome: [0.7, 0.5, 0.9, 0.4, 0.6, 0.5, 0.3, 0.8, 0.6]
-        },
-        {
-          team: 'blue',
-          fitness: 0.85,
-          battles: 4,
-          wins: 3,
-          genome: [0.4, 0.8, 0.6, 0.7, 0.9, 0.5, 0.6, 0.4, 0.8]
-        },
-        {
-          team: 'red',
-          fitness: 0.6,
-          battles: 3,
-          wins: 1,
-          genome: [0.5, 0.7, 0.6, 0.8, 0.4, 0.7, 0.5, 0.6, 0.5]
-        }
-      ];
-
-      const redResult = testEnv.getBestGenomeForTeam('red');
-      const blueResult = testEnv.getBestGenomeForTeam('blue');
-      
-      // Red should get the best Red candidate
-      expect(redResult).not.toBeNull();
-      expect(redResult.team).toBe('red');
-      expect(redResult.fitness).toBe(0.8);
-      
-      // Blue should get the best Blue candidate
-      expect(blueResult).not.toBeNull();
-      expect(blueResult.team).toBe('blue');
-      expect(blueResult.fitness).toBe(0.85);
-    });
-
-    test('should assign teams fairly when no team-specific candidates exist', () => {
-      // Create candidates without team assignment
-      evolutionEngine.candidatePool = [
-        {
-          fitness: 0.9,
-          battles: 5,
-          wins: 4,
-          genome: [0.8, 0.7, 0.9, 0.6, 0.5, 0.8, 0.7, 0.6, 0.9]
-        },
-        {
-          fitness: 0.8,
-          battles: 4,
-          wins: 3,
-          genome: [0.6, 0.8, 0.7, 0.8, 0.7, 0.6, 0.5, 0.8, 0.7]
-        }
-      ];
-
-      const redResult = testEnv.getBestGenomeForTeam('red');
-      const blueResult = testEnv.getBestGenomeForTeam('blue');
-      
-      // Both teams should get candidates
-      expect(redResult).not.toBeNull();
-      expect(blueResult).not.toBeNull();
-      
-      // They should have different candidates (fair distribution)
-      expect(redResult).not.toBe(blueResult);
-      
-      // Teams should be assigned via tempTeam
-      expect(redResult.tempTeam || redResult.team).toBe('red');
-      expect(blueResult.tempTeam || blueResult.team).toBe('blue');
-    });
-
-    test('should handle object format genomes correctly', () => {
-      evolutionEngine.candidatePool = [
-        {
-          team: 'red',
-          fitness: 0.8,
-          battles: 5,
-          wins: 3,
-          genome: {
-            aggression: 0.7,
-            speed: 0.5,
-            accuracy: 0.9,
-            defense: 0.4,
-            teamwork: 0.6,
-            adaptability: 0.5,
-            learning: 0.3,
-            riskTaking: 0.8,
-            evasion: 0.6
-          }
-        }
-      ];
-
-      const result = testEnv.getBestGenomeForTeam('red');
-      
-      expect(result).not.toBeNull();
-      expect(result.team).toBe('red');
-      expect(typeof result.genome).toBe('object');
-      expect(result.genome.aggression).toBe(0.7);
-    });
-  });
-
-  describe('displayGenome', () => {
-    test('should update DOM elements with array format genome', () => {
-      const genome = [0.8, 0.6, 0.9, 0.4, 0.7, 0.5, 0.3, 0.8, 0.6];
-      const fitness = 0.75;
-      
-      testEnv.displayGenome('red', genome, fitness);
-      
-      // Check fitness display
-      expect(document.getElementById('redChampionFitness').textContent).toBe('0.750');
-      
-      // Check trait values
-      expect(document.getElementById('redAggression').textContent).toBe('0.80');
-      expect(document.getElementById('redSpeed').textContent).toBe('0.60');
-      expect(document.getElementById('redAccuracy').textContent).toBe('0.90');
-      
-      // Check trait bars
-      expect(document.getElementById('redAggressionBar').style.width).toBe('80%');
-      expect(document.getElementById('redSpeedBar').style.width).toBe('60%');
-      expect(document.getElementById('redAccuracyBar').style.width).toBe('90%');
-    });
-
-    test('should update DOM elements with object format genome', () => {
-      const genome = {
-        aggression: 0.7,
-        speed: 0.8,
-        accuracy: 0.6,
-        defense: 0.5,
-        teamwork: 0.9,
-        adaptability: 0.4,
-        learning: 0.6,
-        riskTaking: 0.3,
-        evasion: 0.8
-      };
-      const fitness = 0.82;
-      
-      testEnv.displayGenome('blue', genome, fitness);
-      
-      // Check fitness display
-      expect(document.getElementById('blueChampionFitness').textContent).toBe('0.820');
-      
-      // Check trait values
-      expect(document.getElementById('blueAggression').textContent).toBe('0.70');
-      expect(document.getElementById('blueSpeed').textContent).toBe('0.80');
-      expect(document.getElementById('blueTeamwork').textContent).toBe('0.90');
-      
-      // Check trait bars
-      expect(document.getElementById('blueAggressionBar').style.width).toBe('70%');
-      expect(document.getElementById('blueSpeedBar').style.width).toBe('80%');
-      expect(document.getElementById('blueTeamworkBar').style.width).toBe('90%');
-    });
-
-    test('should apply correct color coding to trait bars', () => {
-      const genome = [0.2, 0.5, 0.8, 0.1, 0.6, 0.9, 0.3, 0.7, 0.4]; // Mix of low, medium, high values
-      const fitness = 0.6;
-      
-      testEnv.displayGenome('red', genome, fitness);
-      
-      // Low values should be red
-      expect(document.getElementById('redAggressionBar').style.background).toBe('rgb(255, 68, 68)'); // #ff4444
-      expect(document.getElementById('redDefenseBar').style.background).toBe('rgb(255, 68, 68)');
-      
-      // Medium values should be orange
-      expect(document.getElementById('redSpeedBar').style.background).toBe('rgb(255, 170, 0)'); // #ffaa00
-      expect(document.getElementById('redTeamworkBar').style.background).toBe('rgb(255, 170, 0)');
-      
-      // High values should be green
-      expect(document.getElementById('redAccuracyBar').style.background).toBe('rgb(0, 255, 136)'); // #00ff88
-      expect(document.getElementById('redAdaptabilityBar').style.background).toBe('rgb(0, 255, 136)');
-    });
-
-    test('should handle invalid genome data gracefully', () => {
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
-      
-      // Test with null genome
-      testEnv.displayGenome('red', null, 0.5);
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Invalid genome data provided to displayGenome:'),
-        expect.objectContaining({ team: 'red', genome: null, fitness: 0.5 })
-      );
-      
-      // Test with invalid fitness
-      testEnv.displayGenome('red', [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5], 'invalid');
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Invalid genome data provided to displayGenome:'),
-        expect.objectContaining({ team: 'red', fitness: 'invalid' })
-      );
-      
-      consoleSpy.mockRestore();
-    });
-  });
-
-  describe('displayGenomeWithEvolvingFitness', () => {
-    test('should show "Evolving..." for fitness while displaying genome traits', () => {
-      const genome = [0.8, 0.6, 0.9, 0.4, 0.7, 0.5, 0.3, 0.8, 0.6];
-      
-      testEnv.displayGenomeWithEvolvingFitness('red', genome);
-      
-      // Fitness should show "Evolving..."
-      expect(document.getElementById('redChampionFitness').textContent).toBe('Evolving...');
-      
-      // But traits should still show actual values
-      expect(document.getElementById('redAggression').textContent).toBe('0.80');
-      expect(document.getElementById('redSpeed').textContent).toBe('0.60');
-      expect(document.getElementById('redAccuracy').textContent).toBe('0.90');
-    });
-
-    test('should handle object format genome with evolving fitness', () => {
-      const genome = {
-        aggression: 0.7,
-        speed: 0.8,
-        accuracy: 0.6,
-        defense: 0.5,
-        teamwork: 0.9
-      };
-      
-      testEnv.displayGenomeWithEvolvingFitness('blue', genome);
-      
-      // Fitness should show "Evolving..."
-      expect(document.getElementById('blueChampionFitness').textContent).toBe('Evolving...');
-      
-      // Traits should show actual values
-      expect(document.getElementById('blueAggression').textContent).toBe('0.70');
-      expect(document.getElementById('blueSpeed').textContent).toBe('0.80');
-      expect(document.getElementById('blueTeamwork').textContent).toBe('0.90');
-    });
-  });
-
-  describe('displayNoGenomeDataForTeam', () => {
-    test('should show placeholder values for team with no data', () => {
-      testEnv.displayNoGenomeDataForTeam('red');
-      
-      // Fitness should show "Evolving..."
-      expect(document.getElementById('redChampionFitness').textContent).toBe('Evolving...');
-      
-      // All traits should show placeholder
-      expect(document.getElementById('redAggression').textContent).toBe('—');
-      expect(document.getElementById('redSpeed').textContent).toBe('—');
-      expect(document.getElementById('redAccuracy').textContent).toBe('—');
-      
-      // All bars should be empty
-      expect(document.getElementById('redAggressionBar').style.width).toBe('0%');
-      expect(document.getElementById('redSpeedBar').style.width).toBe('0%');
-      expect(document.getElementById('redAccuracyBar').style.width).toBe('0%');
-    });
-  });
-
-  describe('Team Equality Integration Tests', () => {
-    test('should ensure both Red and Blue teams get champions from mixed pool', () => {
-      // Create a realistic mixed candidate pool
-      evolutionEngine.candidatePool = [
-        {
-          team: 'red',
-          fitness: 0.8,
-          battles: 5,
-          wins: 3,
-          genome: [0.7, 0.5, 0.9, 0.4, 0.6, 0.5, 0.3, 0.8, 0.6]
-        },
-        {
-          team: 'blue',
-          fitness: 0.75,
-          battles: 4,
-          wins: 2,
-          genome: [0.4, 0.8, 0.6, 0.7, 0.9, 0.5, 0.6, 0.4, 0.8]
-        },
-        {
-          team: 'red',
-          fitness: 0.65,
-          battles: 3,
-          wins: 1,
-          genome: [0.5, 0.7, 0.6, 0.8, 0.4, 0.7, 0.5, 0.6, 0.5]
-        },
-        {
-          team: 'blue',
-          fitness: 0.7,
-          battles: 3,
-          wins: 2,
-          genome: [0.6, 0.6, 0.8, 0.5, 0.8, 0.6, 0.7, 0.5, 0.7]
-        }
-      ];
-
-      const redChampion = testEnv.getBestGenomeForTeam('red');
-      const blueChampion = testEnv.getBestGenomeForTeam('blue');
-      
-      // Both teams should have champions
-      expect(redChampion).not.toBeNull();
-      expect(blueChampion).not.toBeNull();
-      
-      // Teams should be correctly assigned
-      expect(redChampion.team).toBe('red');
-      expect(blueChampion.team).toBe('blue');
-      
-      // Red should get the best Red candidate
-      expect(redChampion.fitness).toBe(0.8);
-      
-      // Blue should get the best Blue candidate
-      expect(blueChampion.fitness).toBe(0.75);
-    });
-
-    test('should handle cache invalidation correctly for both teams', () => {
-      // Set up initial candidate pool
-      evolutionEngine.candidatePool = [
-        {
-          team: 'red',
-          fitness: 0.6,
-          battles: 2,
-          wins: 1,
-          genome: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
-        },
-        {
-          team: 'blue',
-          fitness: 0.55,
-          battles: 2,
-          wins: 1,
-          genome: [0.4, 0.6, 0.5, 0.6, 0.4, 0.5, 0.6, 0.4, 0.5]
-        }
-      ];
-
-      // First selection
-      const redFirst = testEnv.getBestGenomeForTeam('red');
-      const blueFirst = testEnv.getBestGenomeForTeam('blue');
-      
-      expect(redFirst.fitness).toBe(0.6);
-      expect(blueFirst.fitness).toBe(0.55);
-      
-      // Update candidate pool with better candidates
-      evolutionEngine.candidatePool.push(
-        {
-          team: 'red',
-          fitness: 0.8,
-          battles: 5,
-          wins: 4,
-          genome: [0.8, 0.7, 0.9, 0.6, 0.7, 0.8, 0.5, 0.9, 0.7]
-        },
-        {
-          team: 'blue',
-          fitness: 0.85,
-          battles: 6,
-          wins: 5,
-          genome: [0.5, 0.9, 0.8, 0.8, 0.9, 0.7, 0.8, 0.6, 0.9]
-        }
-      );
-      
-      // Force cache clear
-      global.genomeCache.lastPoolSize = 0;
-      global.genomeCache.lastCacheTime = 0;
-      global.genomeCache.redBest = null;
-      global.genomeCache.blueBest = null;
-      
-      // Second selection should get updated candidates
-      const redSecond = testEnv.getBestGenomeForTeam('red');
-      const blueSecond = testEnv.getBestGenomeForTeam('blue');
-      
-      expect(redSecond.fitness).toBe(0.8); // Should get the better Red candidate
-      expect(blueSecond.fitness).toBe(0.85); // Should get the better Blue candidate
-    });
-
-    test('should prevent teams from getting identical candidates', () => {
-      // Create a pool where fallback logic might assign same candidate to both teams
-      evolutionEngine.candidatePool = [
-        {
-          fitness: 0.9,
-          battles: 5,
-          wins: 4,
-          genome: [0.8, 0.7, 0.9, 0.6, 0.5, 0.8, 0.7, 0.6, 0.9]
-        },
-        {
-          fitness: 0.8,
-          battles: 4,
-          wins: 3,
-          genome: [0.6, 0.8, 0.7, 0.8, 0.7, 0.6, 0.5, 0.8, 0.7]
-        }
-      ];
-
-      const redResult = testEnv.getBestGenomeForTeam('red');
-      const blueResult = testEnv.getBestGenomeForTeam('blue');
-      
-      // Both teams should get candidates
-      expect(redResult).not.toBeNull();
-      expect(blueResult).not.toBeNull();
-      
-      // They should be different objects (even if same source candidate, should have different tempTeam)
-      if (redResult === blueResult) {
-        // If same object reference, check that tempTeam differentiates them
-        expect(redResult.tempTeam).toBe('red');
-        expect(blueResult.tempTeam).toBe('blue');
-      } else {
-        // Different objects is even better
-        expect(redResult).not.toBe(blueResult);
-      }
-    });
-  });
-});
+/** * Tests for Genome Display and Team Selection functionality * Tests the fix for Blue team genome values not updating */const fs = require('fs');const path = require('path');// Load source filesconst evolutionEngineSource = fs.readFileSync(path.join(__dirname, '../evolution-engine.js'), 'utf8');const gameEngineSource = fs.readFileSync(path.join(__dirname, '../game-engine.js'), 'utf8');function createGenomeTestEnvironment() {  // Create mock DOM elements for genome display  document.body.innerHTML = `    <canvas id="gameCanvas" width="800" height="600"></canvas>    <!-- Red Team Genome Display -->    <div id="redChampionFitness">0.000</div>    <div id="redAggression">0.50</div>    <div id="redSpeed">0.50</div>    <div id="redAccuracy">0.50</div>    <div id="redDefense">0.50</div>    <div id="redTeamwork">0.50</div>    <div id="redAdaptability">0.50</div>    <div id="redLearning">0.50</div>    <div id="redRiskTaking">0.50</div>    <div id="redEvasion">0.50</div>    <!-- Red Team Bars -->    <div id="redAggressionBar" style="width: 50%;"></div>    <div id="redSpeedBar" style="width: 50%;"></div>    <div id="redAccuracyBar" style="width: 50%;"></div>    <div id="redDefenseBar" style="width: 50%;"></div>    <div id="redTeamworkBar" style="width: 50%;"></div>    <div id="redAdaptabilityBar" style="width: 50%;"></div>    <div id="redLearningBar" style="width: 50%;"></div>    <div id="redRiskTakingBar" style="width: 50%;"></div>    <div id="redEvasionBar" style="width: 50%;"></div>    <!-- Blue Team Genome Display -->    <div id="blueChampionFitness">0.000</div>    <div id="blueAggression">0.50</div>    <div id="blueSpeed">0.50</div>    <div id="blueAccuracy">0.50</div>    <div id="blueDefense">0.50</div>    <div id="blueTeamwork">0.50</div>    <div id="blueAdaptability">0.50</div>    <div id="blueLearning">0.50</div>    <div id="blueRiskTaking">0.50</div>    <div id="blueEvasion">0.50</div>    <!-- Blue Team Bars -->    <div id="blueAggressionBar" style="width: 50%;"></div>    <div id="blueSpeedBar" style="width: 50%;"></div>    <div id="blueAccuracyBar" style="width: 50%;"></div>    <div id="blueDefenseBar" style="width: 50%;"></div>    <div id="blueTeamworkBar" style="width: 50%;"></div>    <div id="blueAdaptabilityBar" style="width: 50%;"></div>    <div id="blueLearningBar" style="width: 50%;"></div>    <div id="blueRiskTakingBar" style="width: 50%;"></div>    <div id="blueEvasionBar" style="width: 50%;"></div>  `;  // Mock global variables and classes  global.window = {    DEBUG_GENOME: false,    lastDebugLog: 0,    lastSearchLog: 0,    lastTeamLog: 0,    lastSuccessLog: 0  };  // Evaluate the evolution engine  eval(evolutionEngineSource);  // Evaluate the game engine    eval(gameEngineSource);  // Create simplified versions of the functions we need to test  global.genomeCache = {    lastPoolSize: 0,    lastCacheTime: 0,    lastPoolChecksum: null,    redBest: null,    blueBest: null  };  // Simplified getBestGenomeForTeam function for testing  global.getBestGenomeForTeam = function(team) {    if (!global.evolution || !global.evolution.candidatePool || global.evolution.candidatePool.length === 0) {      return null;    }    // Filter candidates by team    const teamCandidates = global.evolution.candidatePool.filter(candidate => {      return candidate && candidate.genome && candidate.team === team;    });    // If no team-specific candidates, use fallback logic    if (teamCandidates.length === 0) {      const allCandidates = global.evolution.candidatePool.filter(candidate => {        return candidate && candidate.genome;      });      if (allCandidates.length === 0) {        return null;      }      allCandidates.sort((a, b) => (b.fitness || 0) - (a.fitness || 0));      if (team === 'red') {        const candidate = allCandidates[0];        candidate.tempTeam = 'red';        return candidate;      } else {        const candidate = allCandidates.length > 1 ? allCandidates[1] : allCandidates[0];        candidate.tempTeam = 'blue';        return candidate;      }    }    // Sort by fitness and return best    teamCandidates.sort((a, b) => (b.fitness || 0) - (a.fitness || 0));    return teamCandidates[0];  };  // Simplified displayGenome function  global.displayGenome = function(team, genome, fitness) {    const traitNames = ['Aggression', 'Speed', 'Accuracy', 'Defense', 'Teamwork', 'Adaptability', 'Learning', 'RiskTaking', 'Evasion'];    if (!genome || typeof fitness !== 'number') {      return;    }    // Convert object genome to array format if needed    let genomeArray;    if (Array.isArray(genome)) {      genomeArray = genome;    } else if (typeof genome === 'object') {      genomeArray = [        genome.aggression || 0,        genome.speed || 0,        genome.accuracy || 0,        genome.defense || genome.caution || 0,        genome.teamwork || genome.cooperation || 0,        genome.adaptability || 0,        genome.learning || 0,        genome.riskTaking || 0,        genome.evasion || 0      ];    } else {      return;    }    // Update fitness display    const fitnessElement = document.getElementById(`${team}ChampionFitness`);    if (fitnessElement) {      fitnessElement.textContent = fitness.toFixed(3);    }    // Update each trait    traitNames.forEach((traitName, index) => {      const value = genomeArray[index];      if (typeof value !== 'number' || isNaN(value)) {        return;      }      const displayValue = value.toFixed(2);      const percentage = Math.max(0, Math.min(100, (value * 100))).toFixed(0);      // Update trait value      const valueElement = document.getElementById(`${team}${traitName}`);      if (valueElement) {        valueElement.textContent = displayValue;      }      // Update trait bar      const barElement = document.getElementById(`${team}${traitName}Bar`);      if (barElement) {        barElement.style.width = `${percentage}%`;        // Color coding based on value        if (value < 0.3) {          barElement.style.background = '#ff4444'; // Low - Red        } else if (value < 0.7) {          barElement.style.background = '#ffaa00'; // Medium - Orange        } else {          barElement.style.background = '#00ff88'; // High - Green        }      }    });  };  // Simplified displayGenomeWithEvolvingFitness function  global.displayGenomeWithEvolvingFitness = function(team, genome) {    const traitNames = ['Aggression', 'Speed', 'Accuracy', 'Defense', 'Teamwork', 'Adaptability', 'Learning', 'RiskTaking', 'Evasion'];    let genomeArray;    if (Array.isArray(genome)) {      genomeArray = genome;    } else if (typeof genome === 'object' && genome) {      genomeArray = [        genome.aggression || 0,        genome.speed || 0,        genome.accuracy || 0,        genome.defense || genome.caution || 0,        genome.teamwork || genome.cooperation || 0,        genome.adaptability || 0,        genome.learning || 0,        genome.riskTaking || 0,        genome.evasion || 0      ];    } else {      genomeArray = null;    }    // Update fitness display to show "Evolving..."    const fitnessElement = document.getElementById(`${team}ChampionFitness`);    if (fitnessElement) {      fitnessElement.textContent = 'Evolving...';    }    // Update each trait with actual values    traitNames.forEach((traitName, index) => {      const valueElement = document.getElementById(`${team}${traitName}`);      if (valueElement && genomeArray && genomeArray[index] !== undefined) {        const value = genomeArray[index];        valueElement.textContent = value.toFixed(2);      } else if (valueElement) {        valueElement.textContent = '—';      }      const barElement = document.getElementById(`${team}${traitName}Bar`);      if (barElement && genomeArray && genomeArray[index] !== undefined) {        const value = genomeArray[index];        barElement.style.width = `${value * 100}%`;        if (value < 0.3) {          barElement.style.background = '#ff4444';        } else if (value < 0.7) {          barElement.style.background = '#ffaa00';        } else {          barElement.style.background = '#00ff88';        }      }    });  };  // Simplified displayNoGenomeDataForTeam function  global.displayNoGenomeDataForTeam = function(team) {    const traitNames = ['Aggression', 'Speed', 'Accuracy', 'Defense', 'Teamwork', 'Adaptability', 'Learning', 'RiskTaking', 'Evasion'];    const fitnessElement = document.getElementById(`${team}ChampionFitness`);    if (fitnessElement) {      fitnessElement.textContent = 'Evolving...';    }    traitNames.forEach((traitName) => {      const valueElement = document.getElementById(`${team}${traitName}`);      if (valueElement) {        valueElement.textContent = '—';      }      const barElement = document.getElementById(`${team}${traitName}Bar`);      if (barElement) {        barElement.style.width = '0%';        barElement.style.background = '#333';      }    });  };  return {    EvolutionEngine: global.EvolutionEngine,    GameEngine: global.GameEngine,    getBestGenomeForTeam: global.getBestGenomeForTeam,    displayGenome: global.displayGenome,    displayGenomeWithEvolvingFitness: global.displayGenomeWithEvolvingFitness,    displayNoGenomeDataForTeam: global.displayNoGenomeDataForTeam,    genomeCache: global.genomeCache  };}describe('Genome Display and Team Selection', () => {  let testEnv;  let evolutionEngine;  let gameEngine;  beforeEach(() => {    // Reset global state    global.window = {      DEBUG_GENOME: false,      lastDebugLog: 0,      lastSearchLog: 0,      lastTeamLog: 0,      lastSuccessLog: 0    };    testEnv = createGenomeTestEnvironment();    evolutionEngine = new testEnv.EvolutionEngine();    gameEngine = new testEnv.GameEngine('gameCanvas');    // Set up global references for the functions    global.evolution = evolutionEngine;    global.game = gameEngine;    // Clear genome cache    global.genomeCache = {      lastPoolSize: 0,      lastCacheTime: 0,      lastPoolChecksum: null,      redBest: null,      blueBest: null    };  });  describe('getBestGenomeForTeam', () => {    test('should return null when evolution engine is not available', () => {      global.evolution = null;      const result = testEnv.getBestGenomeForTeam('red');      expect(result).toBeNull();    });    test('should return null when candidate pool is empty', () => {      evolutionEngine.candidatePool = [];      const result = testEnv.getBestGenomeForTeam('red');      expect(result).toBeNull();    });    test('should select Red team champion correctly', () => {      // Create mock candidates with Red team assignment      evolutionEngine.candidatePool = [        {          team: 'red',          fitness: 0.8,          battles: 5,          wins: 3,          genome: [0.7, 0.5, 0.9, 0.4, 0.6, 0.5, 0.3, 0.8, 0.6]        },        {          team: 'red',          fitness: 0.6,          battles: 3,          wins: 1,          genome: [0.5, 0.7, 0.6, 0.8, 0.4, 0.7, 0.5, 0.6, 0.5]        }      ];      const result = testEnv.getBestGenomeForTeam('red');      expect(result).not.toBeNull();      expect(result.team).toBe('red');      expect(result.fitness).toBe(0.8); // Should select the highest fitness      expect(Array.isArray(result.genome)).toBe(true);      expect(result.genome.length).toBe(9);    });    test('should select Blue team champion correctly', () => {      // Create mock candidates with Blue team assignment      evolutionEngine.candidatePool = [        {          team: 'blue',          fitness: 0.75,          battles: 4,          wins: 2,          genome: [0.4, 0.8, 0.6, 0.7, 0.9, 0.5, 0.6, 0.4, 0.8]        },        {          team: 'blue',          fitness: 0.65,          battles: 2,          wins: 1,          genome: [0.6, 0.6, 0.7, 0.5, 0.8, 0.6, 0.4, 0.5, 0.7]        }      ];      const result = testEnv.getBestGenomeForTeam('blue');      expect(result).not.toBeNull();      expect(result.team).toBe('blue');      expect(result.fitness).toBe(0.75); // Should select the highest fitness      expect(Array.isArray(result.genome)).toBe(true);      expect(result.genome.length).toBe(9);    });    test('should handle mixed team candidate pool correctly', () => {      // Create mixed candidate pool      evolutionEngine.candidatePool = [        {          team: 'red',          fitness: 0.8,          battles: 5,          wins: 3,          genome: [0.7, 0.5, 0.9, 0.4, 0.6, 0.5, 0.3, 0.8, 0.6]        },        {          team: 'blue',          fitness: 0.85,          battles: 4,          wins: 3,          genome: [0.4, 0.8, 0.6, 0.7, 0.9, 0.5, 0.6, 0.4, 0.8]        },        {          team: 'red',          fitness: 0.6,          battles: 3,          wins: 1,          genome: [0.5, 0.7, 0.6, 0.8, 0.4, 0.7, 0.5, 0.6, 0.5]        }      ];      const redResult = testEnv.getBestGenomeForTeam('red');      const blueResult = testEnv.getBestGenomeForTeam('blue');      // Red should get the best Red candidate      expect(redResult).not.toBeNull();      expect(redResult.team).toBe('red');      expect(redResult.fitness).toBe(0.8);      // Blue should get the best Blue candidate      expect(blueResult).not.toBeNull();      expect(blueResult.team).toBe('blue');      expect(blueResult.fitness).toBe(0.85);    });    test('should assign teams fairly when no team-specific candidates exist', () => {      // Create candidates without team assignment      evolutionEngine.candidatePool = [        {          fitness: 0.9,          battles: 5,          wins: 4,          genome: [0.8, 0.7, 0.9, 0.6, 0.5, 0.8, 0.7, 0.6, 0.9]        },        {          fitness: 0.8,          battles: 4,          wins: 3,          genome: [0.6, 0.8, 0.7, 0.8, 0.7, 0.6, 0.5, 0.8, 0.7]        }      ];      const redResult = testEnv.getBestGenomeForTeam('red');      const blueResult = testEnv.getBestGenomeForTeam('blue');      // Both teams should get candidates      expect(redResult).not.toBeNull();      expect(blueResult).not.toBeNull();      // They should have different candidates (fair distribution)      expect(redResult).not.toBe(blueResult);      // Teams should be assigned via tempTeam      expect(redResult.tempTeam || redResult.team).toBe('red');      expect(blueResult.tempTeam || blueResult.team).toBe('blue');    });    test('should handle object format genomes correctly', () => {      evolutionEngine.candidatePool = [        {          team: 'red',          fitness: 0.8,          battles: 5,          wins: 3,          genome: {            aggression: 0.7,            speed: 0.5,            accuracy: 0.9,            defense: 0.4,            teamwork: 0.6,            adaptability: 0.5,            learning: 0.3,            riskTaking: 0.8,            evasion: 0.6          }        }      ];      const result = testEnv.getBestGenomeForTeam('red');      expect(result).not.toBeNull();      expect(result.team).toBe('red');      expect(typeof result.genome).toBe('object');      expect(result.genome.aggression).toBe(0.7);    });  });  describe('displayGenome', () => {    test('should update DOM elements with array format genome', () => {      const genome = [0.8, 0.6, 0.9, 0.4, 0.7, 0.5, 0.3, 0.8, 0.6];      const fitness = 0.75;      testEnv.displayGenome('red', genome, fitness);      // Check fitness display      expect(document.getElementById('redChampionFitness').textContent).toBe('0.750');      // Check trait values      expect(document.getElementById('redAggression').textContent).toBe('0.80');      expect(document.getElementById('redSpeed').textContent).toBe('0.60');      expect(document.getElementById('redAccuracy').textContent).toBe('0.90');      // Check trait bars      expect(document.getElementById('redAggressionBar').style.width).toBe('80%');      expect(document.getElementById('redSpeedBar').style.width).toBe('60%');      expect(document.getElementById('redAccuracyBar').style.width).toBe('90%');    });    test('should update DOM elements with object format genome', () => {      const genome = {        aggression: 0.7,        speed: 0.8,        accuracy: 0.6,        defense: 0.5,        teamwork: 0.9,        adaptability: 0.4,        learning: 0.6,        riskTaking: 0.3,        evasion: 0.8      };      const fitness = 0.82;      testEnv.displayGenome('blue', genome, fitness);      // Check fitness display      expect(document.getElementById('blueChampionFitness').textContent).toBe('0.820');      // Check trait values      expect(document.getElementById('blueAggression').textContent).toBe('0.70');      expect(document.getElementById('blueSpeed').textContent).toBe('0.80');      expect(document.getElementById('blueTeamwork').textContent).toBe('0.90');      // Check trait bars      expect(document.getElementById('blueAggressionBar').style.width).toBe('70%');      expect(document.getElementById('blueSpeedBar').style.width).toBe('80%');      expect(document.getElementById('blueTeamworkBar').style.width).toBe('90%');    });    test('should apply correct color coding to trait bars', () => {      const genome = [0.2, 0.5, 0.8, 0.1, 0.6, 0.9, 0.3, 0.7, 0.4]; // Mix of low, medium, high values      const fitness = 0.6;      testEnv.displayGenome('red', genome, fitness);      // Low values should be red      expect(document.getElementById('redAggressionBar').style.background).toBe('rgb(255, 68, 68)'); // #ff4444      expect(document.getElementById('redDefenseBar').style.background).toBe('rgb(255, 68, 68)');      // Medium values should be orange      expect(document.getElementById('redSpeedBar').style.background).toBe('rgb(255, 170, 0)'); // #ffaa00      expect(document.getElementById('redTeamworkBar').style.background).toBe('rgb(255, 170, 0)');      // High values should be green      expect(document.getElementById('redAccuracyBar').style.background).toBe('rgb(0, 255, 136)'); // #00ff88      expect(document.getElementById('redAdaptabilityBar').style.background).toBe('rgb(0, 255, 136)');    });    test('should handle invalid genome data gracefully', () => {      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();      // Test with null genome      testEnv.displayGenome('red', null, 0.5);      expect(consoleSpy).toHaveBeenCalledWith(        expect.stringContaining('Invalid genome data provided to displayGenome:'),        expect.objectContaining({ team: 'red', genome: null, fitness: 0.5 })      );      // Test with invalid fitness      testEnv.displayGenome('red', [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5], 'invalid');      expect(consoleSpy).toHaveBeenCalledWith(        expect.stringContaining('Invalid genome data provided to displayGenome:'),        expect.objectContaining({ team: 'red', fitness: 'invalid' })      );      consoleSpy.mockRestore();    });  });  describe('displayGenomeWithEvolvingFitness', () => {    test('should show "Evolving..." for fitness while displaying genome traits', () => {      const genome = [0.8, 0.6, 0.9, 0.4, 0.7, 0.5, 0.3, 0.8, 0.6];      testEnv.displayGenomeWithEvolvingFitness('red', genome);      // Fitness should show "Evolving..."      expect(document.getElementById('redChampionFitness').textContent).toBe('Evolving...');      // But traits should still show actual values      expect(document.getElementById('redAggression').textContent).toBe('0.80');      expect(document.getElementById('redSpeed').textContent).toBe('0.60');      expect(document.getElementById('redAccuracy').textContent).toBe('0.90');    });    test('should handle object format genome with evolving fitness', () => {      const genome = {        aggression: 0.7,        speed: 0.8,        accuracy: 0.6,        defense: 0.5,        teamwork: 0.9      };      testEnv.displayGenomeWithEvolvingFitness('blue', genome);      // Fitness should show "Evolving..."      expect(document.getElementById('blueChampionFitness').textContent).toBe('Evolving...');      // Traits should show actual values      expect(document.getElementById('blueAggression').textContent).toBe('0.70');      expect(document.getElementById('blueSpeed').textContent).toBe('0.80');      expect(document.getElementById('blueTeamwork').textContent).toBe('0.90');    });  });  describe('displayNoGenomeDataForTeam', () => {    test('should show placeholder values for team with no data', () => {      testEnv.displayNoGenomeDataForTeam('red');      // Fitness should show "Evolving..."      expect(document.getElementById('redChampionFitness').textContent).toBe('Evolving...');      // All traits should show placeholder      expect(document.getElementById('redAggression').textContent).toBe('—');      expect(document.getElementById('redSpeed').textContent).toBe('—');      expect(document.getElementById('redAccuracy').textContent).toBe('—');      // All bars should be empty      expect(document.getElementById('redAggressionBar').style.width).toBe('0%');      expect(document.getElementById('redSpeedBar').style.width).toBe('0%');      expect(document.getElementById('redAccuracyBar').style.width).toBe('0%');    });  });  describe('Team Equality Integration Tests', () => {    test('should ensure both Red and Blue teams get champions from mixed pool', () => {      // Create a realistic mixed candidate pool      evolutionEngine.candidatePool = [        {          team: 'red',          fitness: 0.8,          battles: 5,          wins: 3,          genome: [0.7, 0.5, 0.9, 0.4, 0.6, 0.5, 0.3, 0.8, 0.6]        },        {          team: 'blue',          fitness: 0.75,          battles: 4,          wins: 2,          genome: [0.4, 0.8, 0.6, 0.7, 0.9, 0.5, 0.6, 0.4, 0.8]        },        {          team: 'red',          fitness: 0.65,          battles: 3,          wins: 1,          genome: [0.5, 0.7, 0.6, 0.8, 0.4, 0.7, 0.5, 0.6, 0.5]        },        {          team: 'blue',          fitness: 0.7,          battles: 3,          wins: 2,          genome: [0.6, 0.6, 0.8, 0.5, 0.8, 0.6, 0.7, 0.5, 0.7]        }      ];      const redChampion = testEnv.getBestGenomeForTeam('red');      const blueChampion = testEnv.getBestGenomeForTeam('blue');      // Both teams should have champions      expect(redChampion).not.toBeNull();      expect(blueChampion).not.toBeNull();      // Teams should be correctly assigned      expect(redChampion.team).toBe('red');      expect(blueChampion.team).toBe('blue');      // Red should get the best Red candidate      expect(redChampion.fitness).toBe(0.8);      // Blue should get the best Blue candidate      expect(blueChampion.fitness).toBe(0.75);    });    test('should handle cache invalidation correctly for both teams', () => {      // Set up initial candidate pool      evolutionEngine.candidatePool = [        {          team: 'red',          fitness: 0.6,          battles: 2,          wins: 1,          genome: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]        },        {          team: 'blue',          fitness: 0.55,          battles: 2,          wins: 1,          genome: [0.4, 0.6, 0.5, 0.6, 0.4, 0.5, 0.6, 0.4, 0.5]        }      ];      // First selection      const redFirst = testEnv.getBestGenomeForTeam('red');      const blueFirst = testEnv.getBestGenomeForTeam('blue');      expect(redFirst.fitness).toBe(0.6);      expect(blueFirst.fitness).toBe(0.55);      // Update candidate pool with better candidates      evolutionEngine.candidatePool.push(        {          team: 'red',          fitness: 0.8,          battles: 5,          wins: 4,          genome: [0.8, 0.7, 0.9, 0.6, 0.7, 0.8, 0.5, 0.9, 0.7]        },        {          team: 'blue',          fitness: 0.85,          battles: 6,          wins: 5,          genome: [0.5, 0.9, 0.8, 0.8, 0.9, 0.7, 0.8, 0.6, 0.9]        }      );      // Force cache clear      global.genomeCache.lastPoolSize = 0;      global.genomeCache.lastCacheTime = 0;      global.genomeCache.redBest = null;      global.genomeCache.blueBest = null;      // Second selection should get updated candidates      const redSecond = testEnv.getBestGenomeForTeam('red');      const blueSecond = testEnv.getBestGenomeForTeam('blue');      expect(redSecond.fitness).toBe(0.8); // Should get the better Red candidate      expect(blueSecond.fitness).toBe(0.85); // Should get the better Blue candidate    });    test('should prevent teams from getting identical candidates', () => {      // Create a pool where fallback logic might assign same candidate to both teams      evolutionEngine.candidatePool = [        {          fitness: 0.9,          battles: 5,          wins: 4,          genome: [0.8, 0.7, 0.9, 0.6, 0.5, 0.8, 0.7, 0.6, 0.9]        },        {          fitness: 0.8,          battles: 4,          wins: 3,          genome: [0.6, 0.8, 0.7, 0.8, 0.7, 0.6, 0.5, 0.8, 0.7]        }      ];      const redResult = testEnv.getBestGenomeForTeam('red');      const blueResult = testEnv.getBestGenomeForTeam('blue');      // Both teams should get candidates      expect(redResult).not.toBeNull();      expect(blueResult).not.toBeNull();      // They should be different objects (even if same source candidate, should have different tempTeam)      if (redResult === blueResult) {        // If same object reference, check that tempTeam differentiates them        expect(redResult.tempTeam).toBe('red');        expect(blueResult.tempTeam).toBe('blue');      } else {        // Different objects is even better        expect(redResult).not.toBe(blueResult);      }    });  });});

@@ -1,422 +1,1 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AlphaTanks - King of the Hill Demo</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #111;
-            color: white;
-            font-family: 'Courier New', monospace;
-            overflow: hidden;
-        }
-
-        .container {
-            display: flex;
-            height: 100vh;
-        }
-
-        .game-area {
-            flex: 1;
-            position: relative;
-            background: linear-gradient(45deg, #0a0a0a, #1a1a1a);
-        }
-
-        #gameCanvas {
-            width: 100%;
-            height: 100%;
-            display: block;
-            image-rendering: pixelated;
-        }
-
-        .controls {
-            width: 300px;
-            background: #222;
-            padding: 20px;
-            overflow-y: auto;
-            border-left: 2px solid #444;
-        }
-
-        .control-section {
-            margin-bottom: 25px;
-            padding: 15px;
-            background: #333;
-            border-radius: 8px;
-        }
-
-        .control-section h3 {
-            color: #4CAF50;
-            margin: 0 0 15px 0;
-            font-size: 16px;
-            border-bottom: 1px solid #555;
-            padding-bottom: 8px;
-        }
-
-        button {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            margin: 5px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            transition: background-color 0.3s;
-            width: 100%;
-        }
-
-        button:hover {
-            background: #45a049;
-        }
-
-        button:disabled {
-            background: #666;
-            cursor: not-allowed;
-        }
-
-        button.danger {
-            background: #f44336;
-        }
-
-        button.danger:hover {
-            background: #da190b;
-        }
-
-        .info-display {
-            background: #2a2a2a;
-            padding: 12px;
-            border-radius: 6px;
-            margin: 10px 0;
-            font-size: 12px;
-            line-height: 1.4;
-        }
-
-        .mode-selector {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        .mode-selector button {
-            flex: 1;
-            padding: 8px;
-            font-size: 12px;
-        }
-
-        .mode-selector button.active {
-            background: #2196F3;
-        }
-
-        .battle-stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin: 10px 0;
-        }
-
-        .stat-item {
-            background: #3a3a3a;
-            padding: 8px;
-            border-radius: 4px;
-            text-align: center;
-            font-size: 11px;
-        }
-
-        .stat-value {
-            font-size: 14px;
-            font-weight: bold;
-            color: #4CAF50;
-        }
-
-        .red-team { color: #ff6666; }
-        .blue-team { color: #6666ff; }
-
-        .hill-status {
-            text-align: center;
-            padding: 15px;
-            background: #1a1a1a;
-            border-radius: 8px;
-            margin: 15px 0;
-        }
-
-        .hill-control {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 8px;
-        }
-
-        .hill-progress {
-            width: 100%;
-            height: 20px;
-            background: #333;
-            border-radius: 10px;
-            overflow: hidden;
-            margin: 8px 0;
-        }
-
-        .hill-progress-bar {
-            height: 100%;
-            transition: width 0.3s ease;
-        }
-
-        .progress-red { background: #ff4444; }
-        .progress-blue { background: #4444ff; }
-        .progress-neutral { background: #888; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="game-area">
-            <canvas id="gameCanvas"></canvas>
-        </div>
-
-        <div class="controls">
-            <div class="control-section">
-                <h3>🏰 King of the Hill</h3>
-                <div class="mode-selector">
-                    <button id="classicMode">Classic</button>
-                    <button id="kingOfHillMode" class="active">King of Hill</button>
-                </div>
-                <div class="info-display">
-                    <strong>Objective:</strong> Control the central hill to score points. First team to 500 points wins!
-                </div>
-            </div>
-
-            <div class="control-section">
-                <h3>🎮 Battle Controls</h3>
-                <button id="startBattle">Start Battle</button>
-                <button id="pauseBattle">Pause</button>
-                <button id="resetBattle" class="danger">Reset</button>
-            </div>
-
-            <div class="control-section" id="hillStatusSection">
-                <h3>🏔️ Hill Status</h3>
-                <div class="hill-status">
-                    <div class="hill-control" id="hillController">Neutral</div>
-                    <div class="hill-progress">
-                        <div class="hill-progress-bar progress-neutral" id="hillProgressBar" style="width: 0%"></div>
-                    </div>
-                    <div id="hillPercent">0%</div>
-                </div>
-                
-                <div class="battle-stats">
-                    <div class="stat-item">
-                        <div class="red-team">Red Score</div>
-                        <div class="stat-value" id="redScore">0</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="blue-team">Blue Score</div>
-                        <div class="stat-value" id="blueScore">0</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="control-section">
-                <h3>📊 Battle Info</h3>
-                <div class="info-display" id="battleInfo">
-                    Ready to battle
-                </div>
-                
-                <div class="battle-stats">
-                    <div class="stat-item">
-                        <div class="red-team">Red Tanks</div>
-                        <div class="stat-value" id="redTanks">5</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="blue-team">Blue Tanks</div>
-                        <div class="stat-value" id="blueTanks">5</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="control-section">
-                <h3>🧬 AI Evolution</h3>
-                <div class="info-display">
-                    Watch as tank AI evolves different strategies for controlling the hill - some focus on aggressive capture, others on defensive positioning.
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Include required game files -->
-    <script src="hill-control.js"></script>
-    <script src="tank-ai.js"></script>
-    <script src="game-engine.js"></script>
-
-    <script>
-        class KingOfHillDemo {
-            constructor() {
-                this.game = null;
-                this.gameMode = 'king_of_hill';
-                this.battleInterval = null;
-                
-                this.initializeGame();
-                this.bindEvents();
-                this.updateUI();
-            }
-
-            initializeGame() {
-                try {
-                    this.game = new GameEngine('gameCanvas');
-                    // Set global reference for tank AI compatibility
-                    window.game = this.game;
-                    console.log('✅ King of the Hill demo initialized');
-                } catch (error) {
-                    console.error('❌ Failed to initialize game:', error);
-                }
-            }
-
-            bindEvents() {
-                // Mode selection
-                document.getElementById('classicMode').addEventListener('click', () => {
-                    this.setGameMode('classic');
-                });
-                
-                document.getElementById('kingOfHillMode').addEventListener('click', () => {
-                    this.setGameMode('king_of_hill');
-                });
-
-                // Battle controls
-                document.getElementById('startBattle').addEventListener('click', () => {
-                    this.startBattle();
-                });
-
-                document.getElementById('pauseBattle').addEventListener('click', () => {
-                    this.pauseBattle();
-                });
-
-                document.getElementById('resetBattle').addEventListener('click', () => {
-                    this.resetBattle();
-                });
-
-                // UI update interval
-                this.battleInterval = setInterval(() => {
-                    this.updateUI();
-                }, 100);
-            }
-
-            setGameMode(mode) {
-                this.gameMode = mode;
-                
-                // Update button styles
-                document.getElementById('classicMode').classList.toggle('active', mode === 'classic');
-                document.getElementById('kingOfHillMode').classList.toggle('active', mode === 'king_of_hill');
-                
-                // Show/hide hill status section
-                const hillSection = document.getElementById('hillStatusSection');
-                hillSection.style.display = mode === 'king_of_hill' ? 'block' : 'none';
-                
-                // Reset battle with new mode
-                this.resetBattle();
-            }
-
-            startBattle() {
-                if (!this.game) return;
-                
-                try {
-                    this.game.initializeBattle(5, 5, this.gameMode);
-                    this.game.start();
-                    console.log(`🚀 ${this.gameMode} battle started`);
-                } catch (error) {
-                    console.error('❌ Failed to start battle:', error);
-                }
-            }
-
-            pauseBattle() {
-                if (!this.game) return;
-                
-                if (this.game.gameState === 'running') {
-                    this.game.pause();
-                    document.getElementById('pauseBattle').textContent = 'Resume';
-                } else if (this.game.gameState === 'paused') {
-                    this.game.resume();
-                    document.getElementById('pauseBattle').textContent = 'Pause';
-                }
-            }
-
-            resetBattle() {
-                if (!this.game) return;
-                
-                this.game.reset();
-                document.getElementById('pauseBattle').textContent = 'Pause';
-                this.updateUI();
-            }
-
-            updateUI() {
-                if (!this.game) return;
-
-                const gameState = this.game.getGameState();
-                
-                // Battle info
-                const aliveTanks = gameState.tanks.filter(tank => tank.isAlive);
-                const redTanks = aliveTanks.filter(tank => tank.team === 'red').length;
-                const blueTanks = aliveTanks.filter(tank => tank.team === 'blue').length;
-                
-                document.getElementById('redTanks').textContent = redTanks;
-                document.getElementById('blueTanks').textContent = blueTanks;
-                
-                // Battle status
-                let battleStatus = '';
-                if (this.game.gameState === 'ready') {
-                    battleStatus = 'Ready to battle';
-                } else if (this.game.gameState === 'running') {
-                    battleStatus = `Battle time: ${Math.floor(this.game.battleTime)}s`;
-                } else if (this.game.gameState === 'paused') {
-                    battleStatus = 'Battle paused';
-                } else if (this.game.gameState === 'ended') {
-                    battleStatus = 'Battle ended';
-                }
-                
-                document.getElementById('battleInfo').innerHTML = battleStatus;
-                
-                // Hill status (King of the Hill mode only)
-                if (this.gameMode === 'king_of_hill' && gameState.hill) {
-                    this.updateHillUI(gameState.hill);
-                }
-            }
-
-            updateHillUI(hill) {
-                const controller = document.getElementById('hillController');
-                const progressBar = document.getElementById('hillProgressBar');
-                const percent = document.getElementById('hillPercent');
-                const redScore = document.getElementById('redScore');
-                const blueScore = document.getElementById('blueScore');
-                
-                // Hill control status
-                if (hill.controllingTeam === 'red') {
-                    controller.textContent = 'Red Control';
-                    controller.className = 'hill-control red-team';
-                    progressBar.className = 'hill-progress-bar progress-red';
-                } else if (hill.controllingTeam === 'blue') {
-                    controller.textContent = 'Blue Control';
-                    controller.className = 'hill-control blue-team';
-                    progressBar.className = 'hill-progress-bar progress-blue';
-                } else {
-                    controller.textContent = 'Neutral';
-                    controller.className = 'hill-control';
-                    progressBar.className = 'hill-progress-bar progress-neutral';
-                }
-                
-                // Progress bar
-                progressBar.style.width = `${hill.controlProgress}%`;
-                percent.textContent = `${Math.floor(hill.controlProgress)}%`;
-                
-                // Scores
-                redScore.textContent = Math.floor(hill.redScore);
-                blueScore.textContent = Math.floor(hill.blueScore);
-            }
-        }
-
-        // Classes are already defined in the included JS files
-
-        // Initialize the demo when page loads
-        window.addEventListener('load', () => {
-            new KingOfHillDemo();
-        });
-    </script>
-</body>
-</html>
+<!DOCTYPE html><html lang="en"><head>    <meta charset="UTF-8">    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>AlphaTanks - King of the Hill Demo</title>    <style>        body {            margin: 0;            padding: 0;            background-color: #111;            color: white;            font-family: 'Courier New', monospace;            overflow: hidden;        }        .container {            display: flex;            height: 100vh;        }        .game-area {            flex: 1;            position: relative;            background: linear-gradient(45deg, #0a0a0a, #1a1a1a);        }        #gameCanvas {            width: 100%;            height: 100%;            display: block;            image-rendering: pixelated;        }        .controls {            width: 300px;            background: #222;            padding: 20px;            overflow-y: auto;            border-left: 2px solid #444;        }        .control-section {            margin-bottom: 25px;            padding: 15px;            background: #333;            border-radius: 8px;        }        .control-section h3 {            color: #4CAF50;            margin: 0 0 15px 0;            font-size: 16px;            border-bottom: 1px solid #555;            padding-bottom: 8px;        }        button {            background: #4CAF50;            color: white;            border: none;            padding: 12px 20px;            margin: 5px;            border-radius: 6px;            cursor: pointer;            font-family: 'Courier New', monospace;            font-size: 14px;            transition: background-color 0.3s;            width: 100%;        }        button:hover {            background: #45a049;        }        button:disabled {            background: #666;            cursor: not-allowed;        }        button.danger {            background: #f44336;        }        button.danger:hover {            background: #da190b;        }        .info-display {            background: #2a2a2a;            padding: 12px;            border-radius: 6px;            margin: 10px 0;            font-size: 12px;            line-height: 1.4;        }        .mode-selector {            display: flex;            gap: 10px;            margin-bottom: 15px;        }        .mode-selector button {            flex: 1;            padding: 8px;            font-size: 12px;        }        .mode-selector button.active {            background: #2196F3;        }        .battle-stats {            display: grid;            grid-template-columns: 1fr 1fr;            gap: 10px;            margin: 10px 0;        }        .stat-item {            background: #3a3a3a;            padding: 8px;            border-radius: 4px;            text-align: center;            font-size: 11px;        }        .stat-value {            font-size: 14px;            font-weight: bold;            color: #4CAF50;        }        .red-team { color: #ff6666; }        .blue-team { color: #6666ff; }        .hill-status {            text-align: center;            padding: 15px;            background: #1a1a1a;            border-radius: 8px;            margin: 15px 0;        }        .hill-control {            font-size: 18px;            font-weight: bold;            margin-bottom: 8px;        }        .hill-progress {            width: 100%;            height: 20px;            background: #333;            border-radius: 10px;            overflow: hidden;            margin: 8px 0;        }        .hill-progress-bar {            height: 100%;            transition: width 0.3s ease;        }        .progress-red { background: #ff4444; }        .progress-blue { background: #4444ff; }        .progress-neutral { background: #888; }    </style></head><body>    <div class="container">        <div class="game-area">            <canvas id="gameCanvas"></canvas>        </div>        <div class="controls">            <div class="control-section">                <h3>🏰 King of the Hill</h3>                <div class="mode-selector">                    <button id="classicMode">Classic</button>                    <button id="kingOfHillMode" class="active">King of Hill</button>                </div>                <div class="info-display">                    <strong>Objective:</strong> Control the central hill to score points. First team to 500 points wins!                </div>            </div>            <div class="control-section">                <h3>🎮 Battle Controls</h3>                <button id="startBattle">Start Battle</button>                <button id="pauseBattle">Pause</button>                <button id="resetBattle" class="danger">Reset</button>            </div>            <div class="control-section" id="hillStatusSection">                <h3>🏔️ Hill Status</h3>                <div class="hill-status">                    <div class="hill-control" id="hillController">Neutral</div>                    <div class="hill-progress">                        <div class="hill-progress-bar progress-neutral" id="hillProgressBar" style="width: 0%"></div>                    </div>                    <div id="hillPercent">0%</div>                </div>                <div class="battle-stats">                    <div class="stat-item">                        <div class="red-team">Red Score</div>                        <div class="stat-value" id="redScore">0</div>                    </div>                    <div class="stat-item">                        <div class="blue-team">Blue Score</div>                        <div class="stat-value" id="blueScore">0</div>                    </div>                </div>            </div>            <div class="control-section">                <h3>📊 Battle Info</h3>                <div class="info-display" id="battleInfo">                    Ready to battle                </div>                <div class="battle-stats">                    <div class="stat-item">                        <div class="red-team">Red Tanks</div>                        <div class="stat-value" id="redTanks">5</div>                    </div>                    <div class="stat-item">                        <div class="blue-team">Blue Tanks</div>                        <div class="stat-value" id="blueTanks">5</div>                    </div>                </div>            </div>            <div class="control-section">                <h3>🧬 AI Evolution</h3>                <div class="info-display">                    Watch as tank AI evolves different strategies for controlling the hill - some focus on aggressive capture, others on defensive positioning.                </div>            </div>        </div>    </div>    <!-- Include required game files -->    <script src="hill-control.js"></script>    <script src="tank-ai.js"></script>    <script src="game-engine.js"></script>    <script>        class KingOfHillDemo {            constructor() {                this.game = null;                this.gameMode = 'king_of_hill';                this.battleInterval = null;                this.initializeGame();                this.bindEvents();                this.updateUI();            }            initializeGame() {                try {                    this.game = new GameEngine('gameCanvas');                    // Set global reference for tank AI compatibility                    window.game = this.game;                } catch (error) {                }            }            bindEvents() {                // Mode selection                document.getElementById('classicMode').addEventListener('click', () => {                    this.setGameMode('classic');                });                document.getElementById('kingOfHillMode').addEventListener('click', () => {                    this.setGameMode('king_of_hill');                });                // Battle controls                document.getElementById('startBattle').addEventListener('click', () => {                    this.startBattle();                });                document.getElementById('pauseBattle').addEventListener('click', () => {                    this.pauseBattle();                });                document.getElementById('resetBattle').addEventListener('click', () => {                    this.resetBattle();                });                // UI update interval                this.battleInterval = setInterval(() => {                    this.updateUI();                }, 100);            }            setGameMode(mode) {                this.gameMode = mode;                // Update button styles                document.getElementById('classicMode').classList.toggle('active', mode === 'classic');                document.getElementById('kingOfHillMode').classList.toggle('active', mode === 'king_of_hill');                // Show/hide hill status section                const hillSection = document.getElementById('hillStatusSection');                hillSection.style.display = mode === 'king_of_hill' ? 'block' : 'none';                // Reset battle with new mode                this.resetBattle();            }            startBattle() {                if (!this.game) return;                try {                    this.game.initializeBattle(5, 5, this.gameMode);                    this.game.start();                } catch (error) {                }            }            pauseBattle() {                if (!this.game) return;                if (this.game.gameState === 'running') {                    this.game.pause();                    document.getElementById('pauseBattle').textContent = 'Resume';                } else if (this.game.gameState === 'paused') {                    this.game.resume();                    document.getElementById('pauseBattle').textContent = 'Pause';                }            }            resetBattle() {                if (!this.game) return;                this.game.reset();                document.getElementById('pauseBattle').textContent = 'Pause';                this.updateUI();            }            updateUI() {                if (!this.game) return;                const gameState = this.game.getGameState();                // Battle info                const aliveTanks = gameState.tanks.filter(tank => tank.isAlive);                const redTanks = aliveTanks.filter(tank => tank.team === 'red').length;                const blueTanks = aliveTanks.filter(tank => tank.team === 'blue').length;                document.getElementById('redTanks').textContent = redTanks;                document.getElementById('blueTanks').textContent = blueTanks;                // Battle status                let battleStatus = '';                if (this.game.gameState === 'ready') {                    battleStatus = 'Ready to battle';                } else if (this.game.gameState === 'running') {                    battleStatus = `Battle time: ${Math.floor(this.game.battleTime)}s`;                } else if (this.game.gameState === 'paused') {                    battleStatus = 'Battle paused';                } else if (this.game.gameState === 'ended') {                    battleStatus = 'Battle ended';                }                document.getElementById('battleInfo').innerHTML = battleStatus;                // Hill status (King of the Hill mode only)                if (this.gameMode === 'king_of_hill' && gameState.hill) {                    this.updateHillUI(gameState.hill);                }            }            updateHillUI(hill) {                const controller = document.getElementById('hillController');                const progressBar = document.getElementById('hillProgressBar');                const percent = document.getElementById('hillPercent');                const redScore = document.getElementById('redScore');                const blueScore = document.getElementById('blueScore');                // Hill control status                if (hill.controllingTeam === 'red') {                    controller.textContent = 'Red Control';                    controller.className = 'hill-control red-team';                    progressBar.className = 'hill-progress-bar progress-red';                } else if (hill.controllingTeam === 'blue') {                    controller.textContent = 'Blue Control';                    controller.className = 'hill-control blue-team';                    progressBar.className = 'hill-progress-bar progress-blue';                } else {                    controller.textContent = 'Neutral';                    controller.className = 'hill-control';                    progressBar.className = 'hill-progress-bar progress-neutral';                }                // Progress bar                progressBar.style.width = `${hill.controlProgress}%`;                percent.textContent = `${Math.floor(hill.controlProgress)}%`;                // Scores                redScore.textContent = Math.floor(hill.redScore);                blueScore.textContent = Math.floor(hill.blueScore);            }        }        // Classes are already defined in the included JS files        // Initialize the demo when page loads        window.addEventListener('load', () => {            new KingOfHillDemo();        });    </script></body></html>

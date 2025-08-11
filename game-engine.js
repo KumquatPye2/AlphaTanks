@@ -2,48 +2,37 @@
 class GameEngine {
     constructor(canvasId) {
         this.canvas = document.getElementById(canvasId);
-        
         if (!this.canvas) {
-            console.error(`❌ Canvas element with ID '${canvasId}' not found`);
             throw new Error(`Canvas element with ID '${canvasId}' not found`);
         }
-        
         this.ctx = this.canvas.getContext('2d');
         this.width = 0;
         this.height = 0;
-        
         this.tanks = [];
         this.projectiles = [];
         this.obstacles = [];
         this.hill = null; // King of the Hill control point
-        
         this.lastTime = 0;
         this.gameState = 'ready'; // 'ready', 'running', 'paused', 'ended'
         this.gameMode = 'classic'; // 'classic', 'king_of_hill'
         this.battleTime = 0;
         this.maxBattleTime = 120; // 2 minutes max battle time
         this.battleStarted = false; // Flag to track when battle timer should start
-        
         this.redTeam = [];
         this.blueTeam = [];
-        
         this.setupCanvas();
         this.createObstacles();
         this.bindEvents();
     }
-    
     setupCanvas() {
         const container = this.canvas.parentElement;
         this.width = container.clientWidth;
         this.height = container.clientHeight;
-        
         this.canvas.width = this.width;
         this.canvas.height = this.height;
-        
         // Set up coordinate system
         this.ctx.imageSmoothingEnabled = false;
     }
-
     createObstacles() {
         // Create strategic obstacles for interesting battles
         const obstacles = [
@@ -53,14 +42,11 @@ class GameEngine {
             { x: this.width * 0.3, y: this.height * 0.7, width: 60, height: 60 },
             { x: this.width * 0.7, y: this.height * 0.7, width: 60, height: 60 }
         ];
-        
         this.obstacles = obstacles.map(obs => new Obstacle(obs.x, obs.y, obs.width, obs.height));
     }
-    
     bindEvents() {
         window.addEventListener('resize', () => this.setupCanvas());
     }
-    
     initializeBattle(redTanks = 5, blueTanks = 5, mode = 'classic') {
         this.tanks = [];
         this.projectiles = [];
@@ -70,14 +56,12 @@ class GameEngine {
         this.gameState = 'ready'; // Don't automatically start - let start() method handle it
         this.battleStarted = false; // Reset battle started flag
         this.gameMode = mode;
-        
         // Initialize King of the Hill mode
         if (mode === 'king_of_hill') {
             this.initializeKingOfHill();
         } else {
             this.hill = null;
         }
-        
         // Create red team (left side)
         for (let i = 0; i < redTanks; i++) {
             const tank = new Tank(
@@ -89,7 +73,6 @@ class GameEngine {
             this.tanks.push(tank);
             this.redTeam.push(tank);
         }
-        
         // Create blue team (right side)
         for (let i = 0; i < blueTanks; i++) {
             const tank = new Tank(
@@ -102,7 +85,6 @@ class GameEngine {
             this.blueTeam.push(tank);
         }
     }
-    
     generateBasicGenome() {
         // Basic random genome for initial tanks - returns array format
         // [Aggression, Speed, Accuracy, Defense, Teamwork, Adaptability, Learning, RiskTaking, Evasion]
@@ -118,12 +100,10 @@ class GameEngine {
             0.3 + Math.random() * 0.4   // 8: Evasion
         ];
     }
-    
     initializeKingOfHill() {
         // Create hill in the center of the battlefield
         this.hill = new Hill(this.width / 2, this.height / 2, 60);
     }
-    
     start() {
         this.gameState = 'running';
         this.battleTime = 0; // Reset battle time for new battle
@@ -131,11 +111,9 @@ class GameEngine {
         this.battleStarted = false; // Battle timer hasn't started yet
         this.gameLoop();
     }
-    
     pause() {
         this.gameState = 'paused';
     }
-    
     resume() {
         this.gameState = 'running';
         // Keep existing battleTime - don't reset it!
@@ -143,7 +121,6 @@ class GameEngine {
         this.lastTime = 0; // Reset to 0 so gameLoop will handle first frame properly
         this.gameLoop();
     }
-    
     reset() {
         this.gameState = 'ready';
         this.lastTime = 0;
@@ -154,16 +131,13 @@ class GameEngine {
         this.redTeam = [];
         this.blueTeam = [];
     }
-    
     setEvolutionEngine(evolutionEngine) {
         this.evolutionEngine = evolutionEngine;
     }
-    
     gameLoop(currentTime = 0) {
         if (this.gameState !== 'running') {
             return;
         }
-        
         // Initialize lastTime on first frame
         if (this.lastTime === 0) {
             this.lastTime = currentTime;
@@ -173,21 +147,16 @@ class GameEngine {
             requestAnimationFrame((time) => this.gameLoop(time));
             return;
         }
-        
         const deltaTime = Math.min((currentTime - this.lastTime) / 1000, 0.1); // Cap deltaTime to prevent large jumps
         this.lastTime = currentTime;
-        
         // Only update if we have a reasonable deltaTime (prevent negative time and huge jumps)
         if (deltaTime > 0 && deltaTime <= 0.1) {
             this.update(deltaTime);
         }
-        
         this.render();
-        
         // Continue the game loop
         requestAnimationFrame((time) => this.gameLoop(time));
     }
-    
     update(deltaTime) {
         // Check for first tank movement in every battle (not just when battleStarted is false)
         if (!this.battleStarted && this.tanks.length > 0) {
@@ -199,28 +168,23 @@ class GameEngine {
                 const deltaY = Math.abs(tank.y - tank.spawnY);
                 return deltaX > 5 || deltaY > 5; // Tank moved more than 5 pixels
             });
-            
             if (anyTankMoved) {
                 this.battleStarted = true;
             }
         }
-        
         // Only increment battle time after first tank movement
         if (this.battleStarted) {
             this.battleTime += deltaTime;
         }
-        
         // Optimize: Only update living tanks
         const aliveTanks = this.tanks.filter(tank => tank.isAlive);
         aliveTanks.forEach(tank => {
             tank.update(deltaTime, this.getGameState());
         });
-        
         // Update King of the Hill
         if (this.hill) {
             this.hill.update(deltaTime, aliveTanks);
         }
-        
         // Optimize: Batch update projectiles and filter in one pass
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             const projectile = this.projectiles[i];
@@ -229,24 +193,19 @@ class GameEngine {
                 this.projectiles.splice(i, 1);
             }
         }
-        
         // Optimize: Only check collisions if there are active entities
         if (aliveTanks.length > 0 && this.projectiles.length > 0) {
             this.checkCollisions();
         }
-        
         // Check win conditions
         this.checkWinConditions();
-        
         // Time limit (only apply if battle has actually started)
         if (this.battleStarted && this.battleTime > this.maxBattleTime) {
             this.endBattle('timeout');
         }
-        
         // Update UI
         this.updateUI();
     }
-    
     getGameState() {
         return {
             tanks: this.tanks,
@@ -259,15 +218,12 @@ class GameEngine {
             gameMode: this.gameMode
         };
     }
-    
     checkCollisions() {
         const aliveTanks = this.tanks.filter(tank => tank.isAlive);
-        
         // Optimize: Early exit if no active entities
         if (aliveTanks.length === 0 || this.projectiles.length === 0) {
             return;
         }
-        
         // Tank-obstacle collisions (only for living tanks)
         aliveTanks.forEach(tank => {
             this.obstacles.forEach(obstacle => {
@@ -276,12 +232,10 @@ class GameEngine {
                 }
             });
         });
-        
         // Projectile-tank collisions (optimized)
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             const projectile = this.projectiles[i];
             let hit = false;
-            
             for (let j = 0; j < aliveTanks.length && !hit; j++) {
                 const tank = aliveTanks[j];
                 if (tank.team !== projectile.team && this.isColliding(projectile, tank)) {
@@ -291,12 +245,10 @@ class GameEngine {
                 }
             }
         }
-        
         // Projectile-obstacle collisions
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             const projectile = this.projectiles[i];
             let hit = false;
-            
             for (let j = 0; j < this.obstacles.length && !hit; j++) {
                 if (this.isColliding(projectile, this.obstacles[j])) {
                     this.projectiles.splice(i, 1);
@@ -305,41 +257,34 @@ class GameEngine {
             }
         }
     }
-    
     isColliding(obj1, obj2) {
         return obj1.x < obj2.x + obj2.width &&
                obj1.x + obj1.width > obj2.x &&
                obj1.y < obj2.y + obj2.height &&
                obj1.y + obj1.height > obj2.y;
     }
-    
     resolveTankObstacleCollision(tank, obstacle) {
         // Simple collision resolution - push tank away from obstacle
         const tankCenterX = tank.x + tank.width / 2;
         const tankCenterY = tank.y + tank.height / 2;
         const obsCenterX = obstacle.x + obstacle.width / 2;
         const obsCenterY = obstacle.y + obstacle.height / 2;
-        
         const dx = tankCenterX - obsCenterX;
         const dy = tankCenterY - obsCenterY;
-        
         if (Math.abs(dx) > Math.abs(dy)) {
             tank.x = dx > 0 ? obstacle.x + obstacle.width : obstacle.x - tank.width;
         } else {
             tank.y = dy > 0 ? obstacle.y + obstacle.height : obstacle.y - tank.height;
         }
     }
-    
     checkWinConditions() {
         // King of the Hill win condition
         if (this.hill && this.hill.isGameWon()) {
             this.endBattle(this.hill.getWinner());
             return;
         }
-        
         const aliveRed = this.redTeam.filter(tank => tank.isAlive).length;
         const aliveBlue = this.blueTeam.filter(tank => tank.isAlive).length;
-        
         // Check for early battle termination when all tanks of one or both colors are destroyed
         if (aliveRed === 0 && aliveBlue === 0) {
             // Both teams eliminated - draw
@@ -352,27 +297,22 @@ class GameEngine {
             this.endBattle('red');
         }
     }
-    
     endBattle(winner) {
         // Allow immediate battle termination when all tanks of one or both teams are destroyed
         // Only apply minimum battle time restriction for timeout scenarios
         const minimumBattleTime = 15; // seconds
-        
         if (winner === 'timeout' && this.battleStarted && this.battleTime < minimumBattleTime) {
             // Don't end battle yet for timeout, let it continue until minimum time
             return;
         }
-        
         this.gameState = 'ended';
         // Emit battle end event
         const battleResult = this.getBattleResult(winner);
         window.dispatchEvent(new CustomEvent('battleEnd', { detail: battleResult }));
     }
-    
     getBattleResult(winner) {
         const aliveRed = this.redTeam.filter(tank => tank.isAlive).length;
         const aliveBlue = this.blueTeam.filter(tank => tank.isAlive).length;
-        
         return {
             winner,
             duration: this.battleTime,
@@ -383,7 +323,6 @@ class GameEngine {
             blueTeamStats: this.calculateTeamStats(this.blueTeam)
         };
     }
-    
     calculateTeamStats(team) {
         return {
             totalDamageDealt: team.reduce((sum, tank) => sum + tank.damageDealt, 0),
@@ -394,37 +333,28 @@ class GameEngine {
             shotsHit: team.reduce((sum, tank) => sum + tank.shotsHit, 0)
         };
     }
-    
     render() {
         // Clear canvas
         this.ctx.fillStyle = '#0a0a0a';
         this.ctx.fillRect(0, 0, this.width, this.height);
-        
         // Draw grid
         this.drawGrid();
-        
         // Draw obstacles
         this.obstacles.forEach(obstacle => obstacle.render(this.ctx));
-        
         // Draw King of the Hill
         if (this.hill) {
             this.hill.render(this.ctx);
         }
-        
         // Draw tanks
         this.tanks.forEach(tank => tank.render(this.ctx));
-        
         // Draw projectiles
         this.projectiles.forEach(projectile => projectile.render(this.ctx));
-        
         // Draw UI overlay
         this.drawBattleInfo();
     }
-    
     drawGrid() {
         this.ctx.strokeStyle = '#333';
         this.ctx.lineWidth = 0.5;
-        
         const gridSize = 50;
         for (let x = 0; x < this.width; x += gridSize) {
             this.ctx.beginPath();
@@ -432,7 +362,6 @@ class GameEngine {
             this.ctx.lineTo(x, this.height);
             this.ctx.stroke();
         }
-        
         for (let y = 0; y < this.height; y += gridSize) {
             this.ctx.beginPath();
             this.ctx.moveTo(0, y);
@@ -440,11 +369,9 @@ class GameEngine {
             this.ctx.stroke();
         }
     }
-    
     drawBattleInfo() {
         this.ctx.fillStyle = '#00ff88';
         this.ctx.font = '14px Courier New';
-        
         // Show battle time or waiting status
         if (!this.battleStarted) {
             this.ctx.fillText(`Status: Waiting for tanks to move...`, 10, 25);
@@ -453,22 +380,17 @@ class GameEngine {
         } else {
             this.ctx.fillText(`Battle Time: ${this.battleTime.toFixed(1)}s`, 10, 25);
         }
-        
         const aliveRed = this.redTeam.filter(tank => tank.isAlive).length;
         const aliveBlue = this.blueTeam.filter(tank => tank.isAlive).length;
-        
         this.ctx.fillStyle = '#ff4444';
         this.ctx.fillText(`Red: ${aliveRed}`, 10, 50);
-        
         this.ctx.fillStyle = '#4444ff';
         this.ctx.fillText(`Blue: ${aliveBlue}`, 10, 75);
-        
         // Show battle result when game has ended
         if (this.gameState === 'ended') {
             this.ctx.fillStyle = '#ffff00';
             this.ctx.font = '16px Courier New';
             let resultText = '';
-            
             if (aliveRed === 0 && aliveBlue === 0) {
                 resultText = 'DRAW - All tanks destroyed!';
             } else if (aliveRed === 0) {
@@ -478,23 +400,19 @@ class GameEngine {
             } else {
                 resultText = 'BATTLE TIMEOUT';
             }
-            
             this.ctx.fillText(resultText, 10, 105);
         }
     }
-    
     updateUI() {
         // Current Battle panel has been removed - no UI updates needed
         // Battle information is displayed directly on the battlefield
         // This function is kept for compatibility but does nothing
         return;
     }
-    
     addProjectile(projectile) {
         this.projectiles.push(projectile);
     }
 }
-
 // Obstacle class
 class Obstacle {
     constructor(x, y, width, height) {
@@ -503,20 +421,16 @@ class Obstacle {
         this.width = width;
         this.height = height;
     }
-    
     render(ctx) {
         ctx.fillStyle = '#666';
         ctx.fillRect(this.x, this.y, this.width, this.height);
-        
         ctx.strokeStyle = '#888';
         ctx.lineWidth = 2;
         ctx.strokeRect(this.x, this.y, this.width, this.height);
     }
 }
-
     // Export classes to global scope
     window.GameEngine = GameEngine;
     window.Obstacle = Obstacle;
-    
     // Dependencies for system integration
     // Requires: EvolutionEngine, ASIArchModules, ASIArchVisualizer

@@ -1,485 +1,1 @@
-// Enhanced ASI-ARCH Modules with DeepSeek LLM Integration
-// Implements the full ASI-ARCH methodology from the paper
-
-class LLMEnhancedASIArch {
-    constructor() {
-        this.deepSeekClient = new DeepSeekClient();
-        this.candidatePool = [];
-        this.battleHistory = [];
-        this.cognitionBase = this.initializeCognitionBase();
-        this.experimentCounter = 0;
-        this.fitnessHistory = [];
-        
-        // ASI-ARCH configuration
-        this.config = window.CONFIG?.asiArch || {};
-        this.fitnessWeights = this.config.fitnessWeights || {
-            quantitative: 0.33,
-            qualitative: 0.33,
-            innovation: 0.34
-        };
-        
-        console.log('LLM-Enhanced ASI-ARCH initialized with DeepSeek integration');
-    }
-    
-    initializeCognitionBase() {
-        // Initialize with tank battle tactical knowledge
-        // In the full ASI-ARCH, this would be extracted from ~100 research papers
-        return [
-            {
-                scenario: "High aggression scenarios with coordinated team movement",
-                algorithm: "Aggressive positioning with defensive fallback patterns",
-                context: "Effective when teams have health advantage and numerical superiority",
-                effectiveness: 0.85
-            },
-            {
-                scenario: "Defensive positioning under pressure",
-                algorithm: "Dynamic retreat with covering fire patterns",
-                context: "Optimal for preserving team strength while maintaining tactical options",
-                effectiveness: 0.78
-            },
-            {
-                scenario: "Precision targeting in chaotic environments",
-                algorithm: "Target prioritization based on threat assessment and proximity",
-                context: "Balances immediate threats with strategic value of targets",
-                effectiveness: 0.82
-            },
-            {
-                scenario: "Formation maintenance during movement",
-                algorithm: "Adaptive spacing with leader-follower coordination",
-                context: "Maintains tactical cohesion while allowing individual maneuvering",
-                effectiveness: 0.75
-            },
-            {
-                scenario: "Speed optimization for tactical advantage",
-                algorithm: "Variable speed based on battlefield awareness and team positioning",
-                context: "Optimizes positioning speed while maintaining reaction capability",
-                effectiveness: 0.80
-            }
-        ];
-    }
-    
-    // Core ASI-ARCH Pipeline Implementation
-    
-    async runExperimentCycle(redTeam, blueTeam, battleResult) {
-        this.experimentCounter++;
-        console.log(`ASI-ARCH Experiment ${this.experimentCounter}: Starting enhanced analysis cycle`);
-        
-        // Update candidate pool and history
-        this.updateCandidatePool(redTeam, blueTeam, battleResult);
-        this.battleHistory.push({
-            experiment: this.experimentCounter,
-            redTeam: redTeam,
-            blueTeam: blueTeam,
-            result: battleResult,
-            timestamp: Date.now()
-        });
-        
-        // Run ASI-ARCH pipeline
-        const analysis = await this.analyzeExperiment(battleResult);
-        const proposals = await this.generateProposals();
-        const evaluations = await this.evaluateProposals(proposals);
-        
-        // Update fitness tracking
-        this.updateFitnessHistory();
-        
-        return {
-            analysis,
-            proposals,
-            evaluations,
-            candidatePoolSize: this.candidatePool.length,
-            scalingMetrics: this.calculateScalingMetrics()
-        };
-    }
-    
-    updateCandidatePool(redTeam, blueTeam, battleResult) {
-        const teams = [
-            { team: 'red', data: redTeam, performance: this.calculateTeamPerformance(redTeam, battleResult, 'red') },
-            { team: 'blue', data: blueTeam, performance: this.calculateTeamPerformance(blueTeam, battleResult, 'blue') }
-        ];
-        
-        // Add high-performing teams to candidate pool
-        teams.forEach(teamData => {
-            if (teamData.performance > 0.6) { // Threshold for candidate inclusion
-                this.candidatePool.push({
-                    ...teamData,
-                    experiment: this.experimentCounter,
-                    timestamp: Date.now()
-                });
-            }
-        });
-        
-        // Maintain pool size (ASI-ARCH uses top-50, we use top-10)
-        const maxPoolSize = this.config.candidatePoolSize || 10;
-        this.candidatePool.sort((a, b) => b.performance - a.performance);
-        this.candidatePool = this.candidatePool.slice(0, maxPoolSize);
-    }
-    
-    calculateTeamPerformance(team, battleResult, teamName) {
-        // Quantitative performance calculation
-        const isWinner = battleResult.winner === teamName;
-        const survivalBonus = team.reduce((sum, tank) => sum + (tank.health > 0 ? 1 : 0), 0) / team.length;
-        const efficiencyBonus = battleResult.duration > 30 ? 0.1 : 0; // Bonus for longer battles
-        
-        let basePerformance = isWinner ? 0.8 : 0.4;
-        basePerformance += survivalBonus * 0.2;
-        basePerformance += efficiencyBonus;
-        
-        return Math.min(basePerformance, 1.0);
-    }
-    
-    async analyzeExperiment(battleResult) {
-        console.log('Running LLM-enhanced experiment analysis...');
-        
-        // Use DeepSeek for deep analysis (ASI-ARCH Analyzer module)
-        try {
-            const llmAnalysis = await this.deepSeekClient.analyzeBattleResults(
-                battleResult,
-                this.calculatePerformanceTrends(),
-                { experimentCount: this.experimentCounter, poolSize: this.candidatePool.length }
-            );
-            
-            return {
-                quantitative: this.calculateQuantitativeMetrics(battleResult),
-                qualitative: llmAnalysis,
-                emergentPatterns: this.identifyEmergentPatterns(),
-                recommendations: llmAnalysis.recommendations || []
-            };
-        } catch (error) {
-            console.warn('LLM analysis failed, using fallback:', error);
-            return {
-                quantitative: this.calculateQuantitativeMetrics(battleResult),
-                qualitative: { insights: ['Fallback analysis'], confidence: 0.5 },
-                emergentPatterns: [],
-                recommendations: ['Continue current approach']
-            };
-        }
-    }
-    
-    async generateProposals() {
-        console.log('Generating tactical proposals using LLM...');
-        
-        if (this.candidatePool.length === 0) {
-            return [this.generateFallbackProposal()];
-        }
-        
-        try {
-            // Use DeepSeek for proposal generation (ASI-ARCH Researcher module)
-            const llmProposal = await this.deepSeekClient.generateTacticalProposal(
-                this.candidatePool,
-                this.battleHistory.slice(-10), // Recent history
-                this.cognitionBase
-            );
-            
-            return [
-                this.convertLLMProposalToGenome(llmProposal),
-                ...this.generateVariations(llmProposal, 2) // Generate 2 variations
-            ];
-        } catch (error) {
-            console.warn('LLM proposal generation failed, using fallback:', error);
-            return [this.generateFallbackProposal()];
-        }
-    }
-    
-    convertLLMProposalToGenome(llmProposal) {
-        // Convert LLM proposal to tank genome format
-        const baseGenome = this.candidatePool[0]?.data[0] || this.getDefaultGenome();
-        
-        return {
-            id: `llm_${this.experimentCounter}_${Date.now()}`,
-            speed: this.adjustParameter(baseGenome.speed, llmProposal.proposal.modifications),
-            aggression: this.adjustParameter(baseGenome.aggression, llmProposal.proposal.modifications),
-            accuracy: this.adjustParameter(baseGenome.accuracy, llmProposal.proposal.modifications),
-            health: baseGenome.health,
-            team: baseGenome.team,
-            fitness: 0,
-            source: 'llm_proposal',
-            reasoning: llmProposal.rationale,
-            expectedImprovement: llmProposal.expectedImprovement || 0.1
-        };
-    }
-    
-    adjustParameter(currentValue, modifications) {
-        // Parse LLM modifications and apply them
-        const modText = modifications.join(' ').toLowerCase();
-        let adjustment = 0;
-        
-        if (modText.includes('increase') || modText.includes('higher') || modText.includes('more')) {
-            adjustment = 0.1;
-        } else if (modText.includes('decrease') || modText.includes('lower') || modText.includes('less')) {
-            adjustment = -0.1;
-        } else if (modText.includes('moderate') || modText.includes('balance')) {
-            adjustment = (Math.random() - 0.5) * 0.1;
-        }
-        
-        return Math.max(0.1, Math.min(0.9, currentValue + adjustment));
-    }
-    
-    generateVariations(baseProposal, count) {
-        const variations = [];
-        
-        for (let i = 0; i < count; i++) {
-            const variation = this.convertLLMProposalToGenome(baseProposal);
-            
-            // Add small random mutations
-            variation.speed += (Math.random() - 0.5) * 0.1;
-            variation.aggression += (Math.random() - 0.5) * 0.1;
-            variation.accuracy += (Math.random() - 0.5) * 0.1;
-            
-            // Clamp values
-            variation.speed = Math.max(0.1, Math.min(0.9, variation.speed));
-            variation.aggression = Math.max(0.1, Math.min(0.9, variation.aggression));
-            variation.accuracy = Math.max(0.1, Math.min(0.9, variation.accuracy));
-            
-            variation.id = `variation_${i}_${variation.id}`;
-            variation.source = 'llm_variation';
-            
-            variations.push(variation);
-        }
-        
-        return variations;
-    }
-    
-    async evaluateProposals(proposals) {
-        console.log('Evaluating proposals with LLM judge...');
-        
-        const evaluations = [];
-        
-        for (const proposal of proposals) {
-            try {
-                // Simulate battle performance (in real implementation, would run actual battles)
-                const simulatedPerformance = this.simulateProposalPerformance(proposal);
-                
-                // Get LLM evaluation (ASI-ARCH Judge module)
-                const llmEvaluation = await this.deepSeekClient.llmJudgeScore(
-                    proposal,
-                    simulatedPerformance,
-                    this.getBaselinePerformance()
-                );
-                
-                // Calculate composite fitness (ASI-ARCH Equation 2)
-                const compositeFitness = this.calculateCompositeFitness(
-                    simulatedPerformance,
-                    llmEvaluation
-                );
-                
-                evaluations.push({
-                    proposal,
-                    quantitativeScore: simulatedPerformance.score,
-                    qualitativeScore: llmEvaluation.score,
-                    compositeFitness,
-                    reasoning: llmEvaluation.reasoning,
-                    confidence: llmEvaluation.confidence
-                });
-                
-            } catch (error) {
-                console.warn('Proposal evaluation failed:', error);
-                evaluations.push({
-                    proposal,
-                    quantitativeScore: 0.5,
-                    qualitativeScore: 0.5,
-                    compositeFitness: 0.5,
-                    reasoning: 'Evaluation failed, using fallback',
-                    confidence: 0.3
-                });
-            }
-        }
-        
-        return evaluations.sort((a, b) => b.compositeFitness - a.compositeFitness);
-    }
-    
-    calculateCompositeFitness(quantitativeResults, qualitativeEvaluation) {
-        // Implement ASI-ARCH Equation 2: Fitness = [σ(Δ_loss) + σ(Δ_benchmark) + LLM_judge] / 3
-        const sigmoidTransform = (x) => 1 / (1 + Math.exp(-10 * (x - 0.5)));
-        
-        const quantitativeScore = sigmoidTransform(quantitativeResults.score);
-        const qualitativeScore = qualitativeEvaluation.score;
-        const innovationScore = this.assessInnovation(quantitativeResults);
-        
-        return (
-            quantitativeScore * this.fitnessWeights.quantitative +
-            qualitativeScore * this.fitnessWeights.qualitative +
-            innovationScore * this.fitnessWeights.innovation
-        );
-    }
-    
-    assessInnovation(performance) {
-        // Assess tactical innovation based on novelty and effectiveness
-        const noveltyScore = performance.novelPatterns || 0.5;
-        const effectivenessScore = performance.score;
-        return (noveltyScore + effectivenessScore) / 2;
-    }
-    
-    simulateProposalPerformance(proposal) {
-        // Simulate battle performance (placeholder for actual battle testing)
-        const baseScore = 0.6;
-        const improvementFactor = proposal.expectedImprovement || 0.1;
-        const randomFactor = (Math.random() - 0.5) * 0.2;
-        
-        const score = Math.max(0.1, Math.min(1.0, baseScore + improvementFactor + randomFactor));
-        
-        return {
-            score,
-            novelPatterns: Math.random() * 0.3 + 0.4, // 0.4-0.7 range
-            tacticalEffectiveness: score * 0.9 + 0.1,
-            adaptability: Math.random() * 0.4 + 0.5
-        };
-    }
-    
-    // Helper methods
-    
-    calculateQuantitativeMetrics(battleResult) {
-        return {
-            winRate: battleResult.winner !== 'timeout' ? 1 : 0,
-            efficiency: Math.max(0, (60 - battleResult.duration) / 60),
-            decisiveness: battleResult.winner !== 'timeout' ? 0.8 : 0.3
-        };
-    }
-    
-    calculatePerformanceTrends() {
-        if (this.fitnessHistory.length < 2) {
-            return { trend: 0, consistency: 0.5 };
-        }
-        
-        const recent = this.fitnessHistory.slice(-5);
-        const trend = recent.length > 1 ? 
-            (recent[recent.length - 1] - recent[0]) / recent.length : 0;
-        
-        return {
-            trend,
-            consistency: 1 - (this.calculateVariance(recent) || 0.5),
-            averageFitness: recent.reduce((sum, f) => sum + f, 0) / recent.length
-        };
-    }
-    
-    calculateVariance(values) {
-        if (values.length === 0) {
-            return 0;
-        }
-        const mean = values.reduce((sum, v) => sum + v, 0) / values.length;
-        const variance = values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / values.length;
-        return Math.sqrt(variance);
-    }
-    
-    identifyEmergentPatterns() {
-        // Identify patterns in successful strategies
-        const patterns = [];
-        
-        if (this.candidatePool.length > 0) {
-            const avgAggression = this.candidatePool.reduce((sum, c) => sum + c.data[0]?.aggression || 0.5, 0) / this.candidatePool.length;
-            const avgSpeed = this.candidatePool.reduce((sum, c) => sum + c.data[0]?.speed || 0.5, 0) / this.candidatePool.length;
-            
-            if (avgAggression > 0.7) {
-                patterns.push('high_aggression_preference');
-            }
-            if (avgSpeed > 0.7) {
-                patterns.push('speed_optimization');
-            }
-            if (avgAggression < 0.4) {
-                patterns.push('defensive_strategies');
-            }
-        }
-        
-        return patterns;
-    }
-    
-    getCandidatePoolStatistics() {
-        if (this.candidatePool.length === 0) {
-            return {};
-        }
-        
-        return {
-            size: this.candidatePool.length,
-            avgPerformance: this.candidatePool.reduce((sum, c) => sum + c.performance, 0) / this.candidatePool.length,
-            bestPerformance: Math.max(...this.candidatePool.map(c => c.performance)),
-            diversity: this.calculatePoolDiversity()
-        };
-    }
-    
-    calculatePoolDiversity() {
-        // Measure genetic diversity in candidate pool
-        if (this.candidatePool.length < 2) {
-            return 0;
-        }
-        
-        let totalDistance = 0;
-        let comparisons = 0;
-        
-        for (let i = 0; i < this.candidatePool.length; i++) {
-            for (let j = i + 1; j < this.candidatePool.length; j++) {
-                const tank1 = this.candidatePool[i].data[0] || {};
-                const tank2 = this.candidatePool[j].data[0] || {};
-                
-                const distance = Math.sqrt(
-                    Math.pow((tank1.speed || 0.5) - (tank2.speed || 0.5), 2) +
-                    Math.pow((tank1.aggression || 0.5) - (tank2.aggression || 0.5), 2) +
-                    Math.pow((tank1.accuracy || 0.5) - (tank2.accuracy || 0.5), 2)
-                );
-                
-                totalDistance += distance;
-                comparisons++;
-            }
-        }
-        
-        return comparisons > 0 ? totalDistance / comparisons : 0;
-    }
-    
-    updateFitnessHistory() {
-        const avgFitness = this.candidatePool.length > 0 ?
-            this.candidatePool.reduce((sum, c) => sum + c.performance, 0) / this.candidatePool.length :
-            0.5;
-        
-        this.fitnessHistory.push(avgFitness);
-        
-        // Keep last 50 entries
-        if (this.fitnessHistory.length > 50) {
-            this.fitnessHistory = this.fitnessHistory.slice(-50);
-        }
-    }
-    
-    calculateScalingMetrics() {
-        // Demonstrate scaling law: More computation = More discoveries
-        return {
-            experimentsCompleted: this.experimentCounter,
-            candidatesDiscovered: this.candidatePool.length,
-            discoveryRate: this.candidatePool.length / Math.max(1, this.experimentCounter),
-            avgFitness: this.fitnessHistory.length > 0 ? 
-                this.fitnessHistory.reduce((sum, f) => sum + f, 0) / this.fitnessHistory.length : 0.5,
-            fitnessImprovement: this.fitnessHistory.length > 10 ?
-                this.fitnessHistory.slice(-5).reduce((sum, f) => sum + f, 0) / 5 -
-                this.fitnessHistory.slice(0, 5).reduce((sum, f) => sum + f, 0) / 5 : 0
-        };
-    }
-    
-    getDefaultGenome() {
-        return {
-            speed: 0.5,
-            aggression: 0.5,
-            accuracy: 0.5,
-            health: 100,
-            team: 'red',
-            fitness: 0
-        };
-    }
-    
-    generateFallbackProposal() {
-        const base = this.getDefaultGenome();
-        return {
-            ...base,
-            id: `fallback_${this.experimentCounter}_${Date.now()}`,
-            source: 'fallback',
-            reasoning: 'Generated as fallback when LLM unavailable',
-            expectedImprovement: 0.05
-        };
-    }
-    
-    getBaselinePerformance() {
-        return 0.6; // Baseline performance reference
-    }
-}
-
-// Export for both browser and Node.js environments
-if (typeof window !== 'undefined') {
-    window.LLMEnhancedASIArch = LLMEnhancedASIArch;
-} else {
-    module.exports = LLMEnhancedASIArch;
-}
+// Enhanced ASI-ARCH Modules with DeepSeek LLM Integration// Implements the full ASI-ARCH methodology from the paperclass LLMEnhancedASIArch {    constructor() {        this.deepSeekClient = new DeepSeekClient();        this.candidatePool = [];        this.battleHistory = [];        this.cognitionBase = this.initializeCognitionBase();        this.experimentCounter = 0;        this.fitnessHistory = [];        // ASI-ARCH configuration        this.config = window.CONFIG?.asiArch || {};        this.fitnessWeights = this.config.fitnessWeights || {            quantitative: 0.33,            qualitative: 0.33,            innovation: 0.34        };    }    initializeCognitionBase() {        // Initialize with tank battle tactical knowledge        // In the full ASI-ARCH, this would be extracted from ~100 research papers        return [            {                scenario: "High aggression scenarios with coordinated team movement",                algorithm: "Aggressive positioning with defensive fallback patterns",                context: "Effective when teams have health advantage and numerical superiority",                effectiveness: 0.85            },            {                scenario: "Defensive positioning under pressure",                algorithm: "Dynamic retreat with covering fire patterns",                context: "Optimal for preserving team strength while maintaining tactical options",                effectiveness: 0.78            },            {                scenario: "Precision targeting in chaotic environments",                algorithm: "Target prioritization based on threat assessment and proximity",                context: "Balances immediate threats with strategic value of targets",                effectiveness: 0.82            },            {                scenario: "Formation maintenance during movement",                algorithm: "Adaptive spacing with leader-follower coordination",                context: "Maintains tactical cohesion while allowing individual maneuvering",                effectiveness: 0.75            },            {                scenario: "Speed optimization for tactical advantage",                algorithm: "Variable speed based on battlefield awareness and team positioning",                context: "Optimizes positioning speed while maintaining reaction capability",                effectiveness: 0.80            }        ];    }    // Core ASI-ARCH Pipeline Implementation    async runExperimentCycle(redTeam, blueTeam, battleResult) {        this.experimentCounter++;        // Update candidate pool and history        this.updateCandidatePool(redTeam, blueTeam, battleResult);        this.battleHistory.push({            experiment: this.experimentCounter,            redTeam: redTeam,            blueTeam: blueTeam,            result: battleResult,            timestamp: Date.now()        });        // Run ASI-ARCH pipeline        const analysis = await this.analyzeExperiment(battleResult);        const proposals = await this.generateProposals();        const evaluations = await this.evaluateProposals(proposals);        // Update fitness tracking        this.updateFitnessHistory();        return {            analysis,            proposals,            evaluations,            candidatePoolSize: this.candidatePool.length,            scalingMetrics: this.calculateScalingMetrics()        };    }    updateCandidatePool(redTeam, blueTeam, battleResult) {        const teams = [            { team: 'red', data: redTeam, performance: this.calculateTeamPerformance(redTeam, battleResult, 'red') },            { team: 'blue', data: blueTeam, performance: this.calculateTeamPerformance(blueTeam, battleResult, 'blue') }        ];        // Add high-performing teams to candidate pool        teams.forEach(teamData => {            if (teamData.performance > 0.6) { // Threshold for candidate inclusion                this.candidatePool.push({                    ...teamData,                    experiment: this.experimentCounter,                    timestamp: Date.now()                });            }        });        // Maintain pool size (ASI-ARCH uses top-50, we use top-10)        const maxPoolSize = this.config.candidatePoolSize || 10;        this.candidatePool.sort((a, b) => b.performance - a.performance);        this.candidatePool = this.candidatePool.slice(0, maxPoolSize);    }    calculateTeamPerformance(team, battleResult, teamName) {        // Quantitative performance calculation        const isWinner = battleResult.winner === teamName;        const survivalBonus = team.reduce((sum, tank) => sum + (tank.health > 0 ? 1 : 0), 0) / team.length;        const efficiencyBonus = battleResult.duration > 30 ? 0.1 : 0; // Bonus for longer battles        let basePerformance = isWinner ? 0.8 : 0.4;        basePerformance += survivalBonus * 0.2;        basePerformance += efficiencyBonus;        return Math.min(basePerformance, 1.0);    }    async analyzeExperiment(battleResult) {        // Use DeepSeek for deep analysis (ASI-ARCH Analyzer module)        try {            const llmAnalysis = await this.deepSeekClient.analyzeBattleResults(                battleResult,                this.calculatePerformanceTrends(),                { experimentCount: this.experimentCounter, poolSize: this.candidatePool.length }            );            return {                quantitative: this.calculateQuantitativeMetrics(battleResult),                qualitative: llmAnalysis,                emergentPatterns: this.identifyEmergentPatterns(),                recommendations: llmAnalysis.recommendations || []            };        } catch (error) {            return {                quantitative: this.calculateQuantitativeMetrics(battleResult),                qualitative: { insights: ['Fallback analysis'], confidence: 0.5 },                emergentPatterns: [],                recommendations: ['Continue current approach']            };        }    }    async generateProposals() {        if (this.candidatePool.length === 0) {            return [this.generateFallbackProposal()];        }        try {            // Use DeepSeek for proposal generation (ASI-ARCH Researcher module)            const llmProposal = await this.deepSeekClient.generateTacticalProposal(                this.candidatePool,                this.battleHistory.slice(-10), // Recent history                this.cognitionBase            );            return [                this.convertLLMProposalToGenome(llmProposal),                ...this.generateVariations(llmProposal, 2) // Generate 2 variations            ];        } catch (error) {            return [this.generateFallbackProposal()];        }    }    convertLLMProposalToGenome(llmProposal) {        // Convert LLM proposal to tank genome format        const baseGenome = this.candidatePool[0]?.data[0] || this.getDefaultGenome();        return {            id: `llm_${this.experimentCounter}_${Date.now()}`,            speed: this.adjustParameter(baseGenome.speed, llmProposal.proposal.modifications),            aggression: this.adjustParameter(baseGenome.aggression, llmProposal.proposal.modifications),            accuracy: this.adjustParameter(baseGenome.accuracy, llmProposal.proposal.modifications),            health: baseGenome.health,            team: baseGenome.team,            fitness: 0,            source: 'llm_proposal',            reasoning: llmProposal.rationale,            expectedImprovement: llmProposal.expectedImprovement || 0.1        };    }    adjustParameter(currentValue, modifications) {        // Parse LLM modifications and apply them        const modText = modifications.join(' ').toLowerCase();        let adjustment = 0;        if (modText.includes('increase') || modText.includes('higher') || modText.includes('more')) {            adjustment = 0.1;        } else if (modText.includes('decrease') || modText.includes('lower') || modText.includes('less')) {            adjustment = -0.1;        } else if (modText.includes('moderate') || modText.includes('balance')) {            adjustment = (Math.random() - 0.5) * 0.1;        }        return Math.max(0.1, Math.min(0.9, currentValue + adjustment));    }    generateVariations(baseProposal, count) {        const variations = [];        for (let i = 0; i < count; i++) {            const variation = this.convertLLMProposalToGenome(baseProposal);            // Add small random mutations            variation.speed += (Math.random() - 0.5) * 0.1;            variation.aggression += (Math.random() - 0.5) * 0.1;            variation.accuracy += (Math.random() - 0.5) * 0.1;            // Clamp values            variation.speed = Math.max(0.1, Math.min(0.9, variation.speed));            variation.aggression = Math.max(0.1, Math.min(0.9, variation.aggression));            variation.accuracy = Math.max(0.1, Math.min(0.9, variation.accuracy));            variation.id = `variation_${i}_${variation.id}`;            variation.source = 'llm_variation';            variations.push(variation);        }        return variations;    }    async evaluateProposals(proposals) {        const evaluations = [];        for (const proposal of proposals) {            try {                // Simulate battle performance (in real implementation, would run actual battles)                const simulatedPerformance = this.simulateProposalPerformance(proposal);                // Get LLM evaluation (ASI-ARCH Judge module)                const llmEvaluation = await this.deepSeekClient.llmJudgeScore(                    proposal,                    simulatedPerformance,                    this.getBaselinePerformance()                );                // Calculate composite fitness (ASI-ARCH Equation 2)                const compositeFitness = this.calculateCompositeFitness(                    simulatedPerformance,                    llmEvaluation                );                evaluations.push({                    proposal,                    quantitativeScore: simulatedPerformance.score,                    qualitativeScore: llmEvaluation.score,                    compositeFitness,                    reasoning: llmEvaluation.reasoning,                    confidence: llmEvaluation.confidence                });            } catch (error) {                evaluations.push({                    proposal,                    quantitativeScore: 0.5,                    qualitativeScore: 0.5,                    compositeFitness: 0.5,                    reasoning: 'Evaluation failed, using fallback',                    confidence: 0.3                });            }        }        return evaluations.sort((a, b) => b.compositeFitness - a.compositeFitness);    }    calculateCompositeFitness(quantitativeResults, qualitativeEvaluation) {        // Implement ASI-ARCH Equation 2: Fitness = [σ(Δ_loss) + σ(Δ_benchmark) + LLM_judge] / 3        const sigmoidTransform = (x) => 1 / (1 + Math.exp(-10 * (x - 0.5)));        const quantitativeScore = sigmoidTransform(quantitativeResults.score);        const qualitativeScore = qualitativeEvaluation.score;        const innovationScore = this.assessInnovation(quantitativeResults);        return (            quantitativeScore * this.fitnessWeights.quantitative +            qualitativeScore * this.fitnessWeights.qualitative +            innovationScore * this.fitnessWeights.innovation        );    }    assessInnovation(performance) {        // Assess tactical innovation based on novelty and effectiveness        const noveltyScore = performance.novelPatterns || 0.5;        const effectivenessScore = performance.score;        return (noveltyScore + effectivenessScore) / 2;    }    simulateProposalPerformance(proposal) {        // Simulate battle performance (placeholder for actual battle testing)        const baseScore = 0.6;        const improvementFactor = proposal.expectedImprovement || 0.1;        const randomFactor = (Math.random() - 0.5) * 0.2;        const score = Math.max(0.1, Math.min(1.0, baseScore + improvementFactor + randomFactor));        return {            score,            novelPatterns: Math.random() * 0.3 + 0.4, // 0.4-0.7 range            tacticalEffectiveness: score * 0.9 + 0.1,            adaptability: Math.random() * 0.4 + 0.5        };    }    // Helper methods    calculateQuantitativeMetrics(battleResult) {        return {            winRate: battleResult.winner !== 'timeout' ? 1 : 0,            efficiency: Math.max(0, (60 - battleResult.duration) / 60),            decisiveness: battleResult.winner !== 'timeout' ? 0.8 : 0.3        };    }    calculatePerformanceTrends() {        if (this.fitnessHistory.length < 2) {            return { trend: 0, consistency: 0.5 };        }        const recent = this.fitnessHistory.slice(-5);        const trend = recent.length > 1 ?             (recent[recent.length - 1] - recent[0]) / recent.length : 0;        return {            trend,            consistency: 1 - (this.calculateVariance(recent) || 0.5),            averageFitness: recent.reduce((sum, f) => sum + f, 0) / recent.length        };    }    calculateVariance(values) {        if (values.length === 0) {            return 0;        }        const mean = values.reduce((sum, v) => sum + v, 0) / values.length;        const variance = values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / values.length;        return Math.sqrt(variance);    }    identifyEmergentPatterns() {        // Identify patterns in successful strategies        const patterns = [];        if (this.candidatePool.length > 0) {            const avgAggression = this.candidatePool.reduce((sum, c) => sum + c.data[0]?.aggression || 0.5, 0) / this.candidatePool.length;            const avgSpeed = this.candidatePool.reduce((sum, c) => sum + c.data[0]?.speed || 0.5, 0) / this.candidatePool.length;            if (avgAggression > 0.7) {                patterns.push('high_aggression_preference');            }            if (avgSpeed > 0.7) {                patterns.push('speed_optimization');            }            if (avgAggression < 0.4) {                patterns.push('defensive_strategies');            }        }        return patterns;    }    getCandidatePoolStatistics() {        if (this.candidatePool.length === 0) {            return {};        }        return {            size: this.candidatePool.length,            avgPerformance: this.candidatePool.reduce((sum, c) => sum + c.performance, 0) / this.candidatePool.length,            bestPerformance: Math.max(...this.candidatePool.map(c => c.performance)),            diversity: this.calculatePoolDiversity()        };    }    calculatePoolDiversity() {        // Measure genetic diversity in candidate pool        if (this.candidatePool.length < 2) {            return 0;        }        let totalDistance = 0;        let comparisons = 0;        for (let i = 0; i < this.candidatePool.length; i++) {            for (let j = i + 1; j < this.candidatePool.length; j++) {                const tank1 = this.candidatePool[i].data[0] || {};                const tank2 = this.candidatePool[j].data[0] || {};                const distance = Math.sqrt(                    Math.pow((tank1.speed || 0.5) - (tank2.speed || 0.5), 2) +                    Math.pow((tank1.aggression || 0.5) - (tank2.aggression || 0.5), 2) +                    Math.pow((tank1.accuracy || 0.5) - (tank2.accuracy || 0.5), 2)                );                totalDistance += distance;                comparisons++;            }        }        return comparisons > 0 ? totalDistance / comparisons : 0;    }    updateFitnessHistory() {        const avgFitness = this.candidatePool.length > 0 ?            this.candidatePool.reduce((sum, c) => sum + c.performance, 0) / this.candidatePool.length :            0.5;        this.fitnessHistory.push(avgFitness);        // Keep last 50 entries        if (this.fitnessHistory.length > 50) {            this.fitnessHistory = this.fitnessHistory.slice(-50);        }    }    calculateScalingMetrics() {        // Demonstrate scaling law: More computation = More discoveries        return {            experimentsCompleted: this.experimentCounter,            candidatesDiscovered: this.candidatePool.length,            discoveryRate: this.candidatePool.length / Math.max(1, this.experimentCounter),            avgFitness: this.fitnessHistory.length > 0 ?                 this.fitnessHistory.reduce((sum, f) => sum + f, 0) / this.fitnessHistory.length : 0.5,            fitnessImprovement: this.fitnessHistory.length > 10 ?                this.fitnessHistory.slice(-5).reduce((sum, f) => sum + f, 0) / 5 -                this.fitnessHistory.slice(0, 5).reduce((sum, f) => sum + f, 0) / 5 : 0        };    }    getDefaultGenome() {        return {            speed: 0.5,            aggression: 0.5,            accuracy: 0.5,            health: 100,            team: 'red',            fitness: 0        };    }    generateFallbackProposal() {        const base = this.getDefaultGenome();        return {            ...base,            id: `fallback_${this.experimentCounter}_${Date.now()}`,            source: 'fallback',            reasoning: 'Generated as fallback when LLM unavailable',            expectedImprovement: 0.05        };    }    getBaselinePerformance() {        return 0.6; // Baseline performance reference    }}// Export for both browser and Node.js environmentsif (typeof window !== 'undefined') {    window.LLMEnhancedASIArch = LLMEnhancedASIArch;} else {    module.exports = LLMEnhancedASIArch;}

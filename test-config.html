@@ -1,69 +1,1 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>DeepSeek Config Test</title>
-</head>
-<body>
-    <h1>DeepSeek Configuration Test</h1>
-    <div id="results"></div>
-    
-    <script src="config.js"></script>
-    <script src="deepseek-client.js"></script>
-    
-    <script>
-        function testConfig() {
-            const results = document.getElementById('results');
-            
-            try {
-                console.log('Testing configuration...');
-                
-                // Test 1: Check if CONFIG is defined
-                if (typeof CONFIG === 'undefined') {
-                    throw new Error('CONFIG is not defined');
-                }
-                
-                // Test 2: Check DeepSeek config structure
-                if (!CONFIG.deepseek) {
-                    throw new Error('CONFIG.deepseek is not defined');
-                }
-                
-                // Test 3: Create DeepSeek client
-                const client = new DeepSeekClient();
-                
-                // Test 4: Check API key resolution
-                const hasApiKey = client.apiKey && client.apiKey.length > 0;
-                
-                results.innerHTML = `
-                    <h2>✅ Configuration Test PASSED</h2>
-                    <p><strong>CONFIG loaded:</strong> ✅ Yes</p>
-                    <p><strong>DeepSeek config:</strong> ✅ Present</p>
-                    <p><strong>Client created:</strong> ✅ Success</p>
-                    <p><strong>API Key configured:</strong> ${hasApiKey ? '✅ Yes' : '⚠️ No (will use mock mode)'}</p>
-                    <p><strong>Base URL:</strong> ${client.baseURL}</p>
-                    <p><strong>Model:</strong> ${client.model}</p>
-                    
-                    <h3>Next Steps:</h3>
-                    <ul>
-                        ${!hasApiKey ? '<li>⚠️ Add your DeepSeek API key to config.js</li>' : ''}
-                        <li>✅ Configuration is working correctly</li>
-                        <li>✅ Ready to use with AlphaTanks</li>
-                    </ul>
-                `;
-                
-                console.log('✅ Configuration test passed');
-                
-            } catch (error) {
-                results.innerHTML = `
-                    <h2>❌ Configuration Test FAILED</h2>
-                    <p><strong>Error:</strong> ${error.message}</p>
-                    <p>Check browser console for details.</p>
-                `;
-                console.error('❌ Configuration test failed:', error);
-            }
-        }
-        
-        // Run test when page loads
-        window.addEventListener('load', testConfig);
-    </script>
-</body>
-</html>
+<!DOCTYPE html><html><head>    <title>DeepSeek Config Test</title></head><body>    <h1>DeepSeek Configuration Test</h1>    <div id="results"></div>    <script src="config.js"></script>    <script src="deepseek-client.js"></script>    <script>        function testConfig() {            const results = document.getElementById('results');            try {                // Test 1: Check if CONFIG is defined                if (typeof CONFIG === 'undefined') {                    throw new Error('CONFIG is not defined');                }                // Test 2: Check DeepSeek config structure                if (!CONFIG.deepseek) {                    throw new Error('CONFIG.deepseek is not defined');                }                // Test 3: Create DeepSeek client                const client = new DeepSeekClient();                // Test 4: Check API key resolution                const hasApiKey = client.apiKey && client.apiKey.length > 0;                results.innerHTML = `                    <h2>✅ Configuration Test PASSED</h2>                    <p><strong>CONFIG loaded:</strong> ✅ Yes</p>                    <p><strong>DeepSeek config:</strong> ✅ Present</p>                    <p><strong>Client created:</strong> ✅ Success</p>                    <p><strong>API Key configured:</strong> ${hasApiKey ? '✅ Yes' : '⚠️ No (will use mock mode)'}</p>                    <p><strong>Base URL:</strong> ${client.baseURL}</p>                    <p><strong>Model:</strong> ${client.model}</p>                    <h3>Next Steps:</h3>                    <ul>                        ${!hasApiKey ? '<li>⚠️ Add your DeepSeek API key to config.js</li>' : ''}                        <li>✅ Configuration is working correctly</li>                        <li>✅ Ready to use with AlphaTanks</li>                    </ul>                `;            } catch (error) {                results.innerHTML = `                    <h2>❌ Configuration Test FAILED</h2>                    <p><strong>Error:</strong> ${error.message}</p>                    <p>Check browser console for details.</p>                `;            }        }        // Run test when page loads        window.addEventListener('load', testConfig);    </script></body></html>
