@@ -118,10 +118,6 @@ class Tank {
             this.distanceToHill = this.distanceToPoint(this.hillInfo.position.x, this.hillInfo.position.y);
             this.isOnHill = this.distanceToHill <= this.hillInfo.contestRadius;
             this.isNearHill = this.distanceToHill <= this.hillInfo.contestRadius + 50;
-            
-            // Analyze hill situation
-            this.hillThreat = this.assessHillThreat(gameState);
-            this.hillOpportunity = this.assessHillOpportunity(gameState);
         }
         
         // Find closest enemy with preference for those with clear line of sight
@@ -825,13 +821,17 @@ class Projectile {
         }
         
         // Count enemies on or near the hill
-        const enemiesOnHill = this.enemies.filter(_enemy => {
-            const distToHill = this.distanceToPoint(this.hillInfo.position.x, this.hillInfo.position.y);
+        const enemiesOnHill = this.enemies.filter(enemy => {
+            const dx = enemy.x + enemy.width / 2 - this.hillInfo.position.x;
+            const dy = enemy.y + enemy.height / 2 - this.hillInfo.position.y;
+            const distToHill = Math.sqrt(dx * dx + dy * dy);
             return distToHill <= this.hillInfo.contestRadius;
         }).length;
         
-        const enemiesNearHill = this.enemies.filter(_enemy => {
-            const distToHill = this.distanceToPoint(this.hillInfo.position.x, this.hillInfo.position.y);
+        const enemiesNearHill = this.enemies.filter(enemy => {
+            const dx = enemy.x + enemy.width / 2 - this.hillInfo.position.x;
+            const dy = enemy.y + enemy.height / 2 - this.hillInfo.position.y;
+            const distToHill = Math.sqrt(dx * dx + dy * dy);
             return distToHill <= this.hillInfo.contestRadius + 50;
         }).length;
         
@@ -854,9 +854,9 @@ class Projectile {
         
         // Count allies on or near the hill
         const alliesOnHill = this.allies.filter(ally => {
-            const distToHill = ally.distanceToPoint ? 
-                ally.distanceToPoint(this.hillInfo.position.x, this.hillInfo.position.y) :
-                this.distanceToPoint(this.hillInfo.position.x, this.hillInfo.position.y);
+            const dx = ally.x + ally.width / 2 - this.hillInfo.position.x;
+            const dy = ally.y + ally.height / 2 - this.hillInfo.position.y;
+            const distToHill = Math.sqrt(dx * dx + dy * dy);
             return distToHill <= this.hillInfo.contestRadius;
         }).length;
         
@@ -873,8 +873,10 @@ class Projectile {
         opportunity += alliesOnHill * 0.2;
         
         // Less opportunity if we're heavily outnumbered
-        const enemiesOnHill = this.enemies.filter(_enemy => {
-            const distToHill = this.distanceToPoint(this.hillInfo.position.x, this.hillInfo.position.y);
+        const enemiesOnHill = this.enemies.filter(enemy => {
+            const dx = enemy.x + enemy.width / 2 - this.hillInfo.position.x;
+            const dy = enemy.y + enemy.height / 2 - this.hillInfo.position.y;
+            const distToHill = Math.sqrt(dx * dx + dy * dy);
             return distToHill <= this.hillInfo.contestRadius;
         }).length;
         
@@ -890,8 +892,9 @@ class Projectile {
             return false;
         }
         
-        const threat = this.hillThreat || 0;
-        const opportunity = this.hillOpportunity || 0;
+        // Compute threat and opportunity on-demand
+        const threat = this.assessHillThreat(null);
+        const opportunity = this.assessHillOpportunity(null);
         const healthRatio = this.health / this.maxHealth;
         
         // Decision based on personality and situation
