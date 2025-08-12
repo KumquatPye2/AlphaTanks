@@ -346,8 +346,8 @@ class Tank {
         const canChangeState = this.stateTimer > minStateDuration || shouldRetreat > 0.7;
         
         // Debug state duration
-        if (window.DEBUG && this.id === 1) { // Only log for tank 1 to avoid spam
-            console.log(`Tank ${this.id}: state=${this.state}, timer=${this.stateTimer.toFixed(2)}, canChange=${canChangeState}`);
+        if (window.DEBUG && Math.round(this.x) % 100 === 0) { // Only log occasionally to avoid spam
+            console.log(`Tank at (${Math.round(this.x)},${Math.round(this.y)}): state=${this.state}, timer=${this.stateTimer.toFixed(2)}, canChange=${canChangeState}`);
         }
         
         // State transitions with balanced tactical priorities
@@ -361,20 +361,20 @@ class Tank {
             this.setState('attack');
         } else if (shouldGroup > 0.4 && this.state !== 'group' && canChangeState) {
             this.setState('group');
-        } else if (this.state === 'group' && (allyCount === 0 || shouldGroup <= 0.2)) {
+        } else if (this.state === 'group' && (allyCount === 0 || shouldGroup <= 0.2) && canChangeState) {
             // Exit GROUP mode if no allies left or low grouping desire
             this.setState('patrol');
-        } else if (this.state === 'retreat' && healthRatio > 0.7 && shouldRetreat <= 0.3) {
+        } else if (this.state === 'retreat' && healthRatio > 0.7 && shouldRetreat <= 0.3 && canChangeState) {
             // Exit RETREAT mode if health recovered and not in immediate danger
             this.setState('patrol');
-        } else if (this.state === 'reposition' && hasLOSToTarget && shouldReposition <= 0.3) {
+        } else if (this.state === 'reposition' && hasLOSToTarget && shouldReposition <= 0.3 && canChangeState) {
             // Exit REPOSITION mode if line of sight restored
             this.setState('attack');
-        } else if (this.state === 'contest_hill' && (shouldContestHill <= 0.5 || this.stateTimer > 8)) {
+        } else if (this.state === 'contest_hill' && (shouldContestHill <= 0.5 || this.stateTimer > 8) && canChangeState) {
             // Exit CONTEST_HILL mode if no longer high priority or held too long
             this.setState('patrol');
-        } else if (this.state === 'attack' && (!this.target || enemyDistance > this.range * 1.5 || shouldAttack <= 0.3 || this.stateTimer > 6)) {
-            // Exit ATTACK mode if target lost, out of range, low priority, or attacking too long
+        } else if (this.state === 'attack' && (!this.target || enemyDistance > this.range * 1.5 || shouldAttack <= 0.3 || this.stateTimer > 6) && (canChangeState || !this.target)) {
+            // Exit ATTACK mode if target lost (immediate), or other conditions (with minimum duration)
             this.setState('patrol');
         } else if (this.state === 'patrol') {
             // Check if we need a new patrol target
@@ -388,9 +388,9 @@ class Tank {
         // Track state changes for tactical analysis (skip the initial patrol state)
         if (this.state !== newState && this.state !== null) {
             this.stateChanges++;
-            // Debug rapid state changes
-            if (this.stateTimer < 0.5) {
-                console.log(`RAPID STATE CHANGE: ${this.team} tank ${this.id} ${this.state} -> ${newState} after ${this.stateTimer.toFixed(2)}s`);
+            // Debug rapid state changes (but skip if this is the initial state setting)
+            if (this.stateTimer < 0.5 && this.previousState !== null) {
+                console.log(`RAPID STATE CHANGE: ${this.team} tank at (${Math.round(this.x)},${Math.round(this.y)}) state: "${this.state}" -> "${newState}" after ${this.stateTimer.toFixed(2)}s`);
             }
         }
         this.previousState = this.state;

@@ -198,6 +198,7 @@ class GameEngine {
         this.checkWinConditions();
         // Time limit (only apply if battle has actually started)
         if (this.battleStarted && this.battleTime > this.maxBattleTime) {
+            console.log(`⏰ Game engine timeout! Battle time: ${this.battleTime}s > ${this.maxBattleTime}s`);
             this.endBattle('timeout');
         }
         // Update UI
@@ -267,6 +268,11 @@ class GameEngine {
         }
     }
     endBattle(winner) {
+        console.log(`🏁 endBattle called with winner: ${winner}, battle time: ${this.battleTime.toFixed(1)}s`);
+        console.trace('endBattle call stack'); // Show where the call came from
+        console.log(`🏁 endBattle called with winner: ${winner}, battleTime: ${this.battleTime}s`);
+        console.trace('endBattle call stack');
+        
         // Allow immediate battle termination when all tanks of one or both teams are destroyed
         // Only apply minimum battle time restriction for timeout scenarios
         const minimumBattleTime = 15; // seconds

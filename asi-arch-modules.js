@@ -529,7 +529,9 @@ class TankResearcher {
 // ASI-ARCH Engineer Module - Evaluates architectures in real environment
 class TankEngineer {
     constructor() {
+        console.log(`🔧 TankEngineer instance created - battleTimeLimit will be set to 120`);
         this.battleTimeLimit = 120; // Seconds to match game engine timeout
+        this.activeTimeoutId = null; // Track active timeout
     }
     async runBattle(redGenomes, blueGenomes) {
         // Track battle setup in Engineer Insights
@@ -587,6 +589,12 @@ class TankEngineer {
                 // Set up battle end listener
                 const battleEndHandler = (event) => {
                     window.removeEventListener('battleEnd', battleEndHandler);
+                    // Clear any active timeout since battle has ended
+                    if (this.activeTimeoutId) {
+                        console.log(`✅ Clearing timeout ${this.activeTimeoutId} - battle ended normally`);
+                        clearTimeout(this.activeTimeoutId);
+                        this.activeTimeoutId = null;
+                    }
                     // Track battle execution in Engineer Insights
                     if (window.engineerInsights) {
                         window.engineerInsights.trackBattleExecution(event.detail, redGenomes, blueGenomes);
@@ -621,11 +629,21 @@ class TankEngineer {
                     window.game.gameLoop();
                 }
                 // Force battle end after time limit
-                setTimeout(() => {
-                    if (window.game.gameState === 'running') {
+                // Clear any existing timeout first
+                if (this.activeTimeoutId) {
+                    console.log(`🚫 Clearing existing timeout ${this.activeTimeoutId}`);
+                    clearTimeout(this.activeTimeoutId);
+                }
+                const timeoutMs = this.battleTimeLimit * 1000;
+                console.log(`🕐 ASI-ARCH setting timeout for ${this.battleTimeLimit} seconds (${timeoutMs}ms)`);
+                this.activeTimeoutId = setTimeout(() => {
+                    console.log(`⏰ ASI-ARCH timeout ${this.activeTimeoutId} fired! Battle time: ${window.game ? window.game.battleTime : 'unknown'}s, Game state: ${window.game ? window.game.gameState : 'unknown'}`);
+                    this.activeTimeoutId = null; // Clear the reference
+                    if (window.game && window.game.gameState === 'running') {
+                        console.log(`🛑 ASI-ARCH forcing battle end due to timeout`);
                         window.game.endBattle('timeout');
                     }
-                }, this.battleTimeLimit * 1000);
+                }, timeoutMs);
             }
         });
     }
