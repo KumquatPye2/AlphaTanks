@@ -139,6 +139,13 @@ function setupEventHandlers() {
             genomeCache.lastCacheTime = 0;
             genomeCache.redBest = null;
             genomeCache.blueBest = null;
+            
+            // Ensure tactical display is initialized
+            if (!window.tacticalDisplay || !window.tacticalDisplay.isReady) {
+                console.log('Initializing tactical display for evolution...');
+                window.tacticalDisplay = new TacticalEvolutionDisplay();
+            }
+            
             game.start();
             evolution.startEvolution(); // This will start new experiments
             // Track knowledge search for battle preparation
@@ -493,11 +500,7 @@ function displayNoGenomeData() {
 }
 function displayNoGenomeDataForTeam(team) {
     const traitNames = ['Aggression', 'Speed', 'Accuracy', 'Defense', 'Teamwork', 'Adaptability', 'Learning', 'RiskTaking', 'Evasion'];
-    // Update fitness display
-    const fitnessElement = document.getElementById(`${team}ChampionFitness`);
-    if (fitnessElement) {
-        fitnessElement.textContent = 'Evolving...';
-    }
+    // Note: ChampionFitness elements removed with Best Genomes panel - fitness now shown in Tactical Evolution Monitor
     // Update each trait to show evolving state
     traitNames.forEach((traitName, _index) => {
         // Update trait value
@@ -720,11 +723,7 @@ function displayGenome(team, genome, fitness) {
     } else {
         return;
     }
-    // Update fitness display
-    const fitnessElement = document.getElementById(`${team}ChampionFitness`);
-    if (fitnessElement) {
-        fitnessElement.textContent = fitness.toFixed(3);
-    }
+    // Note: ChampionFitness elements removed with Best Genomes panel - fitness now shown in Tactical Evolution Monitor
     // Update each trait using the genomeArray
     traitNames.forEach((traitName, index) => {
         const value = genomeArray[index];
@@ -776,11 +775,7 @@ function displayGenomeWithEvolvingFitness(team, genome) {
     } else {
         genomeArray = null;
     }
-    // Update fitness display to show "Evolving..." - use the correct element ID
-    const fitnessElement = document.getElementById(`${team}ChampionFitness`);
-    if (fitnessElement) {
-        fitnessElement.textContent = 'Evolving...';
-    }
+    // Note: ChampionFitness elements removed with Best Genomes panel - fitness now shown in Tactical Evolution Monitor
     // Update each trait with actual values but show fitness as evolving
     traitNames.forEach((traitName, index) => {
         // Update trait value with actual genome data

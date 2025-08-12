@@ -38,7 +38,7 @@ class Tank {
         this.speed = 50 * (0.5 + this.genome[1] * 0.5); // Use speed from genome[1]
         // Combat stats
         this.lastShotTime = 0;
-        this.fireRate = 4.0 + this.genome[0] * 2.0; // Increased base rate: 4.0-6.0 shots per second
+        this.fireRate = 1.0 + this.genome[0] * 1.0; // Reduced rate: 1.0-2.0 shots per second (was 4.0-6.0)
         this.damage = 20 + this.genome[0] * 10;
         this.range = 200 + this.genome[2] * 100; // Use accuracy from genome[2]
         this.accuracy = 0.7 + this.genome[2] * 0.3;
@@ -49,6 +49,16 @@ class Tank {
         this.shotsHit = 0;
         this.survivalTime = 0;
         this.kills = 0;
+        
+        // Combat tracking for tactical analysis
+        this.lastShotTime = 0;
+        this.averageEngagementDistance = 0;
+        this.engagementDistances = [];
+        this.stateChanges = 0;
+        this.targetSwitches = 0;
+        this.previousTarget = null;
+        this.previousState = null;
+        
         // AI state
         this.target = null;
         this.targetX = x;
@@ -65,10 +75,11 @@ class Tank {
         this.formationWeight = this.genome[5];   // Adaptability (for formation behavior)
         this.riskTakingWeight = this.genome[7];  // RiskTaking
         this.evasionWeight = this.genome[8];     // Evasion
-        // King of the Hill behavior weights
+        // King of the Hill behavior weights - allow ASI-ARCH to evolve diverse strategies
         this.objectiveFocus = 0.3 + this.genome[4] * 0.4; // Based on teamwork
-        this.hillPriority = 0.5 + this.genome[0] * 0.4;   // Higher base priority
-        this.contestWillingness = 0.3 + this.genome[7] * 0.7;  // Higher base willingness
+        // CRITICAL FIX: Remove high base hill priority to allow diverse evolved strategies
+        this.hillPriority = this.genome[0] * 0.8;  // Only aggressive tanks prioritize hill
+        this.contestWillingness = this.genome[7] * 0.9;  // Only risk-takers contest actively
         // Access genome[0] through genome[8] for 9-trait validation
         this.trait0 = this.genome[0];
         this.trait8 = this.genome[8];
@@ -217,7 +228,7 @@ class Tank {
         }
         return Math.min(1, opportunity);
     }
-    // King of the Hill decision method
+    // King of the Hill decision method - allow evolved strategies to emerge
     shouldContestHill() {
         if (!this.hillInfo) {
             return false;
@@ -226,54 +237,145 @@ class Tank {
         const threat = this.assessHillThreat(null);
         const opportunity = this.assessHillOpportunity(null);
         const healthRatio = this.health / this.maxHealth;
-        // Always contest if hill is neutral and we're healthy
-        if (this.hillInfo.isNeutral && healthRatio > 0.3) {
+        
+        // Only contest if this tank's genome supports hill strategies
+        if (this.hillPriority < 0.3) {
+            return false;  // Low-aggression tanks avoid hill contesting
+        }
+        
+        // Always contest if hill is neutral and we're designed for aggression
+        if (this.hillInfo.isNeutral && healthRatio > 0.5 && this.hillPriority > 0.6) {
             return true;
         }
-        // Contest if we control it and need to defend
-        if (this.hillInfo.controllingTeam === this.team && healthRatio > 0.2) {
+        // Contest if we control it and need to defend (only if we have defensive traits)
+        if (this.hillInfo.controllingTeam === this.team && healthRatio > 0.4 && this.defenseWeight > 0.4) {
             return true;
         }
-        // Decision based on personality and situation
+        // Decision based on evolved personality and situation
         const contestScore = (
-            this.hillPriority * 0.4 +
+            this.hillPriority * 0.5 +
             this.contestWillingness * 0.3 +
-            opportunity * 0.2 +
+            opportunity * 0.1 +
             (1 - threat) * 0.1
         ) * healthRatio;
-        return contestScore > 0.3;  // Lowered threshold
+        return contestScore > 0.6;  // Higher threshold to allow other strategies
     }    makeDecisions(deltaTime, gameState = null) {
         this.stateTimer += deltaTime;
         const healthRatio = this.health / this.maxHealth;
         const enemyDistance = this.target ? this.distanceTo(this.target) : Infinity;
         const allyCount = this.allies.length;
+        
+        // Track target switches for tactical analysis
+        if (this.target !== this.previousTarget) {
+            if (this.previousTarget !== null) {
+                this.targetSwitches++;
+            }
+            this.previousTarget = this.target;
+        }
+        
         // Check if we have line of sight to current target
         const hasLOSToTarget = this.target && gameState?.obstacles ? 
             this.hasLineOfSight(this.target, gameState.obstacles) : true;
-        // King of the Hill decision factors
+        // King of the Hill decision factors with enhanced strategic considerations
         let shouldContestHill = 0;
+        let _shouldDefendAroundHill = 0;
+        
         if (gameState?.hill) {
             const hillContest = this.shouldContestHill();
             const hillPriority = this.hillPriority;
             const isNearHill = this.isNearHill;
-            shouldContestHill = hillContest ? (hillPriority * (isNearHill ? 1.5 : 1.0)) : 0;
+            const isOnHill = this.isOnHill;
+            
+            // Enhanced strategic decision making
+            const enemiesOnHill = this.getEnemiesOnHill();
+            const alliesOnHill = this.getAlliesOnHill();
+            const _enemiesNearHill = this.getEnemiesNearHill();
+            const _alliesNearHill = this.getAlliesNearHill();
+            
+            // Strategic considerations based on tactical archetype
+            const tacticalType = this.getTacticalArchetype();
+            
+            if (tacticalType === 'Sniper' && this.distanceToHill > 100 && this.distanceToHill < 200) {
+                // Snipers prefer to stay at range and cover hill approaches
+                const _shouldSnipeHillApproaches = this.range > 80 ? 0.7 : 0.3;
+                shouldContestHill = hillContest ? hillPriority * 0.3 : 0; // Reduced hill priority for snipers
+            } else if (tacticalType === 'Support' && alliesOnHill.length > 0) {
+                // Support tanks defend allies already on hill
+                _shouldDefendAroundHill = 0.6;
+                shouldContestHill = hillContest ? hillPriority * 0.5 : 0;
+            } else if (tacticalType === 'Berserker' || tacticalType === 'Aggressive') {
+                // Berserkers rush the hill aggressively
+                shouldContestHill = hillContest ? hillPriority * 1.3 : 0;
+            } else if (tacticalType === 'Assassin' && enemiesOnHill.length > 0) {
+                // Assassins target isolated enemies on hill
+                shouldContestHill = hillContest ? hillPriority * 0.8 : 0;
+            } else if (tacticalType === 'Fortress' && isNearHill) {
+                // Fortress tanks hold defensive positions around hill
+                _shouldDefendAroundHill = 0.8;
+                shouldContestHill = isOnHill ? hillPriority : hillPriority * 0.4;
+            } else {
+                // Standard hill contesting logic with strategic modifications
+                let contestModifier = 1.0;
+                
+                // Reduce hill priority if many allies already contesting
+                if (alliesOnHill.length >= 2) {
+                    contestModifier *= 0.5; // Don't overcrowd the hill
+                }
+                
+                // Increase priority if hill is uncontested
+                if (enemiesOnHill.length === 0 && alliesOnHill.length === 0) {
+                    contestModifier *= 1.3;
+                }
+                
+                // Consider elimination strategy - if enemy team is weak, focus on kills
+                if (this.enemies.length <= 2 && this.enemies.some(e => e.health < e.maxHealth * 0.5)) {
+                    contestModifier *= 0.6; // Prioritize elimination over hill control
+                }
+                
+                shouldContestHill = hillContest ? (hillPriority * contestModifier * (isNearHill ? 1.2 : 1.0)) : 0;
+            }
         }
         // Decision weights based on genome
         const shouldAttack = this.aggressionWeight * (enemyDistance < this.range ? 1 : 0) * (hasLOSToTarget ? 1 : 0);
         const shouldReposition = this.target && !hasLOSToTarget && enemyDistance < this.range ? 0.8 : 0;
         const shouldRetreat = this.cautionWeight * (1 - healthRatio) * (enemyDistance < 100 ? 1 : 0);
         const shouldGroup = this.formationWeight * (allyCount > 0 ? 1 : 0) * (this.getNearbyAllies(100).length === 0 ? 1 : 0);
-        // State transitions with hill objectives priority
+        
+        // Minimum state duration to prevent rapid cycling (except for urgent retreat)
+        const minStateDuration = 2.0; // Increased to 2 seconds minimum
+        const canChangeState = this.stateTimer > minStateDuration || shouldRetreat > 0.7;
+        
+        // Debug state duration
+        if (window.DEBUG && this.id === 1) { // Only log for tank 1 to avoid spam
+            console.log(`Tank ${this.id}: state=${this.state}, timer=${this.stateTimer.toFixed(2)}, canChange=${canChangeState}`);
+        }
+        
+        // State transitions with balanced tactical priorities
         if (shouldRetreat > 0.5 && this.state !== 'retreat') {
             this.setState('retreat');
-        } else if (shouldContestHill > 0.4 && this.state !== 'contest_hill') {  // Lowered threshold
+        } else if (shouldContestHill > 0.7 && this.state !== 'contest_hill' && canChangeState) {  // Raised threshold to allow other strategies
             this.setState('contest_hill');
-        } else if (shouldReposition > 0.6 && this.state !== 'reposition') {
+        } else if (shouldReposition > 0.6 && this.state !== 'reposition' && canChangeState) {
             this.setState('reposition');
-        } else if (shouldAttack > 0.6 && this.target && this.state !== 'attack') {
+        } else if (shouldAttack > 0.5 && this.target && this.state !== 'attack' && canChangeState) {  // Lower attack threshold to encourage combat
             this.setState('attack');
-        } else if (shouldGroup > 0.4 && this.state !== 'group') {
+        } else if (shouldGroup > 0.4 && this.state !== 'group' && canChangeState) {
             this.setState('group');
+        } else if (this.state === 'group' && (allyCount === 0 || shouldGroup <= 0.2)) {
+            // Exit GROUP mode if no allies left or low grouping desire
+            this.setState('patrol');
+        } else if (this.state === 'retreat' && healthRatio > 0.7 && shouldRetreat <= 0.3) {
+            // Exit RETREAT mode if health recovered and not in immediate danger
+            this.setState('patrol');
+        } else if (this.state === 'reposition' && hasLOSToTarget && shouldReposition <= 0.3) {
+            // Exit REPOSITION mode if line of sight restored
+            this.setState('attack');
+        } else if (this.state === 'contest_hill' && (shouldContestHill <= 0.5 || this.stateTimer > 8)) {
+            // Exit CONTEST_HILL mode if no longer high priority or held too long
+            this.setState('patrol');
+        } else if (this.state === 'attack' && (!this.target || enemyDistance > this.range * 1.5 || shouldAttack <= 0.3 || this.stateTimer > 6)) {
+            // Exit ATTACK mode if target lost, out of range, low priority, or attacking too long
+            this.setState('patrol');
         } else if (this.state === 'patrol') {
             // Check if we need a new patrol target
             const distanceToTarget = Math.sqrt((this.targetX - this.x) ** 2 + (this.targetY - this.y) ** 2);
@@ -283,6 +385,16 @@ class Tank {
         }
     }
     setState(newState) {
+        // Track state changes for tactical analysis (skip the initial patrol state)
+        if (this.state !== newState && this.state !== null) {
+            this.stateChanges++;
+            // Debug rapid state changes
+            if (this.stateTimer < 0.5) {
+                console.log(`RAPID STATE CHANGE: ${this.team} tank ${this.id} ${this.state} -> ${newState} after ${this.stateTimer.toFixed(2)}s`);
+            }
+        }
+        this.previousState = this.state;
+        
         this.state = newState;
         this.stateTimer = 0;
         switch (newState) {
@@ -716,6 +828,8 @@ class Tank {
         this.renderHealthBar(ctx);
         // Always show behavior state above tank
         this.renderBehaviorState(ctx);
+        // Show tactical archetype info below tank
+        this.renderTacticalInfo(ctx);
         // Additional debug info (only when DEBUG is enabled)
         if (window.DEBUG) {
             this.renderDebugInfo(ctx);
@@ -736,38 +850,285 @@ class Tank {
     renderBehaviorState(ctx) {
         // Show current behavior state above the tank
         ctx.save();
-        ctx.fillStyle = this.team === 'red' ? '#ffaaaa' : '#aaaaff';
         ctx.font = 'bold 10px Arial';
         ctx.textAlign = 'center';
-        // Display state with some additional context
-        let stateText = this.state.toUpperCase();
+        
+        // Ensure we have a valid state
+        const currentState = this.state || 'patrol';
+        
+        // Get tactical archetype for this tank
+        const tacticalType = this.getTacticalArchetype();
+        const typeEmoji = this.getTacticalEmoji(tacticalType);
+        
+        // Display state with tactical type and context
+        let stateText = `${typeEmoji} ${currentState.toUpperCase()}`;
+        
         // Add additional context based on state
-        if (this.state === 'attack' && this.target) {
+        if (currentState === 'attack' && this.target) {
             const distance = Math.round(this.distanceTo(this.target));
             stateText += ` (${distance}px)`;
-        } else if (this.state === 'reposition') {
+        } else if (currentState === 'reposition') {
             stateText += ` (NO LOS)`;
-        } else if (this.state === 'patrol') {
+        } else if (currentState === 'patrol') {
             const patrolDistance = Math.round(Math.sqrt((this.targetX - this.x) ** 2 + (this.targetY - this.y) ** 2));
             stateText += ` (${patrolDistance}px)`;
+        } else if (currentState === 'contest_hill') {
+            if (this.hillInfo) {
+                const hillDistance = Math.round(this.distanceToHill || 0);
+                stateText += ` (${hillDistance}px)`;
+            }
         }
+        
         // Position text above the tank
         const textX = this.x + this.width / 2;
         const textY = this.y - 18;
-        // Background for better readability - different color for repositioning
+        
+        // Calculate text dimensions for proper background clearing
         const textWidth = ctx.measureText(stateText).width;
-        ctx.fillStyle = this.state === 'reposition' ? 'rgba(255, 165, 0, 0.8)' : 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(textX - textWidth / 2 - 2, textY - 10, textWidth + 4, 12);
-        // Text - highlight repositioning in orange
-        ctx.fillStyle = this.state === 'reposition' ? '#ffaa00' : 
-                       (this.team === 'red' ? '#ffdddd' : '#ddddff');
+        const backgroundWidth = Math.max(textWidth + 8, 80); // Minimum width to clear old text
+        const backgroundHeight = 14;
+        
+        // Clear the area first with a solid background
+        ctx.fillStyle = this.getTacticalBackgroundColor(tacticalType, currentState);
+        ctx.fillRect(textX - backgroundWidth / 2, textY - 11, backgroundWidth, backgroundHeight);
+        
+        // Text color based on tactical type and state
+        ctx.fillStyle = this.getTacticalTextColor(tacticalType, currentState);
         ctx.fillText(stateText, textX, textY);
         ctx.restore();
     }
+
+    getTacticalArchetype() {
+        // Classify this tank's tactical archetype based on genome
+        const aggression = this.genome[0] || 0;
+        const speed = this.genome[1] || 0;
+        const accuracy = this.genome[2] || 0;
+        const defense = this.genome[3] || 0;
+        const teamwork = this.genome[4] || 0;
+        const adaptability = this.genome[5] || 0;
+        const learning = this.genome[6] || 0;
+        const riskTaking = this.genome[7] || 0;
+        const evasion = this.genome[8] || 0;
+        
+        // Primary archetype classification (same as evolution-engine.js)
+        if (accuracy > 0.7 && defense > 0.6 && aggression < 0.4) {
+            return 'Sniper';
+        }
+        if (aggression > 0.7 && speed > 0.6 && riskTaking > 0.6) {
+            return 'Berserker';
+        }
+        if (teamwork > 0.7 && adaptability > 0.6) {
+            return 'Support';
+        }
+        if (evasion > 0.7 && speed > 0.6) {
+            return 'Assassin';
+        }
+        if (learning > 0.7 && adaptability > 0.7) {
+            return 'Adaptive';
+        }
+        if (defense > 0.8 && evasion > 0.6 && aggression < 0.4) {
+            return 'Fortress';
+        }
+        if (speed > 0.8 && riskTaking > 0.7 && accuracy < 0.5) {
+            return 'Scout';
+        }
+        if (accuracy > 0.8 && defense < 0.3) {
+            return 'GlassCannon';
+        }
+        if (teamwork > 0.8 && aggression < 0.5) {
+            return 'Coordinator';
+        }
+        if (aggression > 0.8 && defense < 0.3) {
+            return 'Kamikaze';
+        }
+        if (learning > 0.6 && adaptability > 0.6) {
+            return 'Generalist';
+        }
+        
+        // Fallback classifications
+        if (aggression > 0.6) {
+            return 'Aggressive';
+        }
+        if (defense > 0.6) {
+            return 'Defensive';
+        }
+        if (teamwork > 0.6) {
+            return 'Cooperative';
+        }
+        return 'Balanced';
+    }
+
+    getTacticalEmoji(tacticalType) {
+        const emojis = {
+            'Sniper': '🎯',
+            'Berserker': '⚔️',
+            'Support': '🛡️',
+            'Assassin': '🗡️',
+            'Adaptive': '🧠',
+            'Fortress': '🏰',
+            'Scout': '👁️',
+            'GlassCannon': '💥',
+            'Coordinator': '📋',
+            'Kamikaze': '💣',
+            'Generalist': '⚖️',
+            'Aggressive': '👊',
+            'Defensive': '🛡️',
+            'Cooperative': '🤝',
+            'Balanced': '⚖️'
+        };
+        return emojis[tacticalType] || '❓';
+    }
+
+    getTacticalBackgroundColor(tacticalType, currentState) {
+        // Base colors by tactical type
+        const baseColors = {
+            'Sniper': 'rgba(100, 150, 255, 0.8)',      // Blue - precise
+            'Berserker': 'rgba(255, 100, 100, 0.8)',   // Red - aggressive
+            'Support': 'rgba(100, 255, 100, 0.8)',     // Green - supportive
+            'Assassin': 'rgba(150, 100, 255, 0.8)',    // Purple - stealthy
+            'Adaptive': 'rgba(255, 255, 100, 0.8)',    // Yellow - learning
+            'Fortress': 'rgba(150, 150, 150, 0.8)',    // Gray - defensive
+            'Scout': 'rgba(255, 200, 100, 0.8)',       // Orange - mobile
+            'GlassCannon': 'rgba(255, 150, 255, 0.8)', // Pink - fragile but deadly
+            'Coordinator': 'rgba(100, 255, 255, 0.8)', // Cyan - team-focused
+            'Kamikaze': 'rgba(255, 50, 50, 0.8)',      // Dark red - reckless
+            'Generalist': 'rgba(200, 200, 200, 0.8)'   // Light gray - balanced
+        };
+
+        // Override for special states
+        if (currentState === 'reposition') {
+            return 'rgba(255, 165, 0, 0.8)'; // Orange for repositioning
+        }
+        if (currentState === 'contest_hill') {
+            return 'rgba(0, 255, 0, 0.8)'; // Green for hill contest
+        }
+
+        return baseColors[tacticalType] || 'rgba(0, 0, 0, 0.7)';
+    }
+
+    getTacticalTextColor(tacticalType, currentState) {
+        // High contrast text colors
+        const textColors = {
+            'Sniper': '#ffffff',
+            'Berserker': '#ffffff', 
+            'Support': '#000000',
+            'Assassin': '#ffffff',
+            'Adaptive': '#000000',
+            'Fortress': '#ffffff',
+            'Scout': '#000000',
+            'GlassCannon': '#000000',
+            'Coordinator': '#000000',
+            'Kamikaze': '#ffffff',
+            'Generalist': '#000000'
+        };
+
+        // Special state overrides
+        if (currentState === 'reposition') {
+            return '#000000';
+        }
+        if (currentState === 'contest_hill') {
+            return '#000000';
+        }
+        if (currentState === 'attack') {
+            return '#ffffff';
+        }
+
+        return textColors[tacticalType] || (this.team === 'red' ? '#ffdddd' : '#ddddff');
+    }
+
+    renderTacticalInfo(ctx) {
+        // Show compact tactical archetype info below the tank
+        ctx.save();
+        ctx.font = '8px Arial';
+        ctx.textAlign = 'center';
+        
+        const tacticalType = this.getTacticalArchetype();
+        const typeText = tacticalType.toUpperCase();
+        
+        // Position text below the tank
+        const textX = this.x + this.width / 2;
+        const textY = this.y + this.height + 12;
+        
+        // Calculate proper background size to clear old text
+        const textWidth = ctx.measureText(typeText).width;
+        const backgroundWidth = Math.max(textWidth + 6, 50); // Minimum width to clear old text
+        const backgroundHeight = 12;
+        
+        // Clear background area first
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(textX - backgroundWidth / 2, textY - 9, backgroundWidth, backgroundHeight);
+        
+        // Text color based on tactical type
+        ctx.fillStyle = this.team === 'red' ? '#ffcccc' : '#ccccff';
+        if (tacticalType === 'Sniper') {
+            ctx.fillStyle = '#66aaff';
+        } else if (tacticalType === 'Berserker') {
+            ctx.fillStyle = '#ff6666';
+        } else if (tacticalType === 'Support') {
+            ctx.fillStyle = '#66ff66';
+        } else if (tacticalType === 'Assassin') {
+            ctx.fillStyle = '#cc66ff';
+        }
+        
+        ctx.fillText(typeText, textX, textY);
+        ctx.restore();
+    }
+
+    // Hill tactical analysis methods
+    getEnemiesOnHill() {
+        if (!this.hillInfo || !this.enemies) {
+            return [];
+        }
+        return this.enemies.filter(enemy => {
+            const dx = enemy.x + enemy.width / 2 - this.hillInfo.position.x;
+            const dy = enemy.y + enemy.height / 2 - this.hillInfo.position.y;
+            const distToHill = Math.sqrt(dx * dx + dy * dy);
+            return distToHill <= this.hillInfo.contestRadius;
+        });
+    }
+
+    getAlliesOnHill() {
+        if (!this.hillInfo || !this.allies) {
+            return [];
+        }
+        return this.allies.filter(ally => {
+            const dx = ally.x + ally.width / 2 - this.hillInfo.position.x;
+            const dy = ally.y + ally.height / 2 - this.hillInfo.position.y;
+            const distToHill = Math.sqrt(dx * dx + dy * dy);
+            return distToHill <= this.hillInfo.contestRadius;
+        });
+    }
+
+    getEnemiesNearHill() {
+        if (!this.hillInfo || !this.enemies) {
+            return [];
+        }
+        const nearRadius = this.hillInfo.contestRadius + 50; // 50px buffer around hill
+        return this.enemies.filter(enemy => {
+            const dx = enemy.x + enemy.width / 2 - this.hillInfo.position.x;
+            const dy = enemy.y + enemy.height / 2 - this.hillInfo.position.y;
+            const distToHill = Math.sqrt(dx * dx + dy * dy);
+            return distToHill <= nearRadius;
+        });
+    }
+
+    getAlliesNearHill() {
+        if (!this.hillInfo || !this.allies) {
+            return [];
+        }
+        const nearRadius = this.hillInfo.contestRadius + 50; // 50px buffer around hill
+        return this.allies.filter(ally => {
+            const dx = ally.x + ally.width / 2 - this.hillInfo.position.x;
+            const dy = ally.y + ally.height / 2 - this.hillInfo.position.y;
+            const distToHill = Math.sqrt(dx * dx + dy * dy);
+            return distToHill <= nearRadius;
+        });
+    }
+
     renderDebugInfo(ctx) {
         ctx.fillStyle = '#00ff88';
         ctx.font = '10px Courier New';
-        ctx.fillText(this.state, this.x, this.y - 12);
+        ctx.fillText(`DEBUG: ${this.state}`, this.x, this.y - 35); // Moved higher to avoid overlap
         // Target line with line-of-sight indication
         if (this.target) {
             // Check if we have line of sight
@@ -783,7 +1144,7 @@ class Tank {
             ctx.setLineDash([]); // Reset dash pattern
             // Show LOS status text
             ctx.fillStyle = hasLOS ? '#88ff88' : '#ff8888';
-            ctx.fillText(hasLOS ? 'LOS OK' : 'LOS BLOCKED', this.x, this.y - 24);
+            ctx.fillText(hasLOS ? 'LOS OK' : 'LOS BLOCKED', this.x, this.y - 47); // Moved higher to avoid overlap
         }
     }
 }

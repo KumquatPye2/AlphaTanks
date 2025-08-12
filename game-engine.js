@@ -34,15 +34,8 @@ class GameEngine {
         this.ctx.imageSmoothingEnabled = false;
     }
     createObstacles() {
-        // Create strategic obstacles for interesting battles
-        const obstacles = [
-            { x: this.width * 0.3, y: this.height * 0.3, width: 60, height: 60 },
-            { x: this.width * 0.7, y: this.height * 0.3, width: 60, height: 60 },
-            { x: this.width * 0.5, y: this.height * 0.5, width: 80, height: 40 },
-            { x: this.width * 0.3, y: this.height * 0.7, width: 60, height: 60 },
-            { x: this.width * 0.7, y: this.height * 0.7, width: 60, height: 60 }
-        ];
-        this.obstacles = obstacles.map(obs => new Obstacle(obs.x, obs.y, obs.width, obs.height));
+        // No obstacles - clear battlefield for King of the Hill
+        this.obstacles = [];
     }
     bindEvents() {
         window.addEventListener('resize', () => this.setupCanvas());
@@ -102,7 +95,11 @@ class GameEngine {
     }
     initializeKingOfHill() {
         // Create hill in the center of the battlefield
-        this.hill = new Hill(this.width / 2, this.height / 2, 60);
+        if (!this.hill) {
+            this.hill = new Hill(this.width / 2, this.height / 2, 60);
+        }
+        // Reset hill to neutral state for new battle
+        this.hill.reset();
     }
     start() {
         this.gameState = 'running';
@@ -224,14 +221,6 @@ class GameEngine {
         if (aliveTanks.length === 0 || this.projectiles.length === 0) {
             return;
         }
-        // Tank-obstacle collisions (only for living tanks)
-        aliveTanks.forEach(tank => {
-            this.obstacles.forEach(obstacle => {
-                if (this.isColliding(tank, obstacle)) {
-                    this.resolveTankObstacleCollision(tank, obstacle);
-                }
-            });
-        });
         // Projectile-tank collisions (optimized)
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             const projectile = this.projectiles[i];
@@ -245,17 +234,6 @@ class GameEngine {
                 }
             }
         }
-        // Projectile-obstacle collisions
-        for (let i = this.projectiles.length - 1; i >= 0; i--) {
-            const projectile = this.projectiles[i];
-            let hit = false;
-            for (let j = 0; j < this.obstacles.length && !hit; j++) {
-                if (this.isColliding(projectile, this.obstacles[j])) {
-                    this.projectiles.splice(i, 1);
-                    hit = true;
-                }
-            }
-        }
     }
     isColliding(obj1, obj2) {
         return obj1.x < obj2.x + obj2.width &&
@@ -263,27 +241,30 @@ class GameEngine {
                obj1.y < obj2.y + obj2.height &&
                obj1.y + obj1.height > obj2.y;
     }
-    resolveTankObstacleCollision(tank, obstacle) {
-        // Simple collision resolution - push tank away from obstacle
-        const tankCenterX = tank.x + tank.width / 2;
-        const tankCenterY = tank.y + tank.height / 2;
-        const obsCenterX = obstacle.x + obstacle.width / 2;
-        const obsCenterY = obstacle.y + obstacle.height / 2;
-        const dx = tankCenterX - obsCenterX;
-        const dy = tankCenterY - obsCenterY;
-        if (Math.abs(dx) > Math.abs(dy)) {
-            tank.x = dx > 0 ? obstacle.x + obstacle.width : obstacle.x - tank.width;
-        } else {
-            tank.y = dy > 0 ? obstacle.y + obstacle.height : obstacle.y - tank.height;
-        }
-    }
     checkWinConditions() {
-        // King of the Hill win condition
+        // Check elimination victory conditions first
+        const aliveRed = this.redTeam.filter(tank => tank.isAlive).length;
+        const aliveBlue = this.blueTeam.filter(tank => tank.isAlive).length;
+        
+        if (aliveRed === 0 && aliveBlue === 0) {
+            // Both teams eliminated - draw
+            this.endBattle('draw');
+            return;
+        } else if (aliveRed === 0) {
+            // Red team eliminated - blue wins
+            this.endBattle('blue');
+            return;
+        } else if (aliveBlue === 0) {
+            // Blue team eliminated - red wins
+            this.endBattle('red');
+            return;
+        }
+        
+        // Check King of the Hill victory conditions (30-second occupation)
         if (this.hill && this.hill.isGameWon()) {
             this.endBattle(this.hill.getWinner());
             return;
         }
-        // Continue battle - no elimination victory conditions in King of Hill mode
     }
     endBattle(winner) {
         // Allow immediate battle termination when all tanks of one or both teams are destroyed
@@ -293,6 +274,18 @@ class GameEngine {
             // Don't end battle yet for timeout, let it continue until minimum time
             return;
         }
+        
+        // Debug logging to track early battle termination
+        console.log(`🏁 Battle ended after ${this.battleTime.toFixed(1)}s - Winner: ${winner}`);
+        if (this.battleTime < 30) {
+            const aliveRed = this.redTeam.filter(tank => tank.isAlive).length;
+            const aliveBlue = this.blueTeam.filter(tank => tank.isAlive).length;
+            console.log(`⚡ Quick battle: Red=${aliveRed} alive, Blue=${aliveBlue} alive`);
+            if (this.hill) {
+                console.log(`🏔️ Hill control: Red=${this.hill.redControlTime.toFixed(1)}s, Blue=${this.hill.blueControlTime.toFixed(1)}s`);
+            }
+        }
+        
         this.gameState = 'ended';
         // Emit battle end event
         const battleResult = this.getBattleResult(winner);
@@ -301,14 +294,41 @@ class GameEngine {
     getBattleResult(winner) {
         const aliveRed = this.redTeam.filter(tank => tank.isAlive).length;
         const aliveBlue = this.blueTeam.filter(tank => tank.isAlive).length;
+        
+        // Determine victory type
+        let victoryType = 'timeout';
+        if (aliveRed === 0 && aliveBlue === 0) {
+            victoryType = 'mutual_elimination';
+        } else if (aliveRed === 0 || aliveBlue === 0) {
+            victoryType = 'elimination';
+        } else if (this.hill && this.hill.isGameWon()) {
+            victoryType = 'hill_control';
+        }
+        
+        // Enhanced hill control data for tactical analysis
+        const hillControlData = this.hill ? {
+            redControlTime: this.hill.redControlTime,
+            blueControlTime: this.hill.blueControlTime,
+            totalControlTime: this.hill.redControlTime + this.hill.blueControlTime,
+            neutralTime: this.battleTime - (this.hill.redControlTime + this.hill.blueControlTime),
+            controlChanges: this.hill.controlChanges || 0,
+            maxContinuousControl: {
+                red: this.hill.maxRedControl || 0,
+                blue: this.hill.maxBlueControl || 0
+            }
+        } : null;
+        
         return {
             winner,
+            victoryType,
             duration: this.battleTime,
             redSurvivors: aliveRed,
             blueSurvivors: aliveBlue,
             totalKills: this.redTeam.length + this.blueTeam.length - aliveRed - aliveBlue,
             redTeamStats: this.calculateTeamStats(this.redTeam),
-            blueTeamStats: this.calculateTeamStats(this.blueTeam)
+            blueTeamStats: this.calculateTeamStats(this.blueTeam),
+            hillControlData, // Enhanced hill control metrics
+            tacticalMetrics: this.calculateTacticalMetrics() // NEW: Comprehensive tactical analysis
         };
     }
     calculateTeamStats(team) {
@@ -321,14 +341,204 @@ class GameEngine {
             shotsHit: team.reduce((sum, tank) => sum + tank.shotsHit, 0)
         };
     }
+
+    calculateTacticalMetrics() {
+        // Comprehensive tactical analysis for evolution fitness
+        const redTanks = this.redTeam;
+        const blueTanks = this.blueTeam;
+        
+        return {
+            red: this.calculateTeamTacticalMetrics(redTanks, 'red'),
+            blue: this.calculateTeamTacticalMetrics(blueTanks, 'blue'),
+            battleComplexity: this.calculateBattleComplexity()
+        };
+    }
+
+    calculateTeamTacticalMetrics(team, _teamName) {
+        if (team.length === 0) {
+            return {
+                averageEngagementRange: 0,
+                coordinationScore: 0,
+                adaptabilityScore: 0,
+                survivalEfficiency: 0,
+                tacticDiversity: 0
+            };
+        }
+        
+        // 1. Average engagement range (closer = more aggressive)
+        const engagementDistances = team.map(tank => {
+            if (tank.shotsFired === 0) {
+                return 200; // Max range if no shots
+            }
+            return tank.averageEngagementDistance || 150; // Default medium range
+        });
+        const averageEngagementRange = engagementDistances.reduce((sum, dist) => sum + dist, 0) / engagementDistances.length;
+        
+        // 2. Coordination score (based on positioning and timing)
+        const coordinationScore = this.calculateCoordinationScore(team);
+        
+        // 3. Adaptability score (behavior changes during battle)
+        const adaptabilityScore = this.calculateAdaptabilityScore(team);
+        
+        // 4. Survival efficiency (damage dealt vs damage taken)
+        const totalDamageDealt = team.reduce((sum, tank) => sum + (tank.damageDealt || 0), 0);
+        const totalDamageTaken = team.reduce((sum, tank) => sum + (tank.damageTaken || 0), 0);
+        const survivalEfficiency = totalDamageTaken > 0 ? totalDamageDealt / totalDamageTaken : totalDamageDealt > 0 ? 2.0 : 1.0;
+        
+        // 5. Tactic diversity (variety in tank behaviors)
+        const tacticDiversity = this.calculateTacticDiversity(team);
+        
+        return {
+            averageEngagementRange,
+            coordinationScore,
+            adaptabilityScore,
+            survivalEfficiency,
+            tacticDiversity
+        };
+    }
+
+    calculateCoordinationScore(team) {
+        // Measure how well the team coordinated their actions
+        let coordinationScore = 0;
+        const aliveTanks = team.filter(tank => tank.isAlive);
+        
+        if (aliveTanks.length < 2) {
+            return 0.5; // Default for single tank
+        }
+        
+        // Check for synchronized attacks (shots fired within 2 seconds of each other)
+        let synchronizedAttacks = 0;
+        let totalAttackWindows = 0;
+        
+        aliveTanks.forEach((tank1, i) => {
+            aliveTanks.slice(i + 1).forEach(tank2 => {
+                if (tank1.lastShotTime && tank2.lastShotTime) {
+                    totalAttackWindows++;
+                    if (Math.abs(tank1.lastShotTime - tank2.lastShotTime) < 2.0) {
+                        synchronizedAttacks++;
+                    }
+                }
+            });
+        });
+        
+        if (totalAttackWindows > 0) {
+            coordinationScore += (synchronizedAttacks / totalAttackWindows) * 0.5;
+        }
+        
+        // Check for formation maintenance (tanks staying within reasonable distance)
+        let formationMaintained = 0;
+        let formationChecks = 0;
+        
+        aliveTanks.forEach((tank1, i) => {
+            aliveTanks.slice(i + 1).forEach(tank2 => {
+                formationChecks++;
+                const distance = Math.sqrt(
+                    Math.pow(tank1.x - tank2.x, 2) + Math.pow(tank1.y - tank2.y, 2)
+                );
+                if (distance < 200 && distance > 50) { // Good formation distance
+                    formationMaintained++;
+                }
+            });
+        });
+        
+        if (formationChecks > 0) {
+            coordinationScore += (formationMaintained / formationChecks) * 0.5;
+        }
+        
+        return Math.min(1.0, coordinationScore);
+    }
+
+    calculateAdaptabilityScore(team) {
+        // Measure how much tanks adapted their behavior during the battle
+        let adaptabilityScore = 0;
+        
+        team.forEach(tank => {
+            if (!tank.ai) {
+                return;
+            }
+            
+            // Check for state changes (indicating adaptation)
+            const stateChanges = tank.ai.stateChanges || 0;
+            const adaptabilityBonus = Math.min(stateChanges / 5, 1.0); // Max bonus for 5+ state changes
+            
+            // Check for target switching (tactical awareness)
+            const targetSwitches = tank.ai.targetSwitches || 0;
+            const targetingBonus = Math.min(targetSwitches / 3, 1.0); // Max bonus for 3+ target switches
+            
+            adaptabilityScore += (adaptabilityBonus + targetingBonus) / 2;
+        });
+        
+        return team.length > 0 ? adaptabilityScore / team.length : 0;
+    }
+
+    calculateTacticDiversity(team) {
+        // Measure the variety of tactics used by the team
+        const strategies = team.map(tank => {
+            if (!tank.genome) {
+                return 'Unknown';
+            }
+            
+            // Classify based on genome traits
+            const aggression = tank.genome[0] || 0;
+            const defense = tank.genome[3] || 0;
+            const teamwork = tank.genome[4] || 0;
+            const evasion = tank.genome[8] || 0;
+            
+            if (aggression > 0.7) {
+                return 'Aggressive';
+            }
+            if (defense > 0.7) {
+                return 'Defensive';
+            }
+            if (evasion > 0.7) {
+                return 'Evasive';
+            }
+            if (teamwork > 0.7) {
+                return 'Supportive';
+            }
+            return 'Balanced';
+        });
+        
+        const uniqueStrategies = new Set(strategies);
+        return uniqueStrategies.size / Math.max(team.length, 1); // Diversity ratio
+    }
+
+    calculateBattleComplexity() {
+        // Overall measure of how complex/interesting the battle was
+        let complexity = 0;
+        
+        // 1. Combat intensity (shots fired per second)
+        const totalShots = [...this.redTeam, ...this.blueTeam].reduce((sum, tank) => sum + (tank.shotsFired || 0), 0);
+        const shotsPerSecond = this.battleTime > 0 ? totalShots / this.battleTime : 0;
+        complexity += Math.min(shotsPerSecond / 5, 1.0) * 0.3; // Max at 5 shots/second
+        
+        // 2. Battle duration (longer battles can be more complex)
+        const durationComplexity = Math.min(this.battleTime / 60, 1.0); // Max at 60 seconds
+        complexity += durationComplexity * 0.2;
+        
+        // 3. Hill control changes (more back-and-forth = more complex)
+        if (this.hill) {
+            const controlChanges = this.hill.controlChanges || 0;
+            complexity += Math.min(controlChanges / 5, 1.0) * 0.3; // Max at 5 control changes
+        }
+        
+        // 4. Damage exchange ratio (close battles = more complex)
+        const redDamage = this.redTeam.reduce((sum, tank) => sum + (tank.damageDealt || 0), 0);
+        const blueDamage = this.blueTeam.reduce((sum, tank) => sum + (tank.damageDealt || 0), 0);
+        const totalDamage = redDamage + blueDamage;
+        if (totalDamage > 0) {
+            const damageBalance = 1 - Math.abs(redDamage - blueDamage) / totalDamage;
+            complexity += damageBalance * 0.2;
+        }
+        
+        return Math.min(1.0, complexity);
+    }
     render() {
         // Clear canvas
         this.ctx.fillStyle = '#0a0a0a';
         this.ctx.fillRect(0, 0, this.width, this.height);
         // Draw grid
         this.drawGrid();
-        // Draw obstacles
-        this.obstacles.forEach(obstacle => obstacle.render(this.ctx));
         // Draw King of the Hill
         if (this.hill) {
             this.hill.render(this.ctx);
@@ -385,6 +595,16 @@ class GameEngine {
                 resultText = 'BLUE TEAM WINS!';
             } else if (aliveBlue === 0) {
                 resultText = 'RED TEAM WINS!';
+            } else if (this.hill && this.hill.isGameWon()) {
+                // Hill control victory
+                const hillWinner = this.hill.getWinner();
+                if (hillWinner === 'red') {
+                    resultText = 'RED TEAM WINS - Hill Control!';
+                } else if (hillWinner === 'blue') {
+                    resultText = 'BLUE TEAM WINS - Hill Control!';
+                } else {
+                    resultText = 'BATTLE TIMEOUT';
+                }
             } else {
                 resultText = 'BATTLE TIMEOUT';
             }
