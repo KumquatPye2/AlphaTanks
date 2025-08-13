@@ -9,7 +9,7 @@ class Hill {
         this.captureTime = 3.0; // Seconds to capture
         this.contestRadius = this.radius + 20; // Larger radius for contesting
         // Victory conditions
-        this.hillOccupationTime = 30.0; // Seconds needed to win by hill control
+        this.occupationTime = 20; // Reduced from 30 to 20 seconds for faster-paced battles
         this.redControlTime = 0; // Time red team has been controlling hill
         this.blueControlTime = 0; // Time blue team has been controlling hill
         
@@ -56,23 +56,18 @@ class Hill {
                 this.controllingTeam = null;
             }
         }
-        // Award points if hill is controlled
+        // Award points and track time if hill is controlled
         if (this.controllingTeam && this.controlProgress >= 100) {
             const pointsToAdd = this.pointsPerSecond * deltaTime;
             if (this.controllingTeam === 'red') {
                 this.redScore += pointsToAdd;
-                this.redControlTime += deltaTime;
-                this.blueControlTime = 0; // Reset opponent's control time
+                this.redControlTime += deltaTime; // Accumulate total red control time
             } else {
                 this.blueScore += pointsToAdd;
-                this.blueControlTime += deltaTime;
-                this.redControlTime = 0; // Reset opponent's control time
+                this.blueControlTime += deltaTime; // Accumulate total blue control time
             }
-        } else {
-            // Hill is not fully controlled, reset both control times
-            this.redControlTime = 0;
-            this.blueControlTime = 0;
         }
+        // Note: Control times are now cumulative and never reset during battle
         // Update visual effects
         this.updateEffects(deltaTime);
     }
@@ -240,22 +235,22 @@ class Hill {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
         ctx.fillRect(this.x - 180, 10, 360, 80);
         
-        // Control timer display
-        const redTimeLeft = Math.max(0, this.hillOccupationTime - this.redControlTime);
-        const blueTimeLeft = Math.max(0, this.hillOccupationTime - this.blueControlTime);
+        // Control timer display - show total time held by each team
+        const redTotalTime = this.redControlTime || 0;
+        const blueTotalTime = this.blueControlTime || 0;
         
-        // Red team control time
+        // Red team total control time
         ctx.fillStyle = '#ff4444';
-        ctx.fillText(`Red: ${redTimeLeft.toFixed(1)}s`, this.x - 80, 35);
+        ctx.fillText(`Red: ${redTotalTime.toFixed(1)}s`, this.x - 80, 35);
         
-        // Blue team control time  
+        // Blue team total control time  
         ctx.fillStyle = '#4444ff';
-        ctx.fillText(`Blue: ${blueTimeLeft.toFixed(1)}s`, this.x + 80, 35);
+        ctx.fillText(`Blue: ${blueTotalTime.toFixed(1)}s`, this.x + 80, 35);
         
         // Victory condition text
         ctx.font = '12px Arial';
         ctx.fillStyle = '#ffffff';
-        ctx.fillText('First to hold hill for 30s wins', this.x, 52);
+        ctx.fillText(`First to hold hill for ${this.occupationTime}s wins`, this.x, 52);
         
         // Hill status
         ctx.font = '14px Arial';
@@ -266,10 +261,10 @@ class Hill {
         }
         ctx.fillText(statusText, this.x, 70);
         
-        // Progress bar for current control
+        // Progress bar for current control - show progress toward victory
         if (this.controllingTeam && this.controlProgress >= 100) {
             const controlTime = this.controllingTeam === 'red' ? this.redControlTime : this.blueControlTime;
-            const progressWidth = (controlTime / this.hillOccupationTime) * 300;
+            const progressWidth = Math.min(1, (controlTime / this.occupationTime)) * 300; // Cap at 100%
             
             ctx.fillStyle = this.controllingTeam === 'red' ? 'rgba(255, 68, 68, 0.3)' : 'rgba(68, 68, 255, 0.3)';
             ctx.fillRect(this.x - 150, 75, progressWidth, 8);
@@ -283,19 +278,19 @@ class Hill {
     }
     // Check if game is won
     isGameWon() {
-        // Victory by 30-second hill occupation
-        if (this.redControlTime >= this.hillOccupationTime || this.blueControlTime >= this.hillOccupationTime) {
+        // Victory by 20-second hill occupation
+        if (this.redControlTime >= this.occupationTime || this.blueControlTime >= this.occupationTime) {
             return true;
         }
         // Legacy victory by points (kept for compatibility)
         return this.redScore >= this.maxScore || this.blueScore >= this.maxScore;
     }
     getWinner() {
-        // Check 30-second hill control victory first
-        if (this.redControlTime >= this.hillOccupationTime) {
+        // Check 20-second hill control victory first
+        if (this.redControlTime >= this.occupationTime) {
             return 'red';
         }
-        if (this.blueControlTime >= this.hillOccupationTime) {
+        if (this.blueControlTime >= this.occupationTime) {
             return 'blue';
         }
         // Legacy point-based victory
@@ -319,9 +314,9 @@ class Hill {
             blueScore: this.blueScore,
             redControlTime: this.redControlTime,
             blueControlTime: this.blueControlTime,
-            hillOccupationTime: this.hillOccupationTime,
-            redTimeToWin: Math.max(0, this.hillOccupationTime - this.redControlTime),
-            blueTimeToWin: Math.max(0, this.hillOccupationTime - this.blueControlTime),
+            hillOccupationTime: this.occupationTime,
+            redTimeToWin: Math.max(0, this.occupationTime - this.redControlTime),
+            blueTimeToWin: Math.max(0, this.occupationTime - this.blueControlTime),
             isContested: this.controlProgress > 0 && this.controlProgress < 100,
             isNeutral: this.controllingTeam === null,
             isSecure: this.controlProgress >= 100

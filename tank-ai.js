@@ -513,23 +513,99 @@ class Tank {
                 this.targetY = this.y;
             }
         } else {
-            // Approach the hill, but consider combat factors
+            // Approach the hill with obstacle-aware pathfinding
             const directAngle = Math.atan2(hillY - this.y, hillX - this.x);
-            // If we have a target, adjust approach to maintain combat effectiveness
-            let tacticalAngle = directAngle;
-            if (this.target && this.distanceTo(this.target) < this.range * 1.5) {
-                // Approach hill while keeping target in sight
-                const targetAngle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
-                tacticalAngle = (directAngle + targetAngle) / 2; // Compromise between hill and target
-            } else {
-                // Add some randomness for flanking when no immediate combat threat
-                tacticalAngle = directAngle + (Math.random() - 0.5) * 0.5;
+            let bestTarget = null;
+            let bestScore = -1;
+            
+            // Try multiple approach angles to find the best path
+            const angleVariations = [-0.8, -0.4, 0, 0.4, 0.8]; // Different approach angles
+            
+            for (const angleOffset of angleVariations) {
+                let tacticalAngle = directAngle + angleOffset;
+                
+                // If we have a target, adjust approach to maintain combat effectiveness
+                if (this.target && this.distanceTo(this.target) < this.range * 1.5) {
+                    const targetAngle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
+                    tacticalAngle = (tacticalAngle + targetAngle) / 2;
+                }
+                
+                const approachDistance = this.hillInfo.contestRadius * 0.8;
+                const candidateX = hillX + Math.cos(tacticalAngle) * approachDistance;
+                const candidateY = hillY + Math.sin(tacticalAngle) * approachDistance;
+                
+                // Check if this path is clear of obstacles
+                const pathClear = this.hasPathToPosition(candidateX, candidateY);
+                const distanceToCandidate = Math.sqrt((candidateX - this.x) ** 2 + (candidateY - this.y) ** 2);
+                
+                // Score based on path clarity and distance
+                const score = pathClear ? (1000 - distanceToCandidate) : -distanceToCandidate;
+                
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestTarget = { x: candidateX, y: candidateY };
+                }
             }
-            const approachDistance = this.hillInfo.contestRadius * 0.8;
-            this.targetX = hillX + Math.cos(tacticalAngle) * approachDistance;
-            this.targetY = hillY + Math.sin(tacticalAngle) * approachDistance;
+            
+            if (bestTarget) {
+                this.targetX = bestTarget.x;
+                this.targetY = bestTarget.y;
+            } else {
+                // Fallback: try to move around obstacles
+                this.findAlternativePathToHill(hillX, hillY);
+            }
         }
-    }    findRepositionTarget() {
+    }
+    hasPathToPosition(targetX, targetY) {
+        // Check if there's a clear path from current position to target
+        if (!window.game || !window.game.obstacles) {
+            return true;
+        }
+        
+        const startX = this.x + this.width / 2;
+        const startY = this.y + this.height / 2;
+        
+        // Simple line-of-sight check for obstacles
+        return !window.game.obstacles.some(obstacle => 
+            this.lineIntersectsRectangle(startX, startY, targetX, targetY, obstacle)
+        );
+    }
+    findAlternativePathToHill(hillX, hillY) {
+        // Try to find a path around obstacles by testing waypoints
+        const currentAngle = Math.atan2(hillY - this.y, hillX - this.x);
+        const alternatives = [
+            currentAngle + Math.PI/3,  // 60 degrees left
+            currentAngle - Math.PI/3,  // 60 degrees right
+            currentAngle + Math.PI/2,  // 90 degrees left
+            currentAngle - Math.PI/2,  // 90 degrees right
+        ];
+        
+        for (const angle of alternatives) {
+            // Try moving in this direction for a reasonable distance
+            const waypointDistance = 100;
+            const waypointX = this.x + Math.cos(angle) * waypointDistance;
+            const waypointY = this.y + Math.sin(angle) * waypointDistance;
+            
+            // Check if this waypoint is reachable and closer to hill
+            if (this.hasPathToPosition(waypointX, waypointY)) {
+                const currentDistanceToHill = Math.sqrt((this.x - hillX) ** 2 + (this.y - hillY) ** 2);
+                const waypointDistanceToHill = Math.sqrt((waypointX - hillX) ** 2 + (waypointY - hillY) ** 2);
+                
+                // Use this waypoint if it gets us closer to the hill
+                if (waypointDistanceToHill < currentDistanceToHill) {
+                    this.targetX = waypointX;
+                    this.targetY = waypointY;
+                    return;
+                }
+            }
+        }
+        
+        // If no good alternative found, just move perpendicular to try to get unstuck
+        const perpAngle = currentAngle + Math.PI/2;
+        this.targetX = this.x + Math.cos(perpAngle) * 50;
+        this.targetY = this.y + Math.sin(perpAngle) * 50;
+    }
+    findRepositionTarget() {
         if (!this.target) {
             this.setState('patrol');
             return;
@@ -617,13 +693,41 @@ class Tank {
                 this.x = newX;
                 this.y = newY;
             } else {
-                // Simple obstacle avoidance - try perpendicular movement
-                const perpAngle = this.angle + Math.PI / 2;
-                const perpX = this.x + Math.cos(perpAngle) * this.speed * deltaTime;
-                const perpY = this.y + Math.sin(perpAngle) * this.speed * deltaTime;
-                if (!this.wouldCollideWithObstacles(perpX, perpY, gameState.obstacles)) {
-                    this.x = perpX;
-                    this.y = perpY;
+                // Enhanced obstacle avoidance - try multiple escape directions
+                const avoidanceAttempts = [
+                    this.angle + Math.PI / 2,     // 90 degrees right
+                    this.angle - Math.PI / 2,     // 90 degrees left
+                    this.angle + Math.PI / 4,     // 45 degrees right
+                    this.angle - Math.PI / 4,     // 45 degrees left
+                    this.angle + Math.PI,         // 180 degrees (reverse)
+                ];
+                
+                let foundEscape = false;
+                for (const escapeAngle of avoidanceAttempts) {
+                    const escapeX = this.x + Math.cos(escapeAngle) * this.speed * deltaTime;
+                    const escapeY = this.y + Math.sin(escapeAngle) * this.speed * deltaTime;
+                    
+                    if (!this.wouldCollideWithObstacles(escapeX, escapeY, gameState.obstacles)) {
+                        this.x = escapeX;
+                        this.y = escapeY;
+                        foundEscape = true;
+                        break;
+                    }
+                }
+                
+                // If still stuck, try smaller movements
+                if (!foundEscape) {
+                    const smallMoveDistance = this.speed * deltaTime * 0.5;
+                    for (const escapeAngle of avoidanceAttempts) {
+                        const escapeX = this.x + Math.cos(escapeAngle) * smallMoveDistance;
+                        const escapeY = this.y + Math.sin(escapeAngle) * smallMoveDistance;
+                        
+                        if (!this.wouldCollideWithObstacles(escapeX, escapeY, gameState.obstacles)) {
+                            this.x = escapeX;
+                            this.y = escapeY;
+                            break;
+                        }
+                    }
                 }
             }
         }

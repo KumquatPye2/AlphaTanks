@@ -150,8 +150,8 @@ class TankResearcher {
         // RED QUEEN RACE: Analyze opponent strategies for counter-evolution
         const opponentTeam = team === 'red' ? 'blue' : 'red';
         const opponentStrategies = this.analyzeOpponentStrategies(history, opponentTeam);
-        // Generate 3 tanks per team
-        for (let i = 0; i < 3; i++) {
+        // Generate 5 tanks per team for more strategic depth
+        for (let i = 0; i < 5; i++) {
             let genome;
             let generationType = 'random';
             if (parents.length >= 2 && Math.random() < this.crossoverRate) {
@@ -564,22 +564,24 @@ class TankEngineer {
                     window.game.initializeKingOfHill();
                 }
                 
-                // Create red team with evolved genomes
+                // Create red team with evolved genomes - left side formation
                 redGenomes.forEach((genome, i) => {
+                    // Deploy at left end of battlefield in vertical formation
                     const tank = new Tank(
-                        50 + i * 30,
-                        window.game.height * 0.3 + i * 40,
+                        50 + i * 20, // Left side with slight horizontal spread
+                        window.game.height * 0.2 + i * (window.game.height * 0.6 / (redGenomes.length - 1)), // Vertical spread
                         'red',
                         genome
                     );
                     window.game.tanks.push(tank);
                     window.game.redTeam.push(tank);
                 });
-                // Create blue team with evolved genomes
+                // Create blue team with evolved genomes - right side formation  
                 blueGenomes.forEach((genome, i) => {
+                    // Deploy at right end of battlefield in vertical formation
                     const tank = new Tank(
-                        window.game.width - 100 - i * 30,
-                        window.game.height * 0.3 + i * 40,
+                        window.game.width - 50 - i * 20, // Right side with slight horizontal spread
+                        window.game.height * 0.2 + i * (window.game.height * 0.6 / (blueGenomes.length - 1)), // Vertical spread
                         'blue',
                         genome
                     );

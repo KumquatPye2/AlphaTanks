@@ -34,8 +34,55 @@ class GameEngine {
         this.ctx.imageSmoothingEnabled = false;
     }
     createObstacles() {
-        // No obstacles - clear battlefield for King of the Hill
+        // Add strategic obstacles for hill control gameplay
         this.obstacles = [];
+        
+        const centerX = this.width / 2;
+        const centerY = this.height / 2;
+        
+        // Large cover blocks near hill for tactical positioning
+        this.obstacles.push({
+            x: centerX - 150, y: centerY - 80, 
+            width: 60, height: 40,
+            type: 'cover'
+        });
+        this.obstacles.push({
+            x: centerX + 90, y: centerY - 80,
+            width: 60, height: 40, 
+            type: 'cover'
+        });
+        this.obstacles.push({
+            x: centerX - 150, y: centerY + 40,
+            width: 60, height: 40,
+            type: 'cover'
+        });
+        this.obstacles.push({
+            x: centerX + 90, y: centerY + 40,
+            width: 60, height: 40,
+            type: 'cover'
+        });
+        
+        // Pathway barriers to funnel tank movement
+        this.obstacles.push({
+            x: centerX - 250, y: centerY - 120,
+            width: 30, height: 100,
+            type: 'barrier'
+        });
+        this.obstacles.push({
+            x: centerX + 220, y: centerY - 120,
+            width: 30, height: 100,
+            type: 'barrier'
+        });
+        this.obstacles.push({
+            x: centerX - 250, y: centerY + 20,
+            width: 30, height: 100,
+            type: 'barrier'
+        });
+        this.obstacles.push({
+            x: centerX + 220, y: centerY + 20,
+            width: 30, height: 100,
+            type: 'barrier'
+        });
     }
     bindEvents() {
         window.addEventListener('resize', () => this.setupCanvas());
@@ -545,6 +592,8 @@ class GameEngine {
         this.ctx.fillRect(0, 0, this.width, this.height);
         // Draw grid
         this.drawGrid();
+        // Draw obstacles
+        this.drawObstacles();
         // Draw King of the Hill
         if (this.hill) {
             this.hill.render(this.ctx);
@@ -573,6 +622,16 @@ class GameEngine {
             this.ctx.stroke();
         }
     }
+    drawObstacles() {
+        this.obstacles.forEach(obstacle => {
+            this.ctx.fillStyle = obstacle.type === 'cover' ? '#444' : '#666';
+            this.ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+            // Add border for visual clarity
+            this.ctx.strokeStyle = obstacle.type === 'cover' ? '#666' : '#888';
+            this.ctx.lineWidth = 2;
+            this.ctx.strokeRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+        });
+    }
     drawBattleInfo() {
         this.ctx.fillStyle = '#00ff88';
         this.ctx.font = '14px Courier New';
@@ -584,12 +643,13 @@ class GameEngine {
         } else {
             this.ctx.fillText(`Battle Time: ${this.battleTime.toFixed(1)}s`, 10, 25);
         }
-        const aliveRed = this.redTeam.filter(tank => tank.isAlive).length;
-        const aliveBlue = this.blueTeam.filter(tank => tank.isAlive).length;
+        const aliveRed = this.redTeam.filter(tank => tank && tank.isAlive === true).length;
+        const aliveBlue = this.blueTeam.filter(tank => tank && tank.isAlive === true).length;
         this.ctx.fillStyle = '#ff4444';
         this.ctx.fillText(`Red: ${aliveRed}`, 10, 50);
         this.ctx.fillStyle = '#4444ff';
         this.ctx.fillText(`Blue: ${aliveBlue}`, 10, 75);
+        
         // Show battle result when game has ended
         if (this.gameState === 'ended') {
             this.ctx.fillStyle = '#ffff00';
@@ -614,7 +674,7 @@ class GameEngine {
             } else {
                 resultText = 'BATTLE TIMEOUT';
             }
-            this.ctx.fillText(resultText, 10, 105);
+            this.ctx.fillText(resultText, 10, 100);
         }
     }
     updateUI() {
