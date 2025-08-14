@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlphaTanks - Refactored Version</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            color: #00ff88;
+            text-shadow: 0 0 10px #00ff88;
+            margin: 0;
+        }
+        
+        .header p {
+            color: #888;
+            margin: 5px 0;
+        }
+        
+        /* Evolution Control Bar */
+        .evolution-control-bar {
+            background: #222;
+            border: 2px solid #00ff88;
+            border-radius: 5px;
+            padding: 10px 20px;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .evolution-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .control-group label {
+            color: #00ff88;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        
+        button {
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            padding: 8px 16px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 12px;
+        }
+        
+        button:hover {
+            background: #555;
+            border-color: #777;
+        }
+        
+        button.active {
+            background: #00ff88;
+            color: black;
+            border-color: #00ff88;
+        }
+        
+        input[type="range"] {
+            width: 80px;
+        }
+        
+        input[type="number"] {
+            width: 60px;
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            padding: 4px;
+            border-radius: 3px;
+        }
+        
+        select {
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            padding: 4px 8px;
+            border-radius: 3px;
+        }
+        
+        /* Game Container */
+        .game-container {
+            display: flex;
+            gap: 20px;
+            height: calc(100vh - 200px);
+        }
+        
+        .main-game {
+            flex: 1;
+            position: relative;
+        }
+        
+        #gameCanvas {
+            border: 2px solid #00ff88;
+            border-radius: 5px;
+            background: #000;
+            display: block;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 350px;
+            background: #222;
+            border: 2px solid #00ff88;
+            border-radius: 5px;
+            padding: 15px;
+            overflow-y: auto;
+            max-height: 100%;
+        }
+        
+        .sidebar h3 {
+            color: #00ff88;
+            margin-top: 0;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+        
+        .stat-label {
+            color: #888;
+        }
+        
+        .stat-value {
+            color: white;
+            font-weight: bold;
+        }
+        
+        .team-red { color: #ff4444; }
+        .team-blue { color: #4444ff; }
+        
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #333;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 5px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-red { background: #ff4444; }
+        .progress-blue { background: #4444ff; }
+        
+        /* Insights Panels */
+        .insights-panel {
+            margin-bottom: 20px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 5px;
+            padding: 10px;
+        }
+        
+        .insights-panel h4 {
+            margin: 0 0 10px 0;
+            color: #00ff88;
+            font-size: 14px;
+        }
+        
+        .insight-item {
+            font-size: 11px;
+            margin-bottom: 5px;
+            line-height: 1.3;
+        }
+        
+        /* Charts */
+        .chart-container {
+            margin: 15px 0;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 5px;
+            padding: 10px;
+        }
+        
+        .chart-container canvas {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        /* Status indicators */
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .status-running { background: #00ff88; }
+        .status-paused { background: #ffaa00; }
+        .status-stopped { background: #ff4444; }
+        
+        /* Responsive design */
+        @media (max-width: 1200px) {
+            .game-container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                max-height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎯 AlphaTanks - Refactored Evolution Engine</h1>
+        <p>Advanced AI Tank Battle Simulation with Genetic Evolution</p>
+    </div>
+
+    <div class="evolution-control-bar">
+        <div class="evolution-controls">
+            <button id="startBtn">Start Evolution</button>
+            <button id="pauseBtn">Pause</button>
+            <button id="resetBtn">Reset</button>
+            <button id="quickBattleBtn">Quick Battle</button>
+        </div>
+        
+        <div class="evolution-controls">
+            <div class="control-group">
+                <label>Speed:</label>
+                <input type="range" id="speedSlider" min="0.1" max="5" step="0.1" value="1">
+                <span id="speedValue">1x</span>
+            </div>
+            
+            <div class="control-group">
+                <label>Generation:</label>
+                <span id="generationDisplay">1</span>
+            </div>
+            
+            <div class="control-group">
+                <label>Battle:</label>
+                <span id="battleDisplay">1/10</span>
+            </div>
+        </div>
+        
+        <div class="evolution-controls">
+            <div class="control-group">
+                <label>Population:</label>
+                <input type="number" id="populationSize" min="10" max="100" value="30">
+            </div>
+            
+            <div class="control-group">
+                <label>Mode:</label>
+                <select id="gameMode">
+                    <option value="king_of_hill">King of Hill</option>
+                    <option value="elimination">Elimination</option>
+                    <option value="survival">Survival</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="game-container">
+        <div class="main-game">
+            <canvas id="gameCanvas" width="800" height="600"></canvas>
+        </div>
+        
+        <div class="sidebar">
+            <h3>🏆 Battle Status</h3>
+            <div id="battleStats">
+                <div class="stat-item">
+                    <span class="stat-label">Battle Time:</span>
+                    <span class="stat-value" id="battleTime">0:00</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Hill Control:</span>
+                    <span class="stat-value" id="hillControl">Neutral</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label team-red">Red Tanks:</span>
+                    <span class="stat-value" id="redTanks">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label team-blue">Blue Tanks:</span>
+                    <span class="stat-value" id="blueTanks">0</span>
+                </div>
+            </div>
+            
+            <h3>📊 Evolution Progress</h3>
+            <div id="evolutionStats">
+                <div class="stat-item">
+                    <span class="stat-label">Generation:</span>
+                    <span class="stat-value" id="currentGeneration">1</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Best Fitness:</span>
+                    <span class="stat-value" id="bestFitness">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Avg Fitness:</span>
+                    <span class="stat-value" id="avgFitness">0</span>
+                </div>
+            </div>
+            
+            <div class="progress-bar">
+                <div class="progress-fill progress-red" id="redProgress" style="width: 50%"></div>
+            </div>
+            
+            <h3>🧠 AI Insights</h3>
+            <div class="insights-panel" id="researcherInsights">
+                <h4>Researcher Analysis</h4>
+                <div id="researcherContent">Analyzing battle patterns...</div>
+            </div>
+            
+            <div class="insights-panel" id="engineerInsights">
+                <h4>Engineer Optimization</h4>
+                <div id="engineerContent">Monitoring performance...</div>
+            </div>
+            
+            <div class="insights-panel" id="analystInsights">
+                <h4>Analyst Insights</h4>
+                <div id="analystContent">Evaluating strategies...</div>
+            </div>
+            
+            <div class="insights-panel">
+                <h4>Tactical Evolution</h4>
+                <div class="stat-item">
+                    <span class="stat-label">Current Generation:</span>
+                    <span class="stat-value" id="current-generation">1</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Total Experiments:</span>
+                    <span class="stat-value" id="total-experiments">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Battle Duration:</span>
+                    <span class="stat-value" id="last-battle-duration">0s</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Hill Changes:</span>
+                    <span class="stat-value" id="hill-changes">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Tactical Complexity:</span>
+                    <span class="stat-value" id="tactical-complexity">Low</span>
+                </div>
+                
+                <!-- Hidden compatibility elements for evolution-engine.js -->
+                <div style="display: none;">
+                    <span id="experiments">0</span>
+                    <span id="battles">0</span>
+                    <span id="redWins">0</span>
+                    <span id="blueWins">0</span>
+                    <span id="redFitness">0.000</span>
+                    <span id="blueFitness">0.000</span>
+                    <span id="redBest">Balanced</span>
+                    <span id="blueBest">Balanced</span>
+                    <span id="novelDesigns">0</span>
+                </div>
+                
+                <h5 style="color: #ff4444; margin: 10px 0 5px 0;">Red Team</h5>
+                <div class="stat-item">
+                    <span class="stat-label">Diversity:</span>
+                    <span class="stat-value" id="red-diversity">0%</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Innovation:</span>
+                    <span class="stat-value" id="red-innovation">0%</span>
+                </div>
+                <div id="red-strategy-list" class="insight-item">No strategies yet</div>
+                <div id="red-champions" class="insight-item">No champions yet</div>
+                
+                <h5 style="color: #4444ff; margin: 10px 0 5px 0;">Blue Team</h5>
+                <div class="stat-item">
+                    <span class="stat-label">Diversity:</span>
+                    <span class="stat-value" id="blue-diversity">0%</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Innovation:</span>
+                    <span class="stat-value" id="blue-innovation">0%</span>
+                </div>
+                <div id="blue-strategy-list" class="insight-item">No strategies yet</div>
+                <div id="blue-champions" class="insight-item">No champions yet</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- External Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Configuration -->
+    <script src="config.js?v=1754540001"></script>
+    
+    <!-- Create ResearcherInsights fallback BEFORE other scripts load -->
+    <script>
+        // Create early fallback to prevent evolution-engine.js errors
+        if (typeof window.researcherInsights === 'undefined') {
+            window.researcherInsights = {
+                trackGenomeGeneration: function(genome, team, type) {
+                    console.log(`📊 Early Fallback: Genome tracked - ${team} ${type}`, genome);
+                },
+                trackExperiment: function() {},
+                trackMutation: function() {},
+                trackCrossover: function() {},
+                trackTournament: function() {}
+            };
+            console.log('✅ Early fallback ResearcherInsights created');
+        }
+    </script>
+    
+    <!-- Refactored Components (New Architecture) -->
+    <script src="refactored/common/constants.js"></script>
+    <script src="refactored/common/utils.js"></script>
+    <script src="refactored/ai/tank-entity.js"></script>
+    <script src="refactored/ai/tank-ai.js"></script>
+    <script src="refactored/ai/tank-combat.js"></script>
+    <script src="refactored/ai/tank.js"></script>
+    <script src="refactored/game/hill-control.js"></script>
+    <script src="refactored/game/battle-managers.js"></script>
+    <script src="refactored/game/game-engine.js"></script>
+    <script src="refactored/integration-test.js"></script>
+    <script src="refactored/validation.js"></script>
+    
+    <!-- Supporting Systems (Keep existing) -->
+    <script src="core/data-collector.js?v=1754336875"></script>
+    <script src="core/dashboard-ui.js?v=1754336875"></script>
+    <script src="core/researcher-insights-refactored.js?v=1754336875"></script>
+    <script src="engineer-insights.js?v=1754336875"></script>
+    <script src="analyst-insights.js?v=1754336875"></script>
+    <script src="cognition-insights.js?v=1754500007"></script>
+    
+    <!-- Evolution Engine (Keep existing for now) -->
+    <script src="evolution-engine.js?v=1754541003"></script>
+    
+    <!-- ASI Architecture Modules (Keep existing) -->
+    <script src="deepseek-client.js?v=1754540001"></script>
+    <script src="llm-enhanced-asi-arch.js?v=1754541003"></script>
+    <script src="asi-arch-integration.js?v=1754540001"></script>
+    <script src="asi-arch-modules.js?v=1754541003"></script>
+    <script src="asi-arch-visualizer.js?v=1754336875"></script>
+    
+    <!-- Tactical Display -->
+    <script src="tactical-evolution-display.js?v=1754541005"></script>
+    
+    <!-- Main Application (Modified to use refactored components) -->
+    <script>
+        // Initialize the refactored game engine
+        let gameEngine = null;
+        let evolutionEngine = null;
+        let isRunning = false;
+        let isPaused = false;
+        
+        // UI Elements
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const quickBattleBtn = document.getElementById('quickBattleBtn');
+        const speedSlider = document.getElementById('speedSlider');
+        const speedValue = document.getElementById('speedValue');
+        const populationSize = document.getElementById('populationSize');
+        const gameMode = document.getElementById('gameMode');
+        
+        // Initialize application
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('🚀 Initializing Refactored AlphaTanks...');
+            
+            // Wait a bit for all scripts to load
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Initialize core systems first
+            try {
+                if (typeof ResearcherInsights !== 'undefined' && 
+                    typeof DataCollector !== 'undefined' && 
+                    typeof DashboardUI !== 'undefined' && 
+                    typeof EventManager !== 'undefined') {
+                    // Replace fallback with real ResearcherInsights
+                    window.researcherInsights = new ResearcherInsights();
+                    console.log('✅ Real ResearcherInsights initialized (replaced fallback)');
+                } else {
+                    console.warn('⚠️ ResearcherInsights dependencies not available, keeping fallback');
+                }
+                
+                if (typeof EngineerInsights !== 'undefined') {
+                    window.engineerInsights = new EngineerInsights();
+                    console.log('✅ EngineerInsights initialized');
+                } else {
+                    console.warn('⚠️ EngineerInsights not available');
+                }
+                
+                if (typeof AnalystInsights !== 'undefined') {
+                    window.analystInsights = new AnalystInsights();
+                    console.log('✅ AnalystInsights initialized');
+                } else {
+                    console.warn('⚠️ AnalystInsights not available');
+                }
+            } catch (error) {
+                console.warn('⚠️ Some insights systems failed to initialize:', error);
+                console.log('🔄 Keeping fallback ResearcherInsights for compatibility');
+            }
+            
+            // Verify ResearcherInsights compatibility
+            if (window.researcherInsights && typeof window.researcherInsights.trackGenomeGeneration === 'function') {
+                console.log('✅ ResearcherInsights.trackGenomeGeneration confirmed working');
+                // Test it
+                try {
+                    window.researcherInsights.trackGenomeGeneration([0.5, 0.5, 0.5], 'test', 'validation');
+                    console.log('✅ ResearcherInsights test call successful');
+                } catch (error) {
+                    console.error('❌ ResearcherInsights test call failed:', error);
+                }
+            } else {
+                console.error('❌ ResearcherInsights.trackGenomeGeneration is not available!');
+            }
+            
+            // Test refactored components first
+            const testPassed = testRefactoredComponents();
+            if (!testPassed) {
+                console.error('❌ Component tests failed!');
+                return;
+            }
+            
+            console.log('✅ All components initialized successfully');
+            
+            // Initialize game engine with refactored components
+            gameEngine = new GameEngine(canvas, {
+                populationSize: parseInt(populationSize.value),
+                gameMode: gameMode.value
+            });
+            
+            // Initialize evolution engine (keeping existing for now)
+            if (typeof EvolutionEngine !== 'undefined') {
+                evolutionEngine = new EvolutionEngine();
+            }
+            
+            // Set up event listeners
+            setupEventListeners();
+            
+            // Start the main game loop
+            startGameLoop();
+            
+            console.log('🎮 AlphaTanks ready to play!');
+        });
+        
+        function setupEventListeners() {
+            startBtn.addEventListener('click', startEvolution);
+            pauseBtn.addEventListener('click', togglePause);
+            resetBtn.addEventListener('click', resetSimulation);
+            quickBattleBtn.addEventListener('click', startQuickBattle);
+            
+            speedSlider.addEventListener('input', (e) => {
+                const speed = parseFloat(e.target.value);
+                speedValue.textContent = speed + 'x';
+                if (gameEngine) {
+                    gameEngine.setTimeScale(speed);
+                }
+            });
+            
+            populationSize.addEventListener('change', (e) => {
+                if (gameEngine) {
+                    gameEngine.setPopulationSize(parseInt(e.target.value));
+                }
+            });
+            
+            gameMode.addEventListener('change', (e) => {
+                if (gameEngine) {
+                    gameEngine.setGameMode(e.target.value);
+                }
+            });
+        }
+        
+        function startEvolution() {
+            if (!isRunning) {
+                isRunning = true;
+                isPaused = false;
+                startBtn.textContent = 'Running...';
+                startBtn.disabled = true;
+                pauseBtn.disabled = false;
+                
+                if (gameEngine) {
+                    gameEngine.startEvolution();
+                }
+                
+                console.log('🧬 Evolution started');
+            }
+        }
+        
+        function togglePause() {
+            if (isRunning) {
+                isPaused = !isPaused;
+                pauseBtn.textContent = isPaused ? 'Resume' : 'Pause';
+                
+                if (gameEngine) {
+                    if (isPaused) {
+                        gameEngine.pause();
+                    } else {
+                        gameEngine.resume();
+                    }
+                }
+                
+                console.log(isPaused ? '⏸️ Paused' : '▶️ Resumed');
+            }
+        }
+        
+        function resetSimulation() {
+            isRunning = false;
+            isPaused = false;
+            startBtn.textContent = 'Start Evolution';
+            startBtn.disabled = false;
+            pauseBtn.textContent = 'Pause';
+            pauseBtn.disabled = true;
+            
+            if (gameEngine) {
+                gameEngine.reset();
+            }
+            
+            console.log('🔄 Simulation reset');
+        }
+        
+        function startQuickBattle() {
+            if (gameEngine) {
+                gameEngine.startQuickBattle();
+                console.log('⚡ Quick battle started');
+            }
+        }
+        
+        function startGameLoop() {
+            let lastTime = 0;
+            
+            function gameLoop(currentTime) {
+                const deltaTime = (currentTime - lastTime) / 1000;
+                lastTime = currentTime;
+                
+                if (gameEngine && !isPaused) {
+                    // Only update if battle is running and tanks exist
+                    if (gameEngine.gameState === GAME_STATES.RUNNING && gameEngine.tanks.length > 0) {
+                        gameEngine.update(deltaTime);
+                    }
+                    gameEngine.render(ctx);
+                    updateUI();
+                }
+                
+                requestAnimationFrame(gameLoop);
+            }
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        function updateUI() {
+            if (!gameEngine) return;
+            
+            const stats = gameEngine.getStats();
+            
+            // Update battle stats
+            document.getElementById('battleTime').textContent = formatTime(stats.battleTime);
+            document.getElementById('hillControl').textContent = stats.hillController || 'Neutral';
+            document.getElementById('redTanks').textContent = stats.redTanks;
+            document.getElementById('blueTanks').textContent = stats.blueTanks;
+            
+            // Update evolution stats
+            document.getElementById('currentGeneration').textContent = stats.generation;
+            document.getElementById('bestFitness').textContent = stats.bestFitness.toFixed(2);
+            document.getElementById('avgFitness').textContent = stats.avgFitness.toFixed(2);
+            document.getElementById('generationDisplay').textContent = stats.generation;
+            document.getElementById('battleDisplay').textContent = `${stats.battle}/${stats.battlesPerGeneration}`;
+            
+            // Update progress bars
+            const redProgress = Math.max(0, Math.min(100, (stats.redTanks / stats.totalTanks) * 100));
+            document.getElementById('redProgress').style.width = redProgress + '%';
+        }
+        
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${minutes}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        // Global error handler
+        window.addEventListener('error', (event) => {
+            console.error('❌ Application error:', event.error);
+        });
+        
+        // Export for debugging
+        window.gameEngine = () => gameEngine;
+        window.evolutionEngine = () => evolutionEngine;
+    </script>
+</body>
+</html>
