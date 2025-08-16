@@ -18,7 +18,12 @@ class TankCombat {
             return;
         }
         
-        // Handle automatic firing if we have a target
+        // Drop invalid targets proactively
+        if (this.tank.target && (!this.tank.target.isAlive)) {
+            this.tank.setTarget(null);
+        }
+        
+        // Handle automatic firing if we have a valid target
         if (this.tank.target && this.shouldFireAtTarget(this.tank.target, gameState)) {
             this.fire(gameState);
         }

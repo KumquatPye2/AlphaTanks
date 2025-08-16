@@ -529,7 +529,7 @@ class TankResearcher {
 // ASI-ARCH Engineer Module - Evaluates architectures in real environment
 class TankEngineer {
     constructor() {
-        console.log(`🔧 TankEngineer instance created - battleTimeLimit will be set to 120`);
+        // Debug logging removed for performance
         this.battleTimeLimit = 120; // Seconds to match game engine timeout
         this.activeTimeoutId = null; // Track active timeout
     }
@@ -546,54 +546,54 @@ class TankEngineer {
             });
         }
         return new Promise((resolve) => {
-            // Initialize battle with evolved genomes
+            // Use game's tank initialization, then update with evolved genomes
             if (window.game) {
-                window.game.tanks = [];
-                window.game.projectiles = [];
-                window.game.redTeam = [];
-                window.game.blueTeam = [];
-                window.game.battleTime = 0;
-                window.game.battleStarted = false; // Reset timer flag for new battle
-                window.game.gameState = 'running';
+                // Let the game initialize tanks with proper count and positioning
+                const redCount = Math.min(redGenomes.length, 5); // Respect max 5 tanks per team
+                const blueCount = Math.min(blueGenomes.length, 5);
                 
-                // Reset hill to neutral state for new battle
-                if (window.game.hill) {
-                    window.game.hill.reset();
-                } else if (window.game.gameMode === 'king_of_hill') {
-                    // Initialize hill if it doesn't exist
-                    window.game.initializeKingOfHill();
-                }
+                // Initialize battle with the game's standard system
+                window.game.initializeBattle(redCount, blueCount, 'king_of_hill');
                 
-                // Create red team with evolved genomes - left side formation
-                redGenomes.forEach((genome, i) => {
-                    // Deploy at left end of battlefield in vertical formation
-                    const tank = new Tank(
-                        50 + i * 20, // Left side with slight horizontal spread
-                        window.game.height * 0.2 + i * (window.game.height * 0.6 / (redGenomes.length - 1)), // Vertical spread
-                        'red',
-                        genome
-                    );
-                    window.game.tanks.push(tank);
-                    window.game.redTeam.push(tank);
+                // Now update the genomes of existing tanks with evolved ones
+                // Update red team genomes
+                window.game.redTeam.forEach((tank, i) => {
+                    if (i < redGenomes.length) {
+                        tank.genome = redGenomes[i];
+                        tank.entity.genome = redGenomes[i];
+                        // Re-calculate entity behavior weights and properties based on new genome
+                        tank.entity.behaviorWeights = tank.entity.calculateBehaviorWeights();
+                        tank.entity.speed = tank.entity.calculateSpeed();
+                        tank.entity.fireRate = tank.entity.calculateFireRate();
+                        tank.entity.damage = tank.entity.calculateDamage();
+                        tank.entity.range = tank.entity.calculateRange();
+                        tank.entity.accuracy = tank.entity.calculateAccuracy();
+                    }
                 });
-                // Create blue team with evolved genomes - right side formation  
-                blueGenomes.forEach((genome, i) => {
-                    // Deploy at right end of battlefield in vertical formation
-                    const tank = new Tank(
-                        window.game.width - 50 - i * 20, // Right side with slight horizontal spread
-                        window.game.height * 0.2 + i * (window.game.height * 0.6 / (blueGenomes.length - 1)), // Vertical spread
-                        'blue',
-                        genome
-                    );
-                    window.game.tanks.push(tank);
-                    window.game.blueTeam.push(tank);
+                
+                // Update blue team genomes
+                window.game.blueTeam.forEach((tank, i) => {
+                    if (i < blueGenomes.length) {
+                        tank.genome = blueGenomes[i];
+                        tank.entity.genome = blueGenomes[i];
+                        // Re-calculate entity behavior weights and properties based on new genome
+                        tank.entity.behaviorWeights = tank.entity.calculateBehaviorWeights();
+                        tank.entity.speed = tank.entity.calculateSpeed();
+                        tank.entity.fireRate = tank.entity.calculateFireRate();
+                        tank.entity.damage = tank.entity.calculateDamage();
+                        tank.entity.range = tank.entity.calculateRange();
+                        tank.entity.accuracy = tank.entity.calculateAccuracy();
+                    }
                 });
+                
+                // Start the battle
+                window.game.start();
                 // Set up battle end listener
                 const battleEndHandler = (event) => {
                     window.removeEventListener('battleEnd', battleEndHandler);
                     // Clear any active timeout since battle has ended
                     if (this.activeTimeoutId) {
-                        console.log(`✅ Clearing timeout ${this.activeTimeoutId} - battle ended normally`);
+                        // Debug logging removed for performance
                         clearTimeout(this.activeTimeoutId);
                         this.activeTimeoutId = null;
                     }
@@ -633,16 +633,16 @@ class TankEngineer {
                 // Force battle end after time limit
                 // Clear any existing timeout first
                 if (this.activeTimeoutId) {
-                    console.log(`🚫 Clearing existing timeout ${this.activeTimeoutId}`);
+                    // Debug logging removed for performance
                     clearTimeout(this.activeTimeoutId);
                 }
                 const timeoutMs = this.battleTimeLimit * 1000;
-                console.log(`🕐 ASI-ARCH setting timeout for ${this.battleTimeLimit} seconds (${timeoutMs}ms)`);
+                // Debug logging removed for performance
                 this.activeTimeoutId = setTimeout(() => {
-                    console.log(`⏰ ASI-ARCH timeout ${this.activeTimeoutId} fired! Battle time: ${window.game ? window.game.battleTime : 'unknown'}s, Game state: ${window.game ? window.game.gameState : 'unknown'}`);
+                    // Debug logging removed for performance
                     this.activeTimeoutId = null; // Clear the reference
                     if (window.game && window.game.gameState === 'running') {
-                        console.log(`🛑 ASI-ARCH forcing battle end due to timeout`);
+                        // Debug logging removed for performance
                         window.game.endBattle('timeout');
                     }
                 }, timeoutMs);
@@ -775,13 +775,35 @@ class TankAnalyst {
                 historySize: history.length 
             });
         }
-        if (history.length < 3) {return null;}
+        console.log('Debug - analyzePerformanceTrends called with history length:', history.length);
+        if (history.length < 2) {
+            console.log('Debug - Not enough history, returning null');
+            return null;
+        }
         const recent = history.slice(-5);
+        console.log('Debug - AnalyzePerformanceTrends:', {
+            historyLength: history.length,
+            recentLength: recent.length,
+            recentBattles: recent.map(exp => ({
+                winner: exp.result.winner,
+                duration: exp.result.duration,
+                redStats: exp.result.redTeamStats,
+                blueStats: exp.result.blueTeamStats
+            }))
+        });
         const avgFitness = recent.reduce((sum, exp) => {
             const redFitness = this.calculateBattleFitness(exp.result, 'red');
             const blueFitness = this.calculateBattleFitness(exp.result, 'blue');
+            console.log('Debug - Fitness calculations:', {
+                redFitness,
+                blueFitness,
+                winner: exp.result.winner,
+                redStats: exp.result.redTeamStats,
+                blueStats: exp.result.blueTeamStats
+            });
             return sum + (redFitness + blueFitness) / 2;
         }, 0) / recent.length;
+        console.log('Debug - Final avgFitness:', avgFitness);
         return {
             average_fitness: avgFitness,
             improvement_rate: this.calculateImprovementRate(recent),
@@ -894,11 +916,32 @@ class TankAnalyst {
     calculateBattleFitness(result, team) {
         if (team === 'timeout') {return 0.3;} // Draw fitness
         const teamStats = team === 'red' ? result.redTeamStats : result.blueTeamStats;
+        console.log('Debug - calculateBattleFitness:', {
+            team,
+            winner: result.winner,
+            teamStats,
+            hasTeamStats: !!teamStats
+        });
+        if (!teamStats) {
+            console.warn('Debug - No team stats available for team:', team);
+            return 0;
+        }
         const won = result.winner === team;
-        return (won ? 0.5 : 0) + 
-               (teamStats.averageSurvivalTime / 120) * 0.2 +
-               teamStats.accuracy * 0.2 +
-               Math.min(teamStats.totalDamageDealt / 100, 0.1);
+        const winBonus = won ? 0.5 : 0;
+        const survivalScore = (teamStats.averageSurvivalTime / 120) * 0.2;
+        const accuracyScore = teamStats.averageAccuracy * 0.2;
+        const damageScore = Math.min(teamStats.totalDamageDealt / 100, 0.1);
+        const totalFitness = winBonus + survivalScore + accuracyScore + damageScore;
+        console.log('Debug - Fitness breakdown:', {
+            team,
+            won,
+            winBonus,
+            survivalScore,
+            accuracyScore,
+            damageScore,
+            totalFitness
+        });
+        return totalFitness;
     }
     calculateImprovementRate(experiments) {
         if (experiments.length < 2) {return 0;}

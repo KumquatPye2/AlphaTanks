@@ -51,6 +51,18 @@
             flex-wrap: wrap;
         }
         
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .control-group label {
+            color: #00ff88;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        
         .evolution-stats {
             display: flex;
             align-items: center;
@@ -480,6 +492,20 @@
             <button id="cognitionInsightsButton">🧠 Cognition Insights</button>
             <button id="creditsButton">Credits</button>
         </div>
+        
+        <div class="evolution-controls">
+            <div class="control-group">
+                <label>Speed:</label>
+                <input type="range" id="speedSlider" min="0.1" max="5" step="0.1" value="1">
+                <span id="speedValue">1x</span>
+            </div>
+            
+            <div class="control-group">
+                <label>Population:</label>
+                <input type="number" id="populationSize" min="10" max="100" value="30">
+            </div>
+        </div>
+        
         <div class="evolution-stats">
             <div id="generationDisplay">Generation: 0</div>
             <div>Battles: <span id="battles">0</span></div>
@@ -736,8 +762,6 @@
     <script src="test-deepseek-integration.js?v=1754540001"></script>
     
     <!-- Core refactored modules (load first) -->
-    <script src="core/constants.js?v=1754336875"></script>
-    <script src="core/utils.js?v=1754336875"></script>
     <script src="core/data-collector.js?v=1754336875"></script>
     <script src="core/dashboard-ui.js?v=1754336875"></script>
     <script src="core/researcher-insights-refactored.js?v=1754336875"></script>
@@ -748,10 +772,18 @@
     <!-- NEW: Tactical Evolution Display -->
     <script src="tactical-evolution-display.js?v=1754541005"></script>
     
-    <!-- Game engine modules -->
-    <script src="hill-control.js"></script>
-    <script src="game-engine.js?v=1754541008"></script>
-    <script src="tank-ai.js?v=1754541009"></script>
+    <!-- Refactored tank system -->
+    <script src="refactored/common/constants.js"></script>
+    <script src="refactored/common/utils.js"></script>
+    <script src="refactored/ai/tank-entity.js"></script>
+    <script src="refactored/ai/tank-ai.js"></script>
+    <script src="refactored/ai/tank-combat.js"></script>
+    <script src="refactored/ai/tank.js"></script>
+    <script src="refactored/game/hill-control.js"></script>
+    <script src="refactored/game/battle-managers.js"></script>
+    <script src="refactored/game/game-engine.js"></script>
+    
+    <!-- Evolution and integration -->
     <script src="evolution-engine.js?v=1754541003"></script>
     <script src="asi-arch-modules.js?v=1754541003"></script>
     <script src="asi-arch-visualizer.js?v=1754336875"></script>
@@ -760,5 +792,79 @@
     <script src="main.js?v=1754541005"></script>
     <!-- <script src="debug.js?v=1754336875"></script> -->
     <!-- <script src="test-validation.js"></script> -->
+    
+    <script>
+        // Integration for refactored system with ASI-ARCH
+        document.addEventListener('DOMContentLoaded', function() {
+            // Compatibility layer for old main.js
+            if (typeof gameEngine !== 'undefined') {
+                window.game = gameEngine; // Backward compatibility
+                
+                // Add compatibility methods for ASI-ARCH modules
+                if (!gameEngine.initializeKingOfHill) {
+                    gameEngine.initializeKingOfHill = function() {
+                        // Use the refactored initializeBattle method with 5 tanks per team
+                        return this.initializeBattle(5, 5, 'king_of_hill');
+                    };
+                }
+            }
+            if (typeof evolutionEngine !== 'undefined') {
+                window.evolution = evolutionEngine; // Backward compatibility
+            }
+            
+            // Initialize evolution engine (keeping existing for now)
+            if (typeof EvolutionEngine !== 'undefined') {
+                evolutionEngine = new EvolutionEngine();
+                // Wire to game engine so battleEnd details flow to evolution
+                if (gameEngine && typeof gameEngine.setEvolutionEngine === 'function') {
+                    gameEngine.setEvolutionEngine(evolutionEngine);
+                }
+            }
+            
+            // Initialize ASI-ARCH integration (LLM-enhanced pipeline)
+            if (typeof initializeASIArch === 'function') {
+                try { window.asiArch = initializeASIArch(); } catch {}
+            }
+            
+            // Add speed slider functionality
+            const speedSlider = document.getElementById('speedSlider');
+            const speedValue = document.getElementById('speedValue');
+            if (speedSlider && speedValue) {
+                speedSlider.addEventListener('input', function(e) {
+                    const speed = parseFloat(e.target.value);
+                    speedValue.textContent = speed + 'x';
+                    if (gameEngine && typeof gameEngine.setTimeScale === 'function') {
+                        gameEngine.setTimeScale(speed);
+                    }
+                });
+            }
+            
+            // Add population size control
+            const populationSize = document.getElementById('populationSize');
+            if (populationSize) {
+                populationSize.addEventListener('change', function(e) {
+                    if (gameEngine && typeof gameEngine.setPopulationSize === 'function') {
+                        gameEngine.setPopulationSize(parseInt(e.target.value));
+                    }
+                });
+            }
+            
+            // Auto-advance: process ASI-ARCH results, then let evolution engine handle next battle
+            window.addEventListener('battleEnd', async (event) => {
+                try {
+                    const asi = window.asiArch || (typeof initializeASIArch === 'function' ? initializeASIArch() : null);
+                    if (asi && typeof asi.processBattleResult === 'function' && gameEngine) {
+                        await asi.processBattleResult(gameEngine.redTeam || [], gameEngine.blueTeam || [], event.detail);
+                    }
+                } catch (e) {
+                    console.warn('ASI-ARCH processing failed:', e);
+                }
+                // Evolution engine handles its own battle flow via handleBattleEnd()
+                // Manual quick battle system removed to prevent conflicts
+            });
+            
+            // Application initialized - debug logging removed for performance
+        });
+    </script>
 </body>
 </html>

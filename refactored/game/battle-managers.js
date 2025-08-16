@@ -313,6 +313,7 @@ class BattleStatsManager {
                 if (!tank.isAlive) {
                     return false;
                 }
+                // Tank.x/y and spawnX/spawnY are top-left coordinates
                 const deltaX = Math.abs(tank.x - tank.spawnX);
                 const deltaY = Math.abs(tank.y - tank.spawnY);
                 return deltaX > GAME_CONFIG.TANK.MOVEMENT_THRESHOLD || deltaY > GAME_CONFIG.TANK.MOVEMENT_THRESHOLD;
@@ -321,6 +322,9 @@ class BattleStatsManager {
             if (anyTankMoved) {
                 this.battleStarted = true;
                 this.battleStartTime = performance.now();
+                if (GAME_CONFIG.DEBUG && GAME_CONFIG.DEBUG.VERBOSE_LOGS) {
+                    // Debug logging removed for performance
+                }
             }
         }
     }
@@ -358,7 +362,9 @@ class BattleStatsManager {
             totalKills: totalKills,
             survivors: survivors,
             totalDamageDealt: totalDamageDealt,
-            totalDamageTaken: totalDamageTaken
+            totalDamageTaken: totalDamageTaken,
+            shotsFired: totalShots,
+            shotsHit: totalHits
         };
     }
     

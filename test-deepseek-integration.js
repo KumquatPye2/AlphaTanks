@@ -5,11 +5,12 @@ async function testDeepSeekIntegration() {
         // 1. Check if components are loaded
         // 2. Check configuration');
         // 3. Test basic functionality
-        if (window.asiArch) {
+        const asiArch = window.asiArch || (window.evolution?.asiArch) || (window.evolutionEngine?.asiArch);
+        if (asiArch) {
             // Test debug info
-            const _debugInfo = window.asiArch.getDebugInfo();
+            const _debugInfo = asiArch.getDebugInfo();
             // Test performance metrics  
-            const _metrics = window.asiArch.getPerformanceMetrics();
+            const _metrics = asiArch.getPerformanceMetrics();
             // Test mock battle result processing
             const mockRedTeam = [
                 { speed: 0.6, aggression: 0.7, accuracy: 0.5, health: 100, team: 'red', fitness: 0.65 }
@@ -28,7 +29,7 @@ async function testDeepSeekIntegration() {
             if (window.CONFIG?.development) {
                 window.CONFIG.development.enableMockMode = true;
             }
-            const _result = await window.asiArch.processBattleResult(
+            const _result = await asiArch.processBattleResult(
                 mockRedTeam, 
                 mockBlueTeam, 
                 mockBattleResult
@@ -38,11 +39,11 @@ async function testDeepSeekIntegration() {
                 window.CONFIG.development.enableMockMode = originalMockMode;
             }
             // 4. Test LLM client directly if available
-            if (window.asiArch.llmASIArch?.deepSeekClient) {
+            if (asiArch.llmASIArch?.deepSeekClient) {
                 try {
                     // Enable mock mode for safe testing
                     window.CONFIG.development.enableMockMode = true;
-                    const testResponse = await window.asiArch.llmASIArch.deepSeekClient.makeRequest(
+                    const testResponse = await asiArch.llmASIArch.deepSeekClient.makeRequest(
                         'Test prompt for integration verification',
                         0.5,
                         'You are a test assistant. Respond with a simple acknowledgment.'
@@ -57,7 +58,7 @@ async function testDeepSeekIntegration() {
         }
         
         // 5. Integration status summary
-        const isFullyIntegrated = window.asiArch && 
+        const isFullyIntegrated = asiArch && 
                                  window.CONFIG?.deepseek && 
                                  window.DeepSeekClient;
         if (isFullyIntegrated) {
@@ -68,7 +69,7 @@ async function testDeepSeekIntegration() {
         return {
             success: true,
             componentsLoaded: isFullyIntegrated,
-            ready: !!window.asiArch
+            ready: !!asiArch
         };
     } catch (error) {
         return {

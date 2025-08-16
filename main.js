@@ -1,6 +1,6 @@
 // Main application bootstrap and initialization
-let game;
-let evolution;
+let gameEngine;
+let evolutionEngine;
 document.addEventListener('DOMContentLoaded', function() {
     // Check if canvas exists before creating GameEngine
     const canvas = document.getElementById('gameCanvas');
@@ -17,12 +17,18 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeGame();
 });
 function initializeGame() {
-    // Initialize game engine
-    game = new GameEngine('gameCanvas');
-    window.game = game; // Make globally accessible
+    // Initialize game engine using refactored system
+    gameEngine = new GameEngine('gameCanvas');
+    window.gameEngine = gameEngine; // Make globally accessible
+    
     // Initialize evolution engine
-    evolution = new EvolutionEngine();
-    window.evolution = evolution; // Make globally accessible
+    evolutionEngine = new EvolutionEngine();
+    window.evolutionEngine = evolutionEngine; // Make globally accessible
+    
+    // Backward compatibility mappings for refactored variable names
+    window.game = gameEngine;
+    window.evolution = evolutionEngine;
+    
     // Initialize researcher insights with new modular system
     if (typeof ResearcherInsights !== 'undefined') {
         // Clean up any existing instance first
@@ -42,15 +48,15 @@ function initializeGame() {
         window.dataCollector = window.researcherInsights.dataCollector;
         window.dashboardUI = window.researcherInsights.dashboardUI;
         // Now initialize the candidate pool since ResearcherInsights is available
-        if (evolution && !evolution.candidatePoolInitialized) {
-            evolution.ensureCandidatePoolInitialized();
+        if (evolutionEngine && !evolutionEngine.candidatePoolInitialized) {
+            evolutionEngine.ensureCandidatePoolInitialized();
         }
     } else {
     }
     // Setup UI event handlers
     setupEventHandlers();
-    // Initialize first battle with King of Hill mode
-    game.initializeBattle(3, 3, 'king_of_hill');
+    // Initialize first battle with King of Hill mode via reset
+    resetBattle();
     // Force update genome display immediately
     setTimeout(() => {
         updateGenomeDisplay();
@@ -85,8 +91,8 @@ function setupEventHandlers() {
     window.addEventListener('resize', handleResize);
     // Battle end handler
     window.addEventListener('battleEnd', (event) => {
-        if (game) {
-            game.resumedFromPause = false; // Clear resume flag when battle ends
+        if (gameEngine) {
+            gameEngine.resumedFromPause = false; // Clear resume flag when battle ends
         }
         // Track knowledge searches in cognition insights after each battle
         if (window.cognitionInsights && event.detail) {
@@ -142,7 +148,7 @@ function setupEventHandlers() {
             
             // Ensure tactical display is initialized
             if (!window.tacticalDisplay || !window.tacticalDisplay.isReady) {
-                console.log('Initializing tactical display for evolution...');
+                // Debug logging removed for performance
                 window.tacticalDisplay = new TacticalEvolutionDisplay();
             }
             
@@ -187,15 +193,15 @@ function setupEventHandlers() {
 }
 function resetBattle() {
     // Reset evolution
-    evolution.resetEvolution();
+    evolutionEngine.resetEvolution();
     // Reset game state first
-    game.reset();
+    gameEngine.reset();
     // Then initialize new battle (this sets state to 'ready')
-    game.initializeBattle(3, 3, 'king_of_hill');
+    gameEngine.initializeBattle(5, 5, 'king_of_hill');
     // Update UI - reset button should enable start button
     document.getElementById('startEvolution').disabled = false;
     document.getElementById('pauseEvolution').disabled = true;
-    evolution.logEvolutionEvent('System reset - Ready for new evolution cycle', 'system');
+    evolutionEngine.logEvolutionEvent('System reset - Ready for new evolution cycle', 'system');
 }
 function handleResize() {
     if (game) {
@@ -250,13 +256,13 @@ function startPerformanceMonitoring() {
     setInterval(() => {
         const stats = {
             fps: calculateFPS(),
-            tankCount: game ? game.tanks.length : 0,
-            projectileCount: game ? game.projectiles.length : 0,
+            tankCount: gameEngine ? (gameEngine.redTeam?.length || 0) + (gameEngine.blueTeam?.length || 0) : 0,
+            projectileCount: gameEngine ? (gameEngine.projectiles?.length || 0) : 0,
             memoryUsage: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1024 / 1024) : 'N/A'
         };
         // Only update genome display if game is not actively running a battle
-        // AND reduce frequency during gameplay to improve performance
-        if ((!game || game.gameState !== 'running') && (!game || !game.initializationComplete)) {
+        // to improve performance during gameplay
+        if (!gameEngine || gameEngine.gameState !== 'running') {
             updateGenomeDisplay();
         } else if (game && game.gameState === 'running') {
             // During battles, only update genome display every 10 seconds to reduce load
@@ -404,16 +410,16 @@ function hideCredits() {
 // NOTE: Team selection logic is tested in tests/blue-team-core.test.js
 function updateGenomeDisplay() {
     // If we recently resumed from pause and tanks exist, show current tank genomes
-    if (game && game.tanks && game.tanks.length > 0 && game.resumedFromPause) {
+    if (gameEngine && gameEngine.tanks && gameEngine.tanks.length > 0 && gameEngine.resumedFromPause) {
         displayCurrentTankGenomes();
         return;
     }
     // If game is paused, show genomes of current tanks instead of selecting new ones
-    if (game && game.gameState === 'paused' && game.tanks && game.tanks.length > 0) {
+    if (gameEngine && gameEngine.gameState === 'paused' && gameEngine.tanks && gameEngine.tanks.length > 0) {
         displayCurrentTankGenomes();
         return;
     }
-    if (!evolution || !evolution.candidatePool || evolution.candidatePool.length === 0) {
+    if (!evolutionEngine || !evolutionEngine.candidatePool || evolutionEngine.candidatePool.length === 0) {
         // Show "waiting for evolution" state
         displayNoGenomeData();
         return;
@@ -471,13 +477,13 @@ function updateGenomeDisplay() {
 }
 function displayCurrentTankGenomes() {
     // Display genomes of currently active tanks when paused
-    if (!game || !game.tanks || game.tanks.length === 0) {
+    if (!gameEngine || !gameEngine.tanks || gameEngine.tanks.length === 0) {
         displayNoGenomeData();
         return;
     }
     // Get representative tanks from each team
-    const redTanks = game.tanks.filter(tank => tank.team === 'red' && tank.isAlive);
-    const blueTanks = game.tanks.filter(tank => tank.team === 'blue' && tank.isAlive);
+    const redTanks = gameEngine.tanks.filter(tank => tank.team === 'red' && tank.isAlive);
+    const blueTanks = gameEngine.tanks.filter(tank => tank.team === 'blue' && tank.isAlive);
     // Display genomes of the first alive tank from each team
     if (redTanks.length > 0 && redTanks[0].genome) {
         // Calculate average fitness of red team or use first tank's fitness

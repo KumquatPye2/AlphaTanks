@@ -12,6 +12,21 @@ class TacticalEvolutionDisplay {
             red: { tactical: 0, performance: 0, diversity: 0, innovation: 0 },
             blue: { tactical: 0, performance: 0, diversity: 0, innovation: 0 }
         };
+        // Store previous champions to avoid "No data" resets
+        this.previousChampions = {
+            red: null,
+            blue: null
+        };
+        // Store previous strategies to avoid "No candidates" resets
+        this.previousStrategies = {
+            red: null,
+            blue: null
+        };
+        // Store previous innovation metrics to avoid showing 0% during transitions
+        this.previousInnovation = {
+            red: null,
+            blue: null
+        };
         this.isReady = false;
         this.setupDisplay();
     }
@@ -38,20 +53,20 @@ class TacticalEvolutionDisplay {
         // Check if elements exist - if not, the HTML hasn't loaded yet
         const missingElements = requiredElements.filter(id => !document.getElementById(id));
         if (missingElements.length > 0) {
-            console.log('Tactical Evolution Display: Missing elements:', missingElements);
+            // Debug logging removed for performance
             // Try again in 100ms
             setTimeout(() => this.setupDisplay(), 100);
             return;
         }
         
-        console.log('Tactical Evolution Display: All sidebar elements found, ready for updates');
+        // Debug logging removed for performance
         this.isReady = true;
     }
 
     updateDisplay(evolutionEngine, battleResult = null) {
         // Only update if the sidebar elements are ready
         if (!this.isReady) {
-            console.log('Tactical Evolution Display: Not ready yet, skipping update');
+            // Debug logging removed for performance
             this.setupDisplay(); // Try to initialize again
             return;
         }
@@ -94,8 +109,14 @@ class TacticalEvolutionDisplay {
         const redTotal = Array.from(redCounts.values()).reduce((sum, count) => sum + count, 0);
         
         if (redTotal === 0) {
-            redStrategyList.innerHTML = 'No candidates';
-            redDiversity.textContent = '0%';
+            // Keep showing previous strategies instead of "No candidates"
+            if (this.previousStrategies.red) {
+                redStrategyList.innerHTML = this.previousStrategies.red + '<div style="color: #888; font-size: 10px;">(Previous Gen)</div>';
+                redDiversity.textContent = '0%';
+            } else {
+                redStrategyList.innerHTML = 'No candidates';
+                redDiversity.textContent = '0%';
+            }
         } else {
             const redDiversityScore = redCounts.size / Math.max(redTotal, 1);
             redDiversity.textContent = `${(redDiversityScore * 100).toFixed(0)}%`;
@@ -108,6 +129,8 @@ class TacticalEvolutionDisplay {
                 redHtml += `<div>${emoji} ${strategy}: ${count} (${percentage}%)</div>`;
             });
             redStrategyList.innerHTML = redHtml;
+            // Store for next generation transition
+            this.previousStrategies.red = redHtml;
         }
 
         // Update Blue team
@@ -115,8 +138,14 @@ class TacticalEvolutionDisplay {
         const blueTotal = Array.from(blueCounts.values()).reduce((sum, count) => sum + count, 0);
         
         if (blueTotal === 0) {
-            blueStrategyList.innerHTML = 'No candidates';
-            blueDiversity.textContent = '0%';
+            // Keep showing previous strategies instead of "No candidates"
+            if (this.previousStrategies.blue) {
+                blueStrategyList.innerHTML = this.previousStrategies.blue + '<div style="color: #888; font-size: 10px;">(Previous Gen)</div>';
+                blueDiversity.textContent = '0%';
+            } else {
+                blueStrategyList.innerHTML = 'No candidates';
+                blueDiversity.textContent = '0%';
+            }
         } else {
             const blueDiversityScore = blueCounts.size / Math.max(blueTotal, 1);
             blueDiversity.textContent = `${(blueDiversityScore * 100).toFixed(0)}%`;
@@ -129,6 +158,8 @@ class TacticalEvolutionDisplay {
                 blueHtml += `<div>${emoji} ${strategy}: ${count} (${percentage}%)</div>`;
             });
             blueStrategyList.innerHTML = blueHtml;
+            // Store for next generation transition
+            this.previousStrategies.blue = blueHtml;
         }
     }
 
@@ -153,7 +184,12 @@ class TacticalEvolutionDisplay {
 
         // Update Red champions
         if (redCandidates.length === 0) {
-            redChampions.innerHTML = 'No data';
+            // Keep showing previous champions instead of "No data"
+            if (this.previousChampions.red) {
+                redChampions.innerHTML = this.previousChampions.red + '<div style="color: #888; font-size: 10px;">(Previous Gen)</div>';
+            } else {
+                redChampions.innerHTML = 'No data';
+            }
         } else {
             const avgFitness = redCandidates.reduce((sum, c) => sum + c.fitness, 0) / redCandidates.length;
             let redHtml = `<div>Avg: ${avgFitness.toFixed(3)}</div>`;
@@ -164,11 +200,18 @@ class TacticalEvolutionDisplay {
                 redHtml += `<div>${i + 1}. ${emoji} ${candidate.fitness.toFixed(3)}</div>`;
             });
             redChampions.innerHTML = redHtml;
+            // Store this as previous champions for next time
+            this.previousChampions.red = redHtml;
         }
 
         // Update Blue champions
         if (blueCandidates.length === 0) {
-            blueChampions.innerHTML = 'No data';
+            // Keep showing previous champions instead of "No data"
+            if (this.previousChampions.blue) {
+                blueChampions.innerHTML = this.previousChampions.blue + '<div style="color: #888; font-size: 10px;">(Previous Gen)</div>';
+            } else {
+                blueChampions.innerHTML = 'No data';
+            }
         } else {
             const avgFitness = blueCandidates.reduce((sum, c) => sum + c.fitness, 0) / blueCandidates.length;
             let blueHtml = `<div>Avg: ${avgFitness.toFixed(3)}</div>`;
@@ -179,6 +222,8 @@ class TacticalEvolutionDisplay {
                 blueHtml += `<div>${i + 1}. ${emoji} ${candidate.fitness.toFixed(3)}</div>`;
             });
             blueChampions.innerHTML = blueHtml;
+            // Store this as previous champions for next time
+            this.previousChampions.blue = blueHtml;
         }
     }
 
@@ -217,8 +262,27 @@ class TacticalEvolutionDisplay {
         const redInnovationRate = redCandidates.length > 0 ? (unconventionalCount.red / redCandidates.length * 100) : 0;
         const blueInnovationRate = blueCandidates.length > 0 ? (unconventionalCount.blue / blueCandidates.length * 100) : 0;
         
-        redInnovation.textContent = `${redInnovationRate.toFixed(0)}%`;
-        blueInnovation.textContent = `${blueInnovationRate.toFixed(0)}%`;
+        // Apply persistence for red innovation
+        if (redCandidates.length > 0) {
+            const redText = `${redInnovationRate.toFixed(0)}%`;
+            this.previousInnovation.red = redText;
+            redInnovation.textContent = redText;
+        } else if (this.previousInnovation.red) {
+            redInnovation.textContent = this.previousInnovation.red + ' (Previous)';
+        } else {
+            redInnovation.textContent = '0%';
+        }
+        
+        // Apply persistence for blue innovation
+        if (blueCandidates.length > 0) {
+            const blueText = `${blueInnovationRate.toFixed(0)}%`;
+            this.previousInnovation.blue = blueText;
+            blueInnovation.textContent = blueText;
+        } else if (this.previousInnovation.blue) {
+            blueInnovation.textContent = this.previousInnovation.blue + ' (Previous)';
+        } else {
+            blueInnovation.textContent = '0%';
+        }
     }
 
     updateBattleComplexity(battleResult) {
@@ -358,7 +422,7 @@ window.addEventListener('DOMContentLoaded', function() {
 // Also try to reinitialize if it doesn't exist when evolution starts
 window.addEventListener('evolutionStarted', function() {
     if (!window.tacticalDisplay || !window.tacticalDisplay.isReady) {
-        console.log('Reinitializing tactical display for evolution...');
+        // Debug logging removed for performance
         window.tacticalDisplay = new TacticalEvolutionDisplay();
     }
 });

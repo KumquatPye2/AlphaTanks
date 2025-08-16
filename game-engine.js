@@ -245,7 +245,7 @@ class GameEngine {
         this.checkWinConditions();
         // Time limit (only apply if battle has actually started)
         if (this.battleStarted && this.battleTime > this.maxBattleTime) {
-            console.log(`⏰ Game engine timeout! Battle time: ${this.battleTime}s > ${this.maxBattleTime}s`);
+            console.warn(`⏰ Game engine timeout! Battle time: ${this.battleTime}s > ${this.maxBattleTime}s`);
             this.endBattle('timeout');
         }
         // Update UI
@@ -315,10 +315,7 @@ class GameEngine {
         }
     }
     endBattle(winner) {
-        console.log(`🏁 endBattle called with winner: ${winner}, battle time: ${this.battleTime.toFixed(1)}s`);
-        console.trace('endBattle call stack'); // Show where the call came from
-        console.log(`🏁 endBattle called with winner: ${winner}, battleTime: ${this.battleTime}s`);
-        console.trace('endBattle call stack');
+        // endBattle debug logging removed for performance
         
         // Allow immediate battle termination when all tanks of one or both teams are destroyed
         // Only apply minimum battle time restriction for timeout scenarios
@@ -328,16 +325,7 @@ class GameEngine {
             return;
         }
         
-        // Debug logging to track early battle termination
-        console.log(`🏁 Battle ended after ${this.battleTime.toFixed(1)}s - Winner: ${winner}`);
-        if (this.battleTime < 30) {
-            const aliveRed = this.redTeam.filter(tank => tank.isAlive).length;
-            const aliveBlue = this.blueTeam.filter(tank => tank.isAlive).length;
-            console.log(`⚡ Quick battle: Red=${aliveRed} alive, Blue=${aliveBlue} alive`);
-            if (this.hill) {
-                console.log(`🏔️ Hill control: Red=${this.hill.redControlTime.toFixed(1)}s, Blue=${this.hill.blueControlTime.toFixed(1)}s`);
-            }
-        }
+        // Battle end summary - debug logging removed for performance
         
         this.gameState = 'ended';
         // Emit battle end event

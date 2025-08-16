@@ -77,22 +77,21 @@ class TankAI {
     
     /**
      * Make AI decisions based on current state and perception
+     * Decisions (state changes/targeting) run at lower frequency, but movement executes every frame
      */
     makeDecisions(deltaTime, gameState) {
-        // Reduce decision frequency for performance
+        // Update decisions less frequently for performance
         this.decisionCooldown -= deltaTime;
-        if (this.decisionCooldown > 0) {
-            return;
+        if (this.decisionCooldown <= 0) {
+            this.decisionCooldown = 0.1; // Decide every 100ms
+            const newState = this.chooseBehavior(gameState);
+            this.tank.setState(newState);
+            if (GAME_CONFIG.DEBUG && GAME_CONFIG.DEBUG.LOG_AI_DECISIONS) {
+                // Debug logging removed for performance
+            }
         }
-        this.decisionCooldown = 0.1; // Make decisions every 100ms
         
-        // Choose behavior based on current situation
-        const newState = this.chooseBehavior(gameState);
-        this.tank.setState(newState);
-        
-        console.log(`Tank ${this.tank.team} at (${this.tank.x.toFixed(1)}, ${this.tank.y.toFixed(1)}) state: ${newState}`);
-        
-        // Execute behavior-specific logic
+        // Always execute behavior logic each frame for smooth movement
         switch (this.tank.state) {
             case TANK_STATES.PATROL:
                 this.behaviorPatrol(deltaTime, gameState);
@@ -175,35 +174,48 @@ class TankAI {
         if (this.perception.visibleEnemies.length > 0) {
             const closestEnemy = this.findClosestEnemy();
             this.tank.setTarget(closestEnemy);
+        } else {
+            // No enemies visible while patrolling; ensure no stale target
+            this.tank.setTarget(null);
         }
     }
     
     /**
      * Attack behavior - engage visible enemies
      */
-    behaviorAttack(deltaTime, _gameState) {
+    behaviorAttack(deltaTime, gameState) {
         if (this.perception.visibleEnemies.length === 0) {
             this.tank.setTarget(null);
             return;
         }
         
-        // Select best target
-        const target = this.selectBestTarget();
+        // Select best valid target
+        let target = this.selectBestTarget();
+        if (!target || !target.isAlive) {
+            this.tank.setTarget(null);
+            return;
+        }
+        
+        // If target moved out of LOS/range, drop it
+        const inRange = this.tank.distanceTo(target) <= this.tank.range;
+        const hasLOS = CollisionUtils.hasLineOfSight(this.tank, target, gameState.obstacles);
+        if (!inRange || !hasLOS) {
+            this.tank.setTarget(null);
+            return;
+        }
+        
         this.tank.setTarget(target);
         
-        if (target) {
-            const distance = this.tank.distanceTo(target);
-            
-            // Move to optimal engagement range
-            if (distance > this.engagementRange) {
-                this.moveTowardsTarget(deltaTime, target);
-            } else if (distance < this.engagementRange * 0.5 && this.tank.behaviorWeights.caution > 0.4) {
-                this.moveAwayFromTarget(deltaTime, target);
-            }
-            
-            // Aim and fire
-            this.aimAtTarget(target);
+        const distance = this.tank.distanceTo(target);
+        // Move to optimal engagement range
+        if (distance > this.engagementRange) {
+            this.moveTowardsTarget(deltaTime, target);
+        } else if (distance < this.engagementRange * 0.5 && this.tank.behaviorWeights.caution > 0.4) {
+            this.moveAwayFromTarget(deltaTime, target);
         }
+        
+        // Aim and fire
+        this.aimAtTarget(target);
     }
     
     /**
@@ -267,7 +279,7 @@ class TankAI {
     /**
      * Defend hill behavior - maintain position near hill and engage enemies
      */
-    behaviorDefendHill(deltaTime, _gameState) {
+    behaviorDefendHill(deltaTime, gameState) {
         if (!this.perception.hill) {
             this.tank.setState(TANK_STATES.PATROL);
             return;
@@ -287,9 +299,21 @@ class TankAI {
         });
         
         if (enemiesNearHill.length > 0) {
-            const target = this.selectBestTarget(enemiesNearHill);
+            let target = this.selectBestTarget(enemiesNearHill);
+            if (!target || !target.isAlive) {
+                this.tank.setTarget(null);
+                return;
+            }
+            const inRange = this.tank.distanceTo(target) <= this.tank.range;
+            const hasLOS = CollisionUtils.hasLineOfSight(this.tank, target, gameState.obstacles);
+            if (!inRange || !hasLOS) {
+                this.tank.setTarget(null);
+                return;
+            }
             this.tank.setTarget(target);
             this.aimAtTarget(target);
+        } else {
+            this.tank.setTarget(null);
         }
     }
     
@@ -370,11 +394,48 @@ class TankAI {
             const oldX = this.tank.x;
             const oldY = this.tank.y;
             
-            this.tank.x += moveX;
-            this.tank.y += moveY;
-            this.tank.angle = Math.atan2(dy, dx);
+            // Calculate new position
+            const newX = this.tank.x + moveX;
+            const newY = this.tank.y + moveY;
             
-            console.log(`Tank ${this.tank.team} moved from (${oldX.toFixed(1)}, ${oldY.toFixed(1)}) to (${this.tank.x.toFixed(1)}, ${this.tank.y.toFixed(1)}), target: (${targetX.toFixed(1)}, ${targetY.toFixed(1)})`);
+            // Check for collisions with obstacles using top-left coordinates
+            // TankEntity.x/y are top-left; keep consistency with rendering and bounds checks
+            const tankBounds = {
+                x: newX,
+                y: newY,
+                width: this.tank.width,
+                height: this.tank.height
+            };
+            
+            // Check if new position would collide with any obstacles
+            let collision = false;
+            if (this.perception.obstacles) {
+                for (const obstacle of this.perception.obstacles) {
+                    if (CollisionUtils.isColliding(tankBounds, obstacle)) {
+                        collision = true;
+                        break;
+                    }
+                }
+            }
+            
+            // Only move if no collision
+            if (!collision) {
+                this.tank.x = newX;
+                this.tank.y = newY;
+                this.tank.angle = Math.atan2(dy, dx);
+                
+                // Update entity position to match AI changes
+                // this.tank is the TankEntity already; no nested entity exists in this context
+                // Ensure spawn positions remain for battle start detection
+                // No changes to spawnX/spawnY here
+                
+                // Debug logging removed for performance
+                // Debug logging removed for performance
+            } else {
+                // Debug logging removed for performance
+                // Try to find alternate path around obstacle
+                this.findAlternatePath(targetX, targetY);
+            }
         }
     }
     
@@ -400,10 +461,10 @@ class TankAI {
      * Aim tank towards target
      */
     aimAtTarget(target) {
-        if (!target) {
+        if (!target || !target.isAlive) {
+            this.tank.setTarget(null);
             return;
         }
-        
         this.tank.angle = this.tank.angleTo(target);
     }
     
@@ -469,6 +530,33 @@ class TankAI {
     hasValidMovementTarget() {
         const distance = MathUtils.distance(this.tank.x, this.tank.y, this.tank.targetX, this.tank.targetY);
         return distance > 20; // Target is far enough to be worth moving towards
+    }
+    
+    /**
+     * Find alternate path around obstacles
+     */
+    findAlternatePath(targetX, targetY) {
+        // Simple pathfinding: try moving perpendicular to blocked direction
+        const dx = targetX - this.tank.x;
+        const dy = targetY - this.tank.y;
+        
+        // Try perpendicular directions
+        const perpX1 = this.tank.x - dy * 0.1; // 90 degrees
+        const perpY1 = this.tank.y + dx * 0.1;
+        const perpX2 = this.tank.x + dy * 0.1; // -90 degrees
+        const perpY2 = this.tank.y - dx * 0.1;
+        
+        // Choose the perpendicular direction that's closer to the target
+        const dist1 = Math.sqrt((perpX1 - targetX) ** 2 + (perpY1 - targetY) ** 2);
+        const dist2 = Math.sqrt((perpX2 - targetX) ** 2 + (perpY2 - targetY) ** 2);
+        
+        if (dist1 < dist2) {
+            this.tank.targetX = perpX1;
+            this.tank.targetY = perpY1;
+        } else {
+            this.tank.targetX = perpX2;
+            this.tank.targetY = perpY2;
+        }
     }
 }
 

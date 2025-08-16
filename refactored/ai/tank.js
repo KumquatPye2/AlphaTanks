@@ -77,6 +77,8 @@ class Tank {
      * Main update method - coordinates all subsystems
      */
     update(deltaTime, gameState) {
+        // Always sync first so external systems see accurate alive/dead state
+        this.syncProperties();
         if (!this.entity.isAlive) {
             return;
         }

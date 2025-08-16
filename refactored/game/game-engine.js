@@ -33,6 +33,11 @@ class GameEngine {
         this.lastTime = 0;
         this.maxBattleTime = GAME_CONFIG.BATTLE.MAX_DURATION;
         
+        // Victory message system
+        this.victoryMessage = null;
+        this.victoryMessageTime = 0;
+        this.showVictoryMessage = false;
+        
         // Game entities
         this.tanks = [];
         this.redTeam = [];
@@ -97,7 +102,13 @@ class GameEngine {
         this.blueTeam = [];
         this.combat.clear();
         this.stats.reset();
-        this.gameState = GAME_STATES.READY;
+        
+        // Reset victory message
+        this.victoryMessage = null;
+        this.showVictoryMessage = false;
+        this.victoryMessageTime = 0;
+        
+    // Do not change gameState here; caller controls RUNNING/READY state
         
         // Set game mode
         this.battlefield.mode = mode;
@@ -116,7 +127,7 @@ class GameEngine {
                 'red',
                 this.generateBasicGenome()
             );
-            console.log(`Created red tank ${i}: pos(${spawnPos.x}, ${spawnPos.y}), alive: ${tank.isAlive}`);
+            // Debug logging removed for performance
             this.tanks.push(tank);
             this.redTeam.push(tank);
         }
@@ -130,12 +141,12 @@ class GameEngine {
                 'blue',
                 this.generateBasicGenome()
             );
-            console.log(`Created blue tank ${i}: pos(${spawnPos.x}, ${spawnPos.y}), alive: ${tank.isAlive}`);
+            // Debug logging removed for performance
             this.tanks.push(tank);
             this.blueTeam.push(tank);
         }
         
-        console.log(`Battle initialized: ${redTanks} red vs ${blueTanks} blue tanks in ${mode} mode`);
+        // Debug logging removed for performance
     }
     
     /**
@@ -203,14 +214,15 @@ class GameEngine {
         // Initialize timing on first frame
         if (this.lastTime === 0) {
             this.lastTime = currentTime;
-            this.update(1/60); // Assume 60fps for first frame
+            this.update((1/60) * this.timeScale); // Assume 60fps for first frame, scaled
             this.render();
             requestAnimationFrame((time) => this.gameLoop(time));
             return;
         }
         
         // Calculate delta time with cap
-        const deltaTime = Math.min((currentTime - this.lastTime) / 1000, GAME_CONFIG.PERFORMANCE.DELTA_TIME_CAP);
+    const rawDelta = (currentTime - this.lastTime) / 1000;
+    const deltaTime = Math.min(rawDelta * this.timeScale, GAME_CONFIG.PERFORMANCE.DELTA_TIME_CAP);
         this.lastTime = currentTime;
         
         // Only update if delta time is reasonable
@@ -259,7 +271,7 @@ class GameEngine {
         
         // Check battle time limit
         if (this.stats.battleStarted && this.stats.battleTime > this.maxBattleTime) {
-            console.log(`⏰ Battle timeout! Duration: ${this.stats.battleTime.toFixed(1)}s > ${this.maxBattleTime}s`);
+            // Debug logging removed for performance
             this.endBattle(BATTLE_OUTCOMES.TIMEOUT);
         }
     }
@@ -271,7 +283,7 @@ class GameEngine {
         const aliveRed = this.redTeam.filter(tank => tank.isAlive).length;
         const aliveBlue = this.blueTeam.filter(tank => tank.isAlive).length;
         
-        console.log(`Win check: Red alive: ${aliveRed}, Blue alive: ${aliveBlue}, Total teams: Red ${this.redTeam.length}, Blue ${this.blueTeam.length}`);
+        // Debug logging removed for performance
         
         // Check elimination conditions
         if (aliveRed === 0 && aliveBlue === 0) {
@@ -296,25 +308,23 @@ class GameEngine {
      * End the battle
      */
     endBattle(winner) {
-        console.log(`🏁 Battle ended! Winner: ${winner}, Duration: ${this.stats.battleTime.toFixed(1)}s`);
+        // Debug logging removed for performance
         
         // Only apply minimum battle time for timeout scenarios
         const minimumBattleTime = GAME_CONFIG.BATTLE.MIN_DURATION_FOR_TIMEOUT;
         if (winner === BATTLE_OUTCOMES.TIMEOUT && this.stats.battleStarted && this.stats.battleTime < minimumBattleTime) {
-            console.log(`⏰ Battle too short for timeout (${this.stats.battleTime.toFixed(1)}s < ${minimumBattleTime}s), continuing...`);
+            // Debug logging removed for performance
             return;
         }
         
         this.gameState = GAME_STATES.ENDED;
         
+        // Set victory message
+        this.setVictoryMessage(winner);
+        
         const battleResult = this.getBattleResult(winner);
         
-        // Notify evolution engine if available
-        if (this.evolutionEngine && typeof this.evolutionEngine.handleBattleEnd === 'function') {
-            this.evolutionEngine.handleBattleEnd(battleResult);
-        }
-        
-        // Dispatch battle end event
+        // Dispatch battle end event (evolution engine will handle via event listener)
         const event = new CustomEvent('battleEnd', { detail: battleResult });
         window.dispatchEvent(event);
     }
@@ -393,6 +403,9 @@ class GameEngine {
         
         // Render battle info
         this.drawBattleInfo();
+        
+        // Render victory message if applicable
+        this.drawVictoryMessage();
     }
     
     /**
@@ -461,18 +474,20 @@ class GameEngine {
      * Start evolution (placeholder)
      */
     startEvolution() {
-        console.log('🧬 Starting evolution with refactored components...');
-        this.gameState = GAME_STATES.RUNNING;
+        // Debug logging removed for performance
         this.initializeBattle();
+        this.gameState = GAME_STATES.RUNNING;
+        this.lastTime = 0;
     }
     
     /**
      * Start quick battle
      */
     startQuickBattle() {
-        console.log('⚡ Starting quick battle...');
-        this.gameState = GAME_STATES.RUNNING;
+        // Debug logging removed for performance
         this.initializeBattle();
+        this.gameState = GAME_STATES.RUNNING;
+        this.lastTime = 0;
     }
     
     /**
@@ -480,6 +495,104 @@ class GameEngine {
      */
     getStats() {
         return this.stats.getStats();
+    }
+    
+    /**
+     * Set victory message for display
+     */
+    setVictoryMessage(winner) {
+        let message = '';
+        let color = '#fff';
+        
+        switch (winner) {
+            case 'red':
+            case BATTLE_OUTCOMES.RED_WINS:
+                message = '🔴 RED TEAM WINS! 🔴';
+                color = '#ff4444';
+                break;
+            case 'blue':
+            case BATTLE_OUTCOMES.BLUE_WINS:
+                message = '🔵 BLUE TEAM WINS! 🔵';
+                color = '#4444ff';
+                break;
+            case 'timeout':
+            case BATTLE_OUTCOMES.TIMEOUT:
+                message = '⏰ BATTLE TIMEOUT - NO VICTOR ⏰';
+                color = '#ffaa00';
+                break;
+            case 'draw':
+            case BATTLE_OUTCOMES.DRAW:
+                message = '⚖️ BATTLE ENDS IN DRAW ⚖️';
+                color = '#aaaaaa';
+                break;
+            default:
+                message = `🏆 ${winner.toUpperCase()} WINS! 🏆`;
+                color = '#ffdd00';
+        }
+        
+        this.victoryMessage = message;
+        this.victoryColor = color;
+        this.showVictoryMessage = true;
+        this.victoryMessageTime = Date.now();
+    }
+    
+    /**
+     * Draw victory message overlay
+     */
+    drawVictoryMessage() {
+        if (!this.showVictoryMessage || !this.victoryMessage) {
+            return;
+        }
+        
+        // Show victory message for 3 seconds
+        const elapsed = Date.now() - this.victoryMessageTime;
+        if (elapsed > 3000) {
+            this.showVictoryMessage = false;
+            return;
+        }
+        
+        // Calculate opacity for fade effect
+        let opacity = 1;
+        if (elapsed > 2000) {
+            opacity = 1 - (elapsed - 2000) / 1000; // Fade out in last second
+        }
+        
+        const centerX = this.width / 2;
+        const centerY = this.height / 2;
+        
+        // Save context
+        this.ctx.save();
+        
+        // Set opacity
+        this.ctx.globalAlpha = opacity;
+        
+        // Draw semi-transparent background
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        this.ctx.fillRect(0, centerY - 60, this.width, 120);
+        
+        // Draw victory message
+        this.ctx.font = 'bold 36px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        
+        // Text shadow for better visibility
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        this.ctx.fillText(this.victoryMessage, centerX + 2, centerY + 2);
+        
+        // Main text
+        this.ctx.fillStyle = this.victoryColor;
+        this.ctx.fillText(this.victoryMessage, centerX, centerY);
+        
+        // Draw animated border around message
+        const time = elapsed / 100;
+        this.ctx.strokeStyle = this.victoryColor;
+        this.ctx.lineWidth = 3;
+        this.ctx.setLineDash([10, 5]);
+        this.ctx.lineDashOffset = -time % 15;
+        this.ctx.strokeRect(50, centerY - 50, this.width - 100, 100);
+        
+        // Restore context
+        this.ctx.restore();
     }
 }
 

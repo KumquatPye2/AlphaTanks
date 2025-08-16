@@ -347,7 +347,7 @@ class Tank {
         
         // Debug state duration
         if (window.DEBUG && Math.round(this.x) % 100 === 0) { // Only log occasionally to avoid spam
-            console.log(`Tank at (${Math.round(this.x)},${Math.round(this.y)}): state=${this.state}, timer=${this.stateTimer.toFixed(2)}, canChange=${canChangeState}`);
+            // Debug logging removed for performance
         }
         
         // State transitions with balanced tactical priorities
@@ -390,7 +390,7 @@ class Tank {
             this.stateChanges++;
             // Debug rapid state changes (but skip if this is the initial state setting)
             if (this.stateTimer < 0.5 && this.previousState !== null) {
-                console.log(`RAPID STATE CHANGE: ${this.team} tank at (${Math.round(this.x)},${Math.round(this.y)}) state: "${this.state}" -> "${newState}" after ${this.stateTimer.toFixed(2)}s`);
+                // Debug logging removed for performance
             }
         }
         this.previousState = this.state;
@@ -851,7 +851,7 @@ class Tank {
         
         // Debug only for contest_hill tanks on hill
         if (this.state === 'contest_hill' && this.isOnHill) {
-            console.log(`${this.team} tank on hill: Found target - Closest: ${closestDistance.toFixed(1)}, Visible: ${closestVisibleDistance.toFixed(1)}, Selected: ${this.target ? this.distanceTo(this.target).toFixed(1) : 'none'}`);
+            // Debug logging removed for performance
         }
     }
     fireAtTarget(target, _gameState) {

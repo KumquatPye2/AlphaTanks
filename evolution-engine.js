@@ -28,6 +28,14 @@ class EvolutionEngine {
         // Defer candidate pool initialization until after ResearcherInsights is available
         // This will be called by initializeGame() after ResearcherInsights is created
         this.candidatePoolInitialized = false;
+        
+        // Store previous team statistics to avoid showing "None" or "Evolving..." during transitions
+        this.previousStats = {
+            redFitness: null,
+            blueFitness: null,
+            redBest: null,
+            blueBest: null
+        };
         // Statistics
         this.redTeamWins = 0;
         this.blueTeamWins = 0;
@@ -644,6 +652,7 @@ class EvolutionEngine {
     async runNextExperiment() {
         if (!this.isEvolutionRunning) {return;}
         this.totalExperiments++;
+        
         // ASI-ARCH Module 1: Researcher - Propose new architectures
         const { redGenomes, blueGenomes } = this.researcher.proposeExperiment(
             this.candidatePool,
@@ -671,12 +680,9 @@ class EvolutionEngine {
         if (analysis.significantDiscovery) {
             this.logEvolutionEvent(analysis.significantDiscovery, 'discovery');
         }
-        // Continue evolution
-        setTimeout(() => {
-            if (this.isEvolutionRunning) {
-                this.runNextExperiment();
-            }
-        }, 1000); // Fixed 1 second delay between battles
+        
+        // Evolution continues via handleBattleEnd after battle completes
+        // This allows the battle to actually run and generate results
     }
     handleBattleEnd(battleResult) {
         this.totalBattles++;
@@ -708,8 +714,16 @@ class EvolutionEngine {
             outcomeText = `Battle ${this.totalBattles}: ${battleResult.winner.toUpperCase()} wins in ${battleResult.duration.toFixed(1)}s`;
         }
         this.logEvolutionEvent(outcomeText, 'battle');
-        // If evolution is running and this was a manual battle, don't interfere
-        // The evolution system handles its own battle flow through runNextExperiment
+        
+        // If evolution is running, trigger the next experiment after processing
+        if (this.isEvolutionRunning) {
+            // Short delay to allow battle result processing, then continue evolution
+            setTimeout(() => {
+                if (this.isEvolutionRunning) {
+                    this.runNextExperiment();
+                }
+            }, 800); // Slightly shorter than index.html timeout to avoid conflicts
+        }
     }
     updateCandidatePool(experiment) {
         // Extract genomes from tank objects if needed
@@ -729,7 +743,8 @@ class EvolutionEngine {
                 team: 'red', // STRICT: Red lineage only
                 strategy: this.classifyStrategy(genome),
                 lineage: 'red', // Additional lineage tracking
-                parentTeam: 'red' // Ensure no cross-team contamination
+                parentTeam: 'red', // Ensure no cross-team contamination
+                isInitial: false // Battle-earned fitness, not initial placeholder
             });
         });
         // Blue team genomes ONLY go to blue candidate pool
@@ -743,7 +758,8 @@ class EvolutionEngine {
                 team: 'blue', // STRICT: Blue lineage only
                 strategy: this.classifyStrategy(genome),
                 lineage: 'blue', // Additional lineage tracking
-                parentTeam: 'blue' // Ensure no cross-team contamination
+                parentTeam: 'blue', // Ensure no cross-team contamination
+                isInitial: false // Battle-earned fitness, not initial placeholder
             });
         });
         // STRICT TEAM SEPARATION: Filter candidates by exact team and lineage
@@ -781,6 +797,15 @@ class EvolutionEngine {
         if (this.totalExperiments % 5 === 0) {
             this.currentGeneration++;
             this.logEvolutionEvent(`Advanced to Generation ${this.currentGeneration}`, 'generation');
+            
+            // Update UI immediately when generation advances
+            this.updateUI();
+            
+            // Update tactical evolution display if available
+            if (window.tacticalDisplay) {
+                window.tacticalDisplay.updateDisplay(this);
+            }
+            
             // Dispatch generation complete event for tracking
             const generationCompleteEvent = new CustomEvent('generationComplete', {
                 detail: {
@@ -918,6 +943,8 @@ class EvolutionEngine {
             bestRedFitness: bestRedCandidate ? bestRedCandidate.fitness : 0,
             bestBlueFitness: bestBlueCandidate ? bestBlueCandidate.fitness : 0,
             bestStrategy: bestCandidate ? bestCandidate.strategy : 'None',
+            bestRedStrategy: bestRedCandidate ? bestRedCandidate.strategy : 'None',
+            bestBlueStrategy: bestBlueCandidate ? bestBlueCandidate.strategy : 'None',
             redWins: this.redTeamWins,
             blueWins: this.blueTeamWins,
             draws: this.draws
@@ -937,17 +964,62 @@ class EvolutionEngine {
         const hasAnyBattleEarnedFitness = this.candidatePool.some(c => 
             (c.battles && c.battles > 0) || (c.isInitial === false)
         );
+        
+        // Debug logging to understand the issue
+        console.log('Debug - Candidate Pool:', this.candidatePool.length, 'candidates');
+        console.log('Debug - hasAnyBattleEarnedFitness:', hasAnyBattleEarnedFitness);
+        console.log('Debug - Stats:', {
+            redAvg: stats.redAverageFitness,
+            blueAvg: stats.blueAverageFitness,
+            redBest: stats.bestRedStrategy,
+            blueBest: stats.bestBlueStrategy
+        });
+        
         const redFitnessText = hasAnyBattleEarnedFitness ? 
             (isNaN(stats.redAverageFitness) ? '0.000' : stats.redAverageFitness.toFixed(3)) : 
             'Evolving...';
         const blueFitnessText = hasAnyBattleEarnedFitness ? 
             (isNaN(stats.blueAverageFitness) ? '0.000' : stats.blueAverageFitness.toFixed(3)) : 
             'Evolving...';
-        document.getElementById('redFitness').textContent = redFitnessText;
-        document.getElementById('blueFitness').textContent = blueFitnessText;
-        document.getElementById('redBest').textContent = stats.bestStrategy;
-        document.getElementById('blueBest').textContent = stats.bestStrategy;
+            
+        // Apply persistence for fitness values
+        if (hasAnyBattleEarnedFitness && !isNaN(stats.redAverageFitness)) {
+            this.previousStats.redFitness = redFitnessText;
+            document.getElementById('redFitness').textContent = redFitnessText;
+        } else if (this.previousStats.redFitness) {
+            document.getElementById('redFitness').textContent = this.previousStats.redFitness + ' (Previous)';
+        } else {
+            document.getElementById('redFitness').textContent = redFitnessText;
+        }
+        
+        if (hasAnyBattleEarnedFitness && !isNaN(stats.blueAverageFitness)) {
+            this.previousStats.blueFitness = blueFitnessText;
+            document.getElementById('blueFitness').textContent = blueFitnessText;
+        } else if (this.previousStats.blueFitness) {
+            document.getElementById('blueFitness').textContent = this.previousStats.blueFitness + ' (Previous)';
+        } else {
+            document.getElementById('blueFitness').textContent = blueFitnessText;
+        }
+        // Apply persistence for best architecture values
+        if (stats.bestRedStrategy && stats.bestRedStrategy !== 'None') {
+            this.previousStats.redBest = stats.bestRedStrategy;
+            document.getElementById('redBest').textContent = stats.bestRedStrategy;
+        } else if (this.previousStats.redBest) {
+            document.getElementById('redBest').textContent = this.previousStats.redBest + ' (Previous)';
+        } else {
+            document.getElementById('redBest').textContent = stats.bestRedStrategy;
+        }
+        
+        if (stats.bestBlueStrategy && stats.bestBlueStrategy !== 'None') {
+            this.previousStats.blueBest = stats.bestBlueStrategy;
+            document.getElementById('blueBest').textContent = stats.bestBlueStrategy;
+        } else if (this.previousStats.blueBest) {
+            document.getElementById('blueBest').textContent = this.previousStats.blueBest + ' (Previous)';
+        } else {
+            document.getElementById('blueBest').textContent = stats.bestBlueStrategy;
+        }
         document.getElementById('novelDesigns').textContent = stats.candidatePoolSize;
+        
         // Update red/blue adaptations instead of successfulMutations
         // Note: These are updated by the visualizer, so we don't need to update them here
         // Fitness thresholds are now handled by the Tactical Evolution Monitor

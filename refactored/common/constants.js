@@ -18,9 +18,9 @@ const GAME_CONFIG = {
         SIZE: 24,
         WIDTH: 24,
         HEIGHT: 16,
-        MAX_SPEED: 50,
-        BASE_SPEED: 50,
-        SPEED_MULTIPLIER: 0.5,
+    MAX_SPEED: 210,
+    BASE_SPEED: 80, // Halved from 160 per request
+    SPEED_MULTIPLIER: 0.7,
         MAX_HEALTH: 100,
         BASE_FIRE_RATE: 1.0,
         MAX_FIRE_RATE_BONUS: 1.0,
@@ -31,7 +31,7 @@ const GAME_CONFIG = {
         BASE_ACCURACY: 0.7,
         MAX_ACCURACY_BONUS: 0.3,
         SEARCH_RADIUS: 200,
-        MOVEMENT_THRESHOLD: 5 // pixels for battle start detection
+    MOVEMENT_THRESHOLD: 3 // pixels for battle start detection
     },
     
     PROJECTILE: {

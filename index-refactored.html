@@ -561,6 +561,15 @@
             // Initialize evolution engine (keeping existing for now)
             if (typeof EvolutionEngine !== 'undefined') {
                 evolutionEngine = new EvolutionEngine();
+                // Wire to game engine so battleEnd details flow to evolution
+                if (gameEngine && typeof gameEngine.setEvolutionEngine === 'function') {
+                    gameEngine.setEvolutionEngine(evolutionEngine);
+                }
+            }
+            
+            // Initialize ASI-ARCH integration (LLM-enhanced pipeline)
+            if (typeof initializeASIArch === 'function') {
+                try { window.asiArch = initializeASIArch(); } catch {}
             }
             
             // Set up event listeners
@@ -568,6 +577,26 @@
             
             // Start the main game loop
             startGameLoop();
+            
+            // Auto-advance: process ASI-ARCH results, then start next battle
+            window.addEventListener('battleEnd', async (event) => {
+                try {
+                    const asi = window.asiArch || (typeof initializeASIArch === 'function' ? initializeASIArch() : null);
+                    if (asi && typeof asi.processBattleResult === 'function' && gameEngine) {
+                        await asi.processBattleResult(gameEngine.redTeam || [], gameEngine.blueTeam || [], event.detail);
+                    }
+                } catch (e) {
+                    console.warn('ASI-ARCH processing failed:', e);
+                } finally {
+                    if (isRunning && !isPaused && gameEngine) {
+                        setTimeout(() => {
+                            if (gameEngine && !isPaused) {
+                                gameEngine.startQuickBattle();
+                            }
+                        }, 600);
+                    }
+                }
+            });
             
             console.log('🎮 AlphaTanks ready to play!');
         });
@@ -664,7 +693,8 @@
                 if (gameEngine && !isPaused) {
                     // Only update if battle is running and tanks exist
                     if (gameEngine.gameState === GAME_STATES.RUNNING && gameEngine.tanks.length > 0) {
-                        gameEngine.update(deltaTime);
+                        const scaledDelta = deltaTime * (gameEngine.timeScale || 1);
+                        gameEngine.update(scaledDelta);
                     }
                     gameEngine.render(ctx);
                     updateUI();
