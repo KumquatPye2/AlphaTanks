@@ -2,10 +2,15 @@
 // Manages battleResults tracking, nextGeneration cycles, and evolvePopulation mechanics
 class EvolutionEngine {
     constructor() {
-        this.currentGeneration = 0;
+        // Add unique instance ID for debugging
+        this.instanceId = `evo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        console.log('New EvolutionEngine created with ID:', this.instanceId);
+        
+        this.currentGeneration = 1; // Start at 1 for user-friendly display
         this.generation = 1; // For test compatibility
         this.totalExperiments = 0;
         this.totalBattles = 0;
+        this.generationBattles = 0; // Battles in current generation
         // ASI-ARCH components
         this.researcher = new TankResearcher();
         this.engineer = new TankEngineer();
@@ -40,6 +45,11 @@ class EvolutionEngine {
         this.redTeamWins = 0;
         this.blueTeamWins = 0;
         this.draws = 0;
+        
+        // Add battle end event deduplication
+        this.lastBattleEndTime = 0;
+        this.lastBattleResult = null;
+        
         this.bindEvents();
     }
     initializePopulations() {
@@ -651,7 +661,6 @@ class EvolutionEngine {
     }
     async runNextExperiment() {
         if (!this.isEvolutionRunning) {return;}
-        this.totalExperiments++;
         
         // ASI-ARCH Module 1: Researcher - Propose new architectures
         const { redGenomes, blueGenomes } = this.researcher.proposeExperiment(
@@ -685,7 +694,28 @@ class EvolutionEngine {
         // This allows the battle to actually run and generate results
     }
     handleBattleEnd(battleResult) {
+        // Enhanced deduplication using battle signature
+        const battleSignature = `${battleResult.winner}_${battleResult.timestamp || Date.now()}_${this.totalExperiments}`;
+        
+        if (this.processedBattles && this.processedBattles.has(battleSignature)) {
+            console.log(`[${this.instanceId}] DUPLICATE BATTLE SKIPPED:`, battleSignature);
+            return;
+        }
+        
+        // Initialize processed battles set if needed
+        if (!this.processedBattles) {
+            this.processedBattles = new Set();
+        }
+        
+        // Mark this battle as processed
+        this.processedBattles.add(battleSignature);
+        
+        console.log(`[${this.instanceId}] Processing battle: Gen ${this.currentGeneration}, Battle ${this.generationBattles + 1}, Total Exp ${this.totalExperiments}`);
+
         this.totalBattles++;
+        this.totalExperiments++;
+        this.generationBattles++;
+
         // Update win statistics
         if (battleResult.winner === 'red') {
             this.redTeamWins++;
@@ -795,29 +825,7 @@ class EvolutionEngine {
         this.candidatePool = [...topRed, ...topBlue, ...topOthers];
         // Check for generation advancement
         if (this.totalExperiments % 5 === 0) {
-            this.currentGeneration++;
-            this.logEvolutionEvent(`Advanced to Generation ${this.currentGeneration}`, 'generation');
-            
-            // Update UI immediately when generation advances
-            this.updateUI();
-            
-            // Update tactical evolution display if available
-            if (window.tacticalDisplay) {
-                window.tacticalDisplay.updateDisplay(this);
-            }
-            
-            // Dispatch generation complete event for tracking
-            const generationCompleteEvent = new CustomEvent('generationComplete', {
-                detail: {
-                    generation: this.currentGeneration,
-                    totalExperiments: this.totalExperiments,
-                    candidatePoolSize: this.candidatePool.length,
-                    topFitness: this.candidatePool[0]?.fitness || 0,
-                    averageFitness: this.candidatePool.reduce((sum, c) => sum + c.fitness, 0) / this.candidatePool.length || 0,
-                    timestamp: Date.now() // Add timestamp to help identify duplicates
-                }
-            });
-            window.dispatchEvent(generationCompleteEvent);
+            this.nextGeneration();
         }
     }
     addToPool(candidate) {
@@ -931,7 +939,7 @@ class EvolutionEngine {
         return {
             generation: this.currentGeneration,
             experiments: this.totalExperiments,
-            battles: this.totalBattles,
+            battles: this.generationBattles, // Use generation battles instead of total battles
             candidatePoolSize: this.candidatePool.length,
             averageFitness: overallAvgFitness,
             redAverageFitness: redAvgFitness,
@@ -964,16 +972,6 @@ class EvolutionEngine {
         const hasAnyBattleEarnedFitness = this.candidatePool.some(c => 
             (c.battles && c.battles > 0) || (c.isInitial === false)
         );
-        
-        // Debug logging to understand the issue
-        console.log('Debug - Candidate Pool:', this.candidatePool.length, 'candidates');
-        console.log('Debug - hasAnyBattleEarnedFitness:', hasAnyBattleEarnedFitness);
-        console.log('Debug - Stats:', {
-            redAvg: stats.redAverageFitness,
-            blueAvg: stats.blueAverageFitness,
-            redBest: stats.bestRedStrategy,
-            blueBest: stats.bestBlueStrategy
-        });
         
         const redFitnessText = hasAnyBattleEarnedFitness ? 
             (isNaN(stats.redAverageFitness) ? '0.000' : stats.redAverageFitness.toFixed(3)) : 
@@ -1040,14 +1038,16 @@ class EvolutionEngine {
     }
     pauseEvolution() {
         this.isEvolutionRunning = false;
+        // DON'T reset counts when pausing - keep totalExperiments and totalBattles
         this.logEvolutionEvent('Evolution system paused', 'system');
     }
     resetEvolution() {
         this.isEvolutionRunning = false;
-        this.currentGeneration = 0;
+        this.currentGeneration = 1; // Start at 1 for user-friendly display
         this.generation = 1;
         this.totalExperiments = 0;
         this.totalBattles = 0;
+        this.generationBattles = 0; // Reset generation battle counter
         this.redTeamWins = 0;
         this.blueTeamWins = 0;
         this.draws = 0;
@@ -1069,10 +1069,22 @@ class EvolutionEngine {
     }
     // Additional evolution management methods for validation
     nextGeneration() {
+        console.log(`[${this.instanceId}] Generation advance: ${this.currentGeneration} -> ${this.currentGeneration + 1}, Exp: ${this.totalExperiments}`);
+        
         // Advance to the next generation of evolution
         this.currentGeneration++;
-        this.generation = this.currentGeneration + 1; // Keep both for compatibility
-        this.logEvolutionEvent(`Advancing to generation ${this.generation}`, 'evolution');
+        this.generation = this.currentGeneration; // Keep both synced
+        this.generationBattles = 0; // Reset battle counter for new generation
+        this.logEvolutionEvent(`Advancing to generation ${this.currentGeneration}`, 'evolution');
+        
+        // Update UI immediately when generation advances
+        this.updateUI();
+        
+        // Update tactical evolution display if available
+        if (window.tacticalDisplay) {
+            window.tacticalDisplay.updateDisplay(this);
+        }
+        
         // Dispatch generation complete event for tracking
         const generationCompleteEvent = new CustomEvent('generationComplete', {
             detail: {
@@ -1084,6 +1096,7 @@ class EvolutionEngine {
             }
         });
         window.dispatchEvent(generationCompleteEvent);
+        
         // Trigger evolution for both teams SEPARATELY
         this.evolvePopulation('red');
         this.evolvePopulation('blue');
@@ -1101,7 +1114,7 @@ class EvolutionEngine {
         try {
             const generationElement = document.getElementById('generationDisplay');
             if (generationElement) {
-                generationElement.textContent = `Generation: ${this.generation}`;
+                generationElement.textContent = `Generation: ${this.currentGeneration}`;
             }
         } catch (_e) {
             // DOM elements may not exist in test environment

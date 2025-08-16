@@ -203,6 +203,13 @@ function resetBattle() {
     document.getElementById('pauseEvolution').disabled = true;
     evolutionEngine.logEvolutionEvent('System reset - Ready for new evolution cycle', 'system');
 }
+
+function initializeNewBattle() {
+    // Initialize new battle WITHOUT resetting evolution
+    gameEngine.reset();
+    gameEngine.initializeBattle(5, 5, 'king_of_hill');
+    // Don't reset generation or evolution state
+}
 function handleResize() {
     if (game) {
         game.setupCanvas();

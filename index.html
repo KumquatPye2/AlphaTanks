@@ -507,7 +507,7 @@
         </div>
         
         <div class="evolution-stats">
-            <div id="generationDisplay">Generation: 0</div>
+            <div id="generationDisplay">Generation: 1</div>
             <div>Battles: <span id="battles">0</span></div>
             <div>Total Experiments: <span id="experiments">0</span></div>
         </div>
@@ -636,7 +636,7 @@
                     <h4>💡 Innovation Metrics</h4>
                     <div id="innovation-metrics-content">
                         <div class="innovation-stats">
-                            <div>Generation: <span id="current-generation">0</span></div>
+                            <div>Generation: <span id="current-generation">1</span></div>
                             <div>Total Experiments: <span id="total-experiments">0</span></div>
                         </div>
                         <div class="team-stats">
@@ -812,13 +812,10 @@
                 window.evolution = evolutionEngine; // Backward compatibility
             }
             
-            // Initialize evolution engine (keeping existing for now)
-            if (typeof EvolutionEngine !== 'undefined') {
-                evolutionEngine = new EvolutionEngine();
-                // Wire to game engine so battleEnd details flow to evolution
-                if (gameEngine && typeof gameEngine.setEvolutionEngine === 'function') {
-                    gameEngine.setEvolutionEngine(evolutionEngine);
-                }
+            // Evolution engine is already initialized in main.js
+            // Wire to game engine so battleEnd details flow to evolution
+            if (evolutionEngine && gameEngine && typeof gameEngine.setEvolutionEngine === 'function') {
+                gameEngine.setEvolutionEngine(evolutionEngine);
             }
             
             // Initialize ASI-ARCH integration (LLM-enhanced pipeline)
