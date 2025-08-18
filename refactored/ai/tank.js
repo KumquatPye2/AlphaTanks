@@ -9,6 +9,10 @@ class Tank {
         // Create core entity
         this.entity = new TankEntity(x, y, team, genome);
         
+        // Phase 2: Add unique tank ID for insights tracking
+        this.tankId = `${team}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        this.entity.tankId = this.tankId; // Also add to entity for CollisionUtils access
+        
         // Create AI system
         this.ai = new TankAI(this.entity);
         

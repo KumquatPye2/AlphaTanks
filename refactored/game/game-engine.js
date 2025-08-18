@@ -93,9 +93,9 @@ class GameEngine {
     }
     
     /**
-     * Initialize a new battle
+     * Initialize a new battle with optional scenario support
      */
-    initializeBattle(redTanks = 3, blueTanks = 3, mode = 'king_of_hill') {
+    initializeBattle(redTanks = 3, blueTanks = 3, mode = 'king_of_hill', scenarioId = null, seed = null) {
         // Reset all systems
         this.tanks = [];
         this.redTeam = [];
@@ -108,14 +108,32 @@ class GameEngine {
         this.showVictoryMessage = false;
         this.victoryMessageTime = 0;
         
-    // Do not change gameState here; caller controls RUNNING/READY state
+        // Do not change gameState here; caller controls RUNNING/READY state
         
         // Set game mode
         this.battlefield.mode = mode;
         
-        // Initialize battlefield for this mode
+        // Initialize battlefield with scenario support
         if (mode === 'king_of_hill') {
-            this.battlefield.initializeKingOfHill();
+            if (scenarioId && typeof initializeKingOfHill === 'function') {
+                // Use enhanced scenario system
+                const battleData = initializeKingOfHill(this.canvas, scenarioId, seed);
+                if (battleData.obstacles) {
+                    this.battlefield.obstacles = battleData.obstacles;
+                }
+                if (battleData.hill) {
+                    this.battlefield.hillX = battleData.hill.x;
+                    this.battlefield.hillY = battleData.hill.y;
+                    this.battlefield.hillRadius = battleData.hill.radius;
+                    
+                    // Create the actual Hill object for rendering
+                    this.battlefield.hill = new Hill(battleData.hill.x, battleData.hill.y, battleData.hill.radius);
+                }
+                console.log(`🎯 Battle initialized with scenario: ${battleData.scenario?.name || scenarioId}`);
+            } else {
+                // Use default initialization
+                this.battlefield.initializeKingOfHill();
+            }
         }
         
         // Create red team
@@ -594,6 +612,348 @@ class GameEngine {
         // Restore context
         this.ctx.restore();
     }
+}
+
+// Enhanced Battle Scenarios System
+// Seeded Random Number Generator for reproducible battles
+function createSeededRNG(seed) {
+    let state = seed % 2147483647;
+    if (state <= 0) state += 2147483646;
+    
+    return {
+        random: function() {
+            state = state * 16807 % 2147483647;
+            return (state - 1) / 2147483646;
+        }
+    };
+}
+
+// Helper function to check if obstacle overlaps with hill
+function obstacleOverlapsHill(obstacleX, obstacleY, obstacleWidth, obstacleHeight, hill) {
+    if (!hill) return false;
+    
+    // Find closest point on rectangle to circle center
+    const closestX = Math.max(obstacleX, Math.min(hill.x, obstacleX + obstacleWidth));
+    const closestY = Math.max(obstacleY, Math.min(hill.y, obstacleY + obstacleHeight));
+    
+    // Calculate distance from circle center to closest point
+    const distance = Math.sqrt((hill.x - closestX) ** 2 + (hill.y - closestY) ** 2);
+    
+    // Add some padding to ensure hill is clearly accessible
+    const hillBuffer = hill.radius + 10;
+    
+    return distance < hillBuffer;
+}
+
+// Scenario-specific obstacle generation functions
+function createOpenFieldObstacles(canvas, scenario, seed, hill = null) {
+    const rng = createSeededRNG(seed);
+    const obstacles = [];
+    const count = scenario.obstacleCount;
+    const { min: minSize, max: maxSize } = scenario.obstacleSize;
+    
+    // Open field: Sparse, scattered obstacles for mobility-focused combat
+    for (let i = 0; i < count; i++) {
+        const width = minSize + rng.random() * (maxSize - minSize);
+        const height = minSize + rng.random() * (maxSize - minSize);
+        
+        // Avoid center area for clear movement and avoid hill
+        let x, y;
+        let attempts = 0;
+        do {
+            x = rng.random() * (canvas.width - width);
+            y = rng.random() * (canvas.height - height);
+            attempts++;
+        } while (
+            attempts < 50 && (
+                // Avoid center area for clear movement
+                (x > canvas.width * 0.3 && x < canvas.width * 0.7 &&
+                 y > canvas.height * 0.3 && y < canvas.height * 0.7) ||
+                // Avoid hill area
+                obstacleOverlapsHill(x, y, width, height, hill)
+            )
+        );
+        
+        obstacles.push({ x, y, width, height });
+    }
+    
+    return obstacles;
+}
+
+function createUrbanObstacles(canvas, scenario, seed, hill = null) {
+    const rng = createSeededRNG(seed);
+    const obstacles = [];
+    const count = scenario.obstacleCount;
+    const { min: minSize, max: maxSize } = scenario.obstacleSize;
+    
+    // Urban warfare: Dense grid-like "buildings" for cover-based combat
+    const gridCols = Math.ceil(Math.sqrt(count * 1.5));
+    const gridRows = Math.ceil(count / gridCols);
+    const cellWidth = canvas.width / (gridCols + 1);
+    const cellHeight = canvas.height / (gridRows + 1);
+    
+    let placed = 0;
+    for (let row = 0; row < gridRows && placed < count; row++) {
+        for (let col = 0; col < gridCols && placed < count; col++) {
+            // Skip some cells randomly for streets/alleys
+            if (rng.random() < 0.3) continue;
+            
+            const baseX = cellWidth * (col + 0.5);
+            const baseY = cellHeight * (row + 0.5);
+            
+            // Rectangular "buildings"
+            const width = minSize + rng.random() * (maxSize - minSize);
+            const height = minSize + rng.random() * (maxSize - minSize);
+            
+            const x = Math.max(0, Math.min(canvas.width - width, 
+                baseX - width/2 + (rng.random() - 0.5) * cellWidth * 0.3));
+            const y = Math.max(0, Math.min(canvas.height - height, 
+                baseY - height/2 + (rng.random() - 0.5) * cellHeight * 0.3));
+            
+            // Only place if it doesn't overlap with hill
+            if (!obstacleOverlapsHill(x, y, width, height, hill)) {
+                obstacles.push({ x, y, width, height });
+                placed++;
+            }
+        }
+    }
+    
+    return obstacles;
+}
+
+function createChokepointObstacles(canvas, scenario, seed, hill = null) {
+    const rng = createSeededRNG(seed);
+    const obstacles = [];
+    const count = scenario.obstacleCount;
+    const { min: minSize, max: maxSize } = scenario.obstacleSize;
+    
+    // Chokepoint: Create strategic barriers forming narrow passages
+    const isHorizontalChoke = rng.random() < 0.5;
+    
+    if (isHorizontalChoke) {
+        // Horizontal barriers with vertical passages
+        const numBarriers = Math.ceil(count / 3);
+        const barrierHeight = canvas.height / (numBarriers + 1);
+        
+        for (let i = 0; i < numBarriers; i++) {
+            const y = barrierHeight * (i + 1);
+            const passageWidth = 80 + rng.random() * 40; // 80-120px passage
+            const passageStart = canvas.width * 0.2 + rng.random() * canvas.width * 0.6 - passageWidth/2;
+            
+            // Left barrier segment
+            if (passageStart > 20) {
+                const width = passageStart - 10;
+                const height = minSize + rng.random() * (maxSize - minSize);
+                obstacles.push({ x: 0, y: y - height/2, width, height });
+            }
+            
+            // Right barrier segment
+            const rightStart = passageStart + passageWidth + 10;
+            if (rightStart < canvas.width - 20) {
+                const width = canvas.width - rightStart;
+                const height = minSize + rng.random() * (maxSize - minSize);
+                obstacles.push({ x: rightStart, y: y - height/2, width, height });
+            }
+        }
+    } else {
+        // Vertical barriers with horizontal passages
+        const numBarriers = Math.ceil(count / 3);
+        const barrierWidth = canvas.width / (numBarriers + 1);
+        
+        for (let i = 0; i < numBarriers; i++) {
+            const x = barrierWidth * (i + 1);
+            const passageHeight = 80 + rng.random() * 40; // 80-120px passage
+            const passageStart = canvas.height * 0.2 + rng.random() * canvas.height * 0.6 - passageHeight/2;
+            
+            // Top barrier segment
+            if (passageStart > 20) {
+                const width = minSize + rng.random() * (maxSize - minSize);
+                const height = passageStart - 10;
+                obstacles.push({ x: x - width/2, y: 0, width, height });
+            }
+            
+            // Bottom barrier segment
+            const bottomStart = passageStart + passageHeight + 10;
+            if (bottomStart < canvas.height - 20) {
+                const width = minSize + rng.random() * (maxSize - minSize);
+                const height = canvas.height - bottomStart;
+                obstacles.push({ x: x - width/2, y: bottomStart, width, height });
+            }
+        }
+    }
+    
+    // Add some scattered obstacles in open areas
+    const remainingCount = count - obstacles.length;
+    for (let i = 0; i < remainingCount; i++) {
+        const width = minSize + rng.random() * (maxSize - minSize);
+        const height = minSize + rng.random() * (maxSize - minSize);
+        let x, y, attempts = 0;
+        
+        do {
+            x = Math.max(0, Math.min(canvas.width - width, rng.random() * (canvas.width - width)));
+            y = Math.max(0, Math.min(canvas.height - height, rng.random() * (canvas.height - height)));
+            attempts++;
+        } while (attempts < 50 && obstacleOverlapsHill(x, y, width, height, hill));
+        
+        obstacles.push({ x, y, width, height });
+    }
+    
+    // Filter out any obstacles that overlap with hill
+    const filteredObstacles = obstacles.filter(obstacle => 
+        !obstacleOverlapsHill(obstacle.x, obstacle.y, obstacle.width, obstacle.height, hill)
+    );
+    
+    return filteredObstacles;
+}
+
+function createFortressObstacles(canvas, scenario, seed, hill = null) {
+    const rng = createSeededRNG(seed);
+    const obstacles = [];
+    const count = scenario.obstacleCount;
+    const { min: minSize, max: maxSize } = scenario.obstacleSize;
+    
+    // Fortress: Defensive perimeter with inner keep
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const outerRadius = Math.min(canvas.width, canvas.height) * 0.35;
+    const innerRadius = outerRadius * 0.5;
+    
+    // Outer defensive wall (broken for entries)
+    const wallSegments = Math.ceil(count * 0.6);
+    const angleStep = (Math.PI * 2) / wallSegments;
+    
+    for (let i = 0; i < wallSegments; i++) {
+        // Skip some segments for gates/entrances
+        if (i % 3 === 1 && rng.random() < 0.7) continue;
+        
+        const angle = i * angleStep;
+        const x = centerX + Math.cos(angle) * outerRadius;
+        const y = centerY + Math.sin(angle) * outerRadius;
+        
+        const width = maxSize + rng.random() * 20;
+        const height = minSize + rng.random() * (maxSize - minSize);
+        
+        // Rotate obstacle to align with wall
+        obstacles.push({
+            x: Math.max(0, Math.min(canvas.width - width, x - width/2)),
+            y: Math.max(0, Math.min(canvas.height - height, y - height/2)),
+            width,
+            height
+        });
+    }
+    
+    // Inner keep structures
+    const keepStructures = count - obstacles.length;
+    for (let i = 0; i < keepStructures; i++) {
+        const angle = rng.random() * Math.PI * 2;
+        const radius = rng.random() * innerRadius;
+        const x = centerX + Math.cos(angle) * radius;
+        const y = centerY + Math.sin(angle) * radius;
+        
+        const width = minSize + rng.random() * (maxSize - minSize);
+        const height = minSize + rng.random() * (maxSize - minSize);
+        
+        const obstacleX = Math.max(0, Math.min(canvas.width - width, x - width/2));
+        const obstacleY = Math.max(0, Math.min(canvas.height - height, y - height/2));
+        
+        // Only add if it doesn't overlap with hill
+        if (!obstacleOverlapsHill(obstacleX, obstacleY, width, height, hill)) {
+            obstacles.push({ x: obstacleX, y: obstacleY, width, height });
+        }
+    }
+    
+    // Filter out any remaining obstacles that overlap with hill
+    const filteredObstacles = obstacles.filter(obstacle => 
+        !obstacleOverlapsHill(obstacle.x, obstacle.y, obstacle.width, obstacle.height, hill)
+    );
+    
+    return filteredObstacles;
+}
+
+// Enhanced battle initialization with scenario support
+function initializeBattle(canvas, scenarioId = 'open_field', seed = null, hill = null) {
+    const config = window.CONFIG?.asiArch?.battleScenarios;
+    if (!config || !config.scenarios) {
+        console.warn('Enhanced battle scenarios not configured, using default obstacles');
+        return;
+    }
+    
+    const scenario = config.scenarios[scenarioId];
+    if (!scenario) {
+        console.warn(`Scenario ${scenarioId} not found, using open_field`);
+        scenarioId = 'open_field';
+    }
+    
+    // Use provided seed or generate one
+    const battleSeed = seed || (config.seededEvaluation?.enabled ? 
+        Math.floor(Math.random() * (config.seededEvaluation.seedRange[1] - config.seededEvaluation.seedRange[0])) + config.seededEvaluation.seedRange[0] :
+        Math.floor(Math.random() * 10000));
+    
+    console.log(`🎯 Initializing ${scenario.name} (seed: ${battleSeed})`);
+    
+    // Generate obstacles based on scenario, avoiding hill if provided
+    let obstacles = [];
+    switch (scenarioId) {
+        case 'open_field':
+            obstacles = createOpenFieldObstacles(canvas, scenario, battleSeed, hill);
+            break;
+        case 'urban_warfare':
+            obstacles = createUrbanObstacles(canvas, scenario, battleSeed, hill);
+            break;
+        case 'chokepoint_control':
+            obstacles = createChokepointObstacles(canvas, scenario, battleSeed, hill);
+            break;
+        case 'fortress_assault':
+            obstacles = createFortressObstacles(canvas, scenario, battleSeed, hill);
+            break;
+        default:
+            obstacles = createOpenFieldObstacles(canvas, scenario, battleSeed, hill);
+    }
+    
+    // Apply obstacles to global game state (for compatibility)
+    if (window.gameEngine && window.gameEngine.battlefield) {
+        window.gameEngine.battlefield.obstacles = obstacles;
+    }
+    
+    return {
+        obstacles: obstacles,
+        scenario: scenario,
+        seed: battleSeed
+    };
+}
+
+function initializeKingOfHill(canvas, scenarioId = 'open_field', seed = null) {
+    const rng = createSeededRNG(seed || Date.now() % 10000);
+    
+    // Calculate hill position first (before obstacles)
+    const hillRadius = 30;
+    const hillX = canvas.width / 2 + (rng.random() - 0.5) * 100;
+    const hillY = canvas.height / 2 + (rng.random() - 0.5) * 100;
+    
+    // Initialize battle with scenario, passing hill position
+    const battleData = initializeBattle(canvas, scenarioId, seed, { x: hillX, y: hillY, radius: hillRadius });
+    
+    if (window.gameEngine) {
+        window.gameEngine.hillX = hillX;
+        window.gameEngine.hillY = hillY;
+        window.gameEngine.hillRadius = hillRadius;
+    }
+    
+    return {
+        ...battleData,
+        hill: { x: hillX, y: hillY, radius: hillRadius }
+    };
+}
+
+// Export enhanced battle scenarios functions
+if (typeof window !== 'undefined') {
+    window.createSeededRNG = createSeededRNG;
+    window.createOpenFieldObstacles = createOpenFieldObstacles;
+    window.createUrbanObstacles = createUrbanObstacles;
+    window.createChokepointObstacles = createChokepointObstacles;
+    window.createFortressObstacles = createFortressObstacles;
+    window.initializeBattle = initializeBattle;
+    window.initializeKingOfHill = initializeKingOfHill;
 }
 
 // Export for both Node.js and browser environments

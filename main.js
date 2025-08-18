@@ -78,6 +78,9 @@ function setupEventHandlers() {
     document.getElementById('analystInsightsButton').addEventListener('click', openAnalystInsights);
     document.getElementById('cognitionInsightsButton').addEventListener('click', openCognitionInsights);
     document.getElementById('creditsButton').addEventListener('click', showCredits);
+    
+    // Battle scenario selector - preview obstacles when changed
+    document.getElementById('scenarioSelector').addEventListener('change', previewBattleScenario);
     // Credits modal handlers
     const modal = document.getElementById('creditsModal');
     const closeBtn = modal.querySelector('.close');
@@ -146,6 +149,29 @@ function setupEventHandlers() {
             genomeCache.redBest = null;
             genomeCache.blueBest = null;
             
+            // Apply the selected scenario before starting
+            const scenarioSelector = document.getElementById('scenarioSelector');
+            const selectedScenario = scenarioSelector ? scenarioSelector.value : 'open_field';
+            
+            // Reset and apply scenario
+            game.reset();
+            const seed = Date.now() % 10000;
+            game.initializeBattle(5, 5, 'king_of_hill', selectedScenario, seed);
+            
+            // Log scenario application
+            const scenarios = window.CONFIG?.asiArch?.battleScenarios?.scenarios;
+            const scenarioName = scenarios?.[selectedScenario]?.name || selectedScenario;
+            evolution.logEvolutionEvent(`Starting evolution with scenario: ${scenarioName}`, 'system');
+            evolution.logEvolutionEvent(`Tactical focus: ${scenarios?.[selectedScenario]?.tacticalFocus || 'unknown'}`, 'initialization');
+            
+            // Phase 2: Track evolution context for research reproducibility
+            if (window.researcherInsights) {
+                window.researcherInsights.trackScenarioContext(selectedScenario, seed, 'evolution_start');
+            }
+            if (window.engineerInsights) {
+                window.engineerInsights.trackSeededBattle(selectedScenario, seed);
+            }
+            
             // Ensure tactical display is initialized
             if (!window.tacticalDisplay || !window.tacticalDisplay.isReady) {
                 // Debug logging removed for performance
@@ -177,6 +203,12 @@ function setupEventHandlers() {
         // Update UI
         document.getElementById('startEvolution').disabled = true;
         document.getElementById('pauseEvolution').disabled = false;
+        
+        // Disable scenario selector during evolution
+        const startScenarioSelector = document.getElementById('scenarioSelector');
+        if (startScenarioSelector) {
+            startScenarioSelector.disabled = true;
+        }
         // Log start/resume
         if (game.gameState === 'running') {
             evolution.logEvolutionEvent('AlphaTanks evolution system resumed', 'system');
@@ -194,20 +226,97 @@ function setupEventHandlers() {
 function resetBattle() {
     // Reset evolution
     evolutionEngine.resetEvolution();
+    
     // Reset game state first
     gameEngine.reset();
-    // Then initialize new battle (this sets state to 'ready')
-    gameEngine.initializeBattle(5, 5, 'king_of_hill');
+    
+    // Get current scenario from dropdown (if available)
+    const scenarioSelector = document.getElementById('scenarioSelector');
+    const currentScenario = scenarioSelector ? scenarioSelector.value : 'open_field';
+    
+    // Initialize battle with current scenario (like Apply Scenario does)
+    const seed = Date.now() % 10000;
+    gameEngine.initializeBattle(5, 5, 'king_of_hill', currentScenario, seed);
+    
+    // Phase 2: Track seeded battle and scenario context
+    if (window.engineerInsights) {
+        window.engineerInsights.trackSeededBattle(currentScenario, seed);
+    }
+    if (window.researcherInsights) {
+        window.researcherInsights.trackScenarioContext(currentScenario, seed, 'battle_reset');
+    }
+    
+    // Set game state to ready so user can see the layout
+    gameEngine.gameState = 'ready';
+    
+    // Render the battlefield immediately
+    gameEngine.render();
+    
     // Update UI - reset button should enable start button
     document.getElementById('startEvolution').disabled = false;
     document.getElementById('pauseEvolution').disabled = true;
+    
+    // Re-enable scenario selector
+    const resetScenarioSelector = document.getElementById('scenarioSelector');
+    if (resetScenarioSelector) {
+        resetScenarioSelector.disabled = false;
+    }
+    
+    // Log the reset with scenario info
+    const scenarios = window.CONFIG?.asiArch?.battleScenarios?.scenarios;
+    const scenarioName = scenarios?.[currentScenario]?.name || currentScenario;
+    
     evolutionEngine.logEvolutionEvent('System reset - Ready for new evolution cycle', 'system');
+    evolutionEngine.logEvolutionEvent(`Battle reset with scenario: ${scenarioName}`, 'initialization');
+    
+    console.log(`🔄 Battle reset with scenario: ${scenarioName}`);
+}
+
+function previewBattleScenario() {
+    // Get selected scenario
+    const scenarioSelector = document.getElementById('scenarioSelector');
+    if (!scenarioSelector) return;
+    
+    const selectedScenario = scenarioSelector.value;
+    
+    // Only preview if not currently running evolution (scenario selector enabled)
+    if (scenarioSelector.disabled) return;
+    
+    // Reset game state first to clear any existing battle
+    gameEngine.reset();
+    
+    // Initialize battle with selected scenario for preview
+    const seed = Date.now() % 10000;
+    gameEngine.initializeBattle(5, 5, 'king_of_hill', selectedScenario, seed);
+    
+    // Phase 2: Track scenario preview
+    if (window.engineerInsights) {
+        window.engineerInsights.trackSeededBattle(selectedScenario, seed);
+    }
+    
+    // Set game state to ready so user can see the layout
+    gameEngine.gameState = 'ready';
+    
+    // Render the battlefield immediately to show the obstacles
+    gameEngine.render();
+    
+    // Log the preview
+    const scenarios = window.CONFIG?.asiArch?.battleScenarios?.scenarios;
+    const scenarioName = scenarios?.[selectedScenario]?.name || selectedScenario;
+    console.log(`👁️ Previewing scenario: ${scenarioName}`);
 }
 
 function initializeNewBattle() {
     // Initialize new battle WITHOUT resetting evolution
     gameEngine.reset();
-    gameEngine.initializeBattle(5, 5, 'king_of_hill');
+    
+    // Get current scenario from dropdown (if available)
+    const scenarioSelector = document.getElementById('scenarioSelector');
+    const currentScenario = scenarioSelector ? scenarioSelector.value : 'open_field';
+    
+    // Initialize with current scenario
+    gameEngine.initializeBattle(5, 5, 'king_of_hill', currentScenario, Date.now() % 10000);
+    
     // Don't reset generation or evolution state
 }
 function handleResize() {
@@ -832,5 +941,6 @@ window.enableDemoMode = function() {
         }
     }, 500);
 }
+
 // Call enableDemoMode() to showcase the system
 // enableDemoMode();

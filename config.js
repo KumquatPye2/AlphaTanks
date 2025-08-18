@@ -44,10 +44,66 @@ const CONFIG = {
         },
         
         // Candidate pool size (paper uses top-50)
-        candidatePoolSize: 10,  // Scaled down for tank tactics
+        candidatePoolSize: 50,  // Increased from 10 for better diversity
         
         // Experiment batch size
         batchSize: 5,           // Process 5 experiments per iteration
+        
+        // Enhanced battle scenarios configuration
+        battleScenarios: {
+            enabled: true,
+            rotationInterval: 5,  // Change scenario every 5 cycles
+            
+            // Available scenarios with tactical challenges
+            scenarios: {
+                'open_field': {
+                    name: 'Open Field Combat',
+                    description: 'Wide open battlefield with minimal cover',
+                    obstacleCount: 8,
+                    obstacleSize: { min: 30, max: 60 },
+                    hillPosition: 'center',
+                    tacticalFocus: 'mobility_and_accuracy'
+                },
+                'urban_warfare': {
+                    name: 'Urban Combat',
+                    description: 'Dense obstacle layout simulating urban combat',
+                    obstacleCount: 20,
+                    obstacleSize: { min: 40, max: 80 },
+                    hillPosition: 'offset',
+                    tacticalFocus: 'positioning_and_cover'
+                },
+                'chokepoint_control': {
+                    name: 'Chokepoint Defense',
+                    description: 'Narrow passages requiring tactical coordination',
+                    obstacleCount: 12,
+                    obstacleSize: { min: 50, max: 100 },
+                    hillPosition: 'defended',
+                    tacticalFocus: 'teamwork_and_timing'
+                },
+                'fortress_assault': {
+                    name: 'Fortress Assault',
+                    description: 'Asymmetric scenario with defensive advantages',
+                    obstacleCount: 15,
+                    obstacleSize: { min: 60, max: 120 },
+                    hillPosition: 'fortified',
+                    tacticalFocus: 'adaptation_and_persistence'
+                }
+            },
+            
+            // Seeded evaluation for reproducibility
+            seededEvaluation: {
+                enabled: true,
+                seedRange: [1000, 9999]
+            },
+            
+            // Fitness aggregation across scenarios
+            multiScenarioFitness: {
+                enabled: true,
+                adaptabilityWeight: 0.3,
+                consistencyWeight: 0.2,
+                specializationPenalty: 0.15
+            }
+        },
         
         // Enable/disable LLM components
         enableComponents: {

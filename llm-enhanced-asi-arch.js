@@ -1,20 +1,33 @@
 // Enhanced ASI-ARCH Modules with DeepSeek LLM Integration
 // Implements the full ASI-ARCH methodology from the paper
 class LLMEnhancedASIArch {
-    constructor() {
-        this.deepSeekClient = new DeepSeekClient();
+    constructor(config = null, deepSeekClient = null) {
+        this.config = config || window.CONFIG?.asiArch || {};
+        this.deepSeekClient = deepSeekClient || new DeepSeekClient();
         this.candidatePool = [];
         this.battleHistory = [];
         this.cognitionBase = this.initializeCognitionBase();
         this.experimentCounter = 0;
         this.fitnessHistory = [];
-        // ASI-ARCH configuration
-        this.config = window.CONFIG?.asiArch || {};
+        
+        // Fitness weights configuration
         this.fitnessWeights = this.config.fitnessWeights || {
             quantitative: 0.33,
             qualitative: 0.33,
             innovation: 0.34
         };
+        
+        // Enhanced battle scenarios configuration
+        this.scenarioConfig = this.config.battleScenarios || {};
+        this.currentScenarioIndex = 0;
+        this.scenarioRotationCounter = 0;
+        this.scenarios = Object.keys(this.scenarioConfig.scenarios || {
+            'open_field': {},
+            'urban_warfare': {},
+            'chokepoint_control': {},
+            'fortress_assault': {}
+        });
+        this.multiScenarioResults = new Map(); // Track performance across scenarios
     }
     initializeCognitionBase() {
         // Initialize with tank battle tactical knowledge
@@ -52,51 +65,213 @@ class LLMEnhancedASIArch {
             }
         ];
     }
-    // Core ASI-ARCH Pipeline Implementation
+    // Core ASI-ARCH Pipeline Implementation with Enhanced Scenarios
     async runExperimentCycle(redTeam, blueTeam, battleResult) {
         this.experimentCounter++;
-        // Update candidate pool and history
-        this.updateCandidatePool(redTeam, blueTeam, battleResult);
+        
+        // Determine current scenario (rotation-based)
+        const currentScenario = this.getCurrentScenario();
+        
+        // Update candidate pool and history with scenario context
+        this.updateCandidatePool(redTeam, blueTeam, battleResult, currentScenario);
         this.battleHistory.push({
             experiment: this.experimentCounter,
             redTeam: redTeam,
             blueTeam: blueTeam,
             result: battleResult,
+            scenario: currentScenario.id,
+            seed: battleResult.seed || null,
             timestamp: Date.now()
         });
+        
+        // Update multi-scenario results for fitness aggregation
+        this.updateMultiScenarioResults(redTeam, blueTeam, battleResult, currentScenario.id);
+        
         // Run ASI-ARCH pipeline
         const analysis = await this.analyzeExperiment(battleResult);
         const proposals = await this.generateProposals();
-        const evaluations = await this.evaluateProposals(proposals);
+        const evaluations = await this.evaluateProposals(proposals, currentScenario);
+        
         // Update fitness tracking
         this.updateFitnessHistory();
+        
+        // Advance scenario rotation
+        this.advanceScenarioRotation();
+        
         return {
             analysis,
             proposals,
             evaluations,
             candidatePoolSize: this.candidatePool.length,
+            currentScenario: currentScenario.id,
+            scenarioMetrics: this.getScenarioMetrics(),
             scalingMetrics: this.calculateScalingMetrics()
         };
     }
-    updateCandidatePool(redTeam, blueTeam, battleResult) {
+    
+    getCurrentScenario() {
+        if (!this.scenarioConfig.enabled) {
+            return { id: 'open_field', config: this.scenarioConfig.scenarios?.open_field || {} };
+        }
+        
+        const scenarioId = this.scenarios[this.currentScenarioIndex] || 'open_field';
+        return {
+            id: scenarioId,
+            config: this.scenarioConfig.scenarios?.[scenarioId] || {}
+        };
+    }
+    
+    advanceScenarioRotation() {
+        if (!this.scenarioConfig.enabled) return;
+        
+        this.scenarioRotationCounter++;
+        const rotationInterval = this.scenarioConfig.rotationInterval || 5;
+        
+        if (this.scenarioRotationCounter >= rotationInterval) {
+            this.currentScenarioIndex = (this.currentScenarioIndex + 1) % this.scenarios.length;
+            this.scenarioRotationCounter = 0;
+            
+            // Emit scenario change event
+            if (window.emitASIArchEvent) {
+                window.emitASIArchEvent('scenario', 'scenario_change', {
+                    newScenario: this.scenarios[this.currentScenarioIndex],
+                    experimentCount: this.experimentCounter
+                });
+            }
+        }
+    }
+    
+    updateMultiScenarioResults(redTeam, blueTeam, battleResult, scenarioId) {
+        if (!this.multiScenarioResults.has(scenarioId)) {
+            this.multiScenarioResults.set(scenarioId, {
+                battles: [],
+                redPerformance: [],
+                bluePerformance: []
+            });
+        }
+        
+        const scenarioData = this.multiScenarioResults.get(scenarioId);
+        scenarioData.battles.push(battleResult);
+        scenarioData.redPerformance.push(this.calculateTeamPerformance(redTeam, battleResult, 'red'));
+        scenarioData.bluePerformance.push(this.calculateTeamPerformance(blueTeam, battleResult, 'blue'));
+        
+        // Keep last 10 results per scenario
+        if (scenarioData.battles.length > 10) {
+            scenarioData.battles.shift();
+            scenarioData.redPerformance.shift();
+            scenarioData.bluePerformance.shift();
+        }
+    }
+    
+    getScenarioMetrics() {
+        const metrics = {};
+        for (const [scenarioId, data] of this.multiScenarioResults) {
+            if (data.battles.length > 0) {
+                metrics[scenarioId] = {
+                    battlesPlayed: data.battles.length,
+                    avgRedPerformance: data.redPerformance.reduce((a, b) => a + b, 0) / data.redPerformance.length,
+                    avgBluePerformance: data.bluePerformance.reduce((a, b) => a + b, 0) / data.bluePerformance.length,
+                    avgDuration: data.battles.reduce((sum, b) => sum + b.duration, 0) / data.battles.length,
+                    timeouts: data.battles.filter(b => b.winner === 'timeout').length
+                };
+            }
+        }
+        return metrics;
+    }
+    updateCandidatePool(redTeam, blueTeam, battleResult, currentScenario = null) {
         const teams = [
-            { team: 'red', data: redTeam, performance: this.calculateTeamPerformance(redTeam, battleResult, 'red') },
-            { team: 'blue', data: blueTeam, performance: this.calculateTeamPerformance(blueTeam, battleResult, 'blue') }
+            { 
+                team: 'red', 
+                data: redTeam, 
+                performance: this.calculateTeamPerformance(redTeam, battleResult, 'red'),
+                scenario: currentScenario?.id || 'unknown'
+            },
+            { 
+                team: 'blue', 
+                data: blueTeam, 
+                performance: this.calculateTeamPerformance(blueTeam, battleResult, 'blue'),
+                scenario: currentScenario?.id || 'unknown'
+            }
         ];
+        
         // Add high-performing teams to candidate pool
         teams.forEach(teamData => {
             if (teamData.performance > 0.6) { // Threshold for candidate inclusion
+                // Calculate multi-scenario fitness if enabled
+                const multiScenarioFitness = this.calculateMultiScenarioFitness(teamData);
+                
                 this.candidatePool.push({
                     ...teamData,
+                    multiScenarioFitness,
                     experiment: this.experimentCounter,
                     timestamp: Date.now()
                 });
             }
         });
-        // Maintain pool size (ASI-ARCH uses top-50, we use top-10)
-        const maxPoolSize = this.config.candidatePoolSize || 10;
-        this.candidatePool.sort((a, b) => b.performance - a.performance);
+        
+        // Maintain pool size (use config value, default to 50)
+        const maxPoolSize = this.config.candidatePoolSize || 50;
+        
+        // Sort by multi-scenario fitness if available, otherwise use single performance
+        this.candidatePool.sort((a, b) => {
+            const aFitness = a.multiScenarioFitness || a.performance;
+            const bFitness = b.multiScenarioFitness || b.performance;
+            return bFitness - aFitness;
+        });
+        
         this.candidatePool = this.candidatePool.slice(0, maxPoolSize);
+    }
+    
+    calculateMultiScenarioFitness(teamData) {
+        if (!this.scenarioConfig.multiScenarioFitness?.enabled) {
+            return teamData.performance; // Fall back to single-scenario fitness
+        }
+        
+        const scenarioResults = this.multiScenarioResults.get(teamData.scenario);
+        if (!scenarioResults || scenarioResults.battles.length < 2) {
+            return teamData.performance; // Not enough data for multi-scenario
+        }
+        
+        const teamPerformances = teamData.team === 'red' ? 
+            scenarioResults.redPerformance : scenarioResults.bluePerformance;
+        
+        // Calculate adaptability (performance across different scenarios)
+        let adaptabilityScore = 0;
+        let consistencyScore = 0;
+        let specializationPenalty = 0;
+        
+        if (this.multiScenarioResults.size > 1) {
+            const allScenarioPerformances = [];
+            for (const [scenarioId, data] of this.multiScenarioResults) {
+                const performances = teamData.team === 'red' ? data.redPerformance : data.bluePerformance;
+                if (performances.length > 0) {
+                    const avgPerformance = performances.reduce((a, b) => a + b, 0) / performances.length;
+                    allScenarioPerformances.push(avgPerformance);
+                }
+            }
+            
+            if (allScenarioPerformances.length > 1) {
+                // Adaptability: how well the team performs across different scenarios
+                const meanPerformance = allScenarioPerformances.reduce((a, b) => a + b, 0) / allScenarioPerformances.length;
+                adaptabilityScore = meanPerformance * this.scenarioConfig.multiScenarioFitness.adaptabilityWeight;
+                
+                // Consistency: low variance across scenarios
+                const variance = allScenarioPerformances.reduce((sum, perf) => 
+                    sum + Math.pow(perf - meanPerformance, 2), 0) / allScenarioPerformances.length;
+                consistencyScore = (1 - variance) * this.scenarioConfig.multiScenarioFitness.consistencyWeight;
+                
+                // Specialization penalty: penalize teams that only work in one scenario
+                const effectiveScenarios = allScenarioPerformances.filter(perf => perf > 0.6).length;
+                if (effectiveScenarios <= 1) {
+                    specializationPenalty = this.scenarioConfig.multiScenarioFitness.specializationPenalty;
+                }
+            }
+        }
+        
+        // Combine base performance with multi-scenario metrics
+        return Math.max(0, Math.min(1, 
+            teamData.performance + adaptabilityScore + consistencyScore - specializationPenalty
+        ));
     }
     calculateTeamPerformance(team, battleResult, teamName) {
         // Quantitative performance calculation
@@ -136,11 +311,20 @@ class LLMEnhancedASIArch {
             return [this.generateFallbackProposal()];
         }
         try {
+            // Get current scenario context for proposal generation
+            const currentScenario = this.getCurrentScenario();
+            const scenarioMetrics = this.getScenarioMetrics();
+            
             // Use DeepSeek for proposal generation (ASI-ARCH Researcher module)
             const llmProposal = await this.deepSeekClient.generateTacticalProposal(
                 this.candidatePool,
                 this.battleHistory.slice(-10), // Recent history
-                this.cognitionBase
+                this.cognitionBase,
+                {
+                    scenario: currentScenario,
+                    scenarioMetrics: scenarioMetrics,
+                    multiScenarioEnabled: this.scenarioConfig.multiScenarioFitness?.enabled || false
+                }
             );
             return [
                 this.convertLLMProposalToGenome(llmProposal),
@@ -153,6 +337,8 @@ class LLMEnhancedASIArch {
     convertLLMProposalToGenome(llmProposal) {
         // Convert LLM proposal to tank genome format
         const baseGenome = this.candidatePool[0]?.data[0] || this.getDefaultGenome();
+        const currentScenario = this.getCurrentScenario();
+        
         return {
             id: `llm_${this.experimentCounter}_${Date.now()}`,
             speed: this.adjustParameter(baseGenome.speed, llmProposal.proposal.modifications),
@@ -163,7 +349,9 @@ class LLMEnhancedASIArch {
             fitness: 0,
             source: 'llm_proposal',
             reasoning: llmProposal.rationale,
-            expectedImprovement: llmProposal.expectedImprovement || 0.1
+            expectedImprovement: llmProposal.expectedImprovement || 0.1,
+            targetScenario: currentScenario?.id || 'unknown',
+            scenarioSpecific: llmProposal.scenarioSpecific || false
         };
     }
     adjustParameter(currentValue, modifications) {

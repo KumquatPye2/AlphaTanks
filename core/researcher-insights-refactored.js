@@ -95,6 +95,31 @@ class ResearcherInsights {
     }
 
     /**
+     * Phase 2: Track tactical scenario context for research reproducibility
+     */
+    trackScenarioContext(scenarioId, seed, researchContext) {
+        // Use DataCollector's new tracking method
+        this.dataCollector.trackScenarioContext(scenarioId, seed, researchContext);
+        this.eventManager.emit('dataUpdate');
+        
+        // Log for research documentation
+        console.log(`🔬 Research Context: ${scenarioId} (seed: ${seed}) - ${researchContext}`);
+    }
+
+    /**
+     * Classify scenario type for research documentation
+     */
+    classifyScenarioType(scenarioId) {
+        const typeMap = {
+            'open_field': 'minimal_constraints',
+            'urban_warfare': 'high_obstacle_density',
+            'chokepoint_control': 'strategic_bottlenecks',
+            'fortress_assault': 'defensive_positioning'
+        };
+        return typeMap[scenarioId] || 'unknown_environment';
+    }
+
+    /**
      * Toggle dashboard visibility
      */
     toggle() {

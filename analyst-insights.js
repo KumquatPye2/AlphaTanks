@@ -12,7 +12,11 @@ class AnalystInsights {
             behaviorIdentifications: 0,
             strategicInsights: 0,
             fitnessProgressions: 0,
-            significantDiscoveries: 0
+            significantDiscoveries: 0,
+            // Phase 2: Enhanced Battle Scenarios
+            scenarioAnalyses: 0,
+            reproducibilityValidations: 0,
+            tacticalEnvironmentInsights: 0
         };
         this.analysisData = [];
         this.insightHistory = {
@@ -201,6 +205,13 @@ class AnalystInsights {
                     • Strategic recommendation generation
                 </div>
             ` : ''}
+            <div style="margin-top: 8px; padding: 6px; background: rgba(0,255,136,0.1); border: 1px solid #00ff88; border-radius: 3px; font-size: 11px;">
+                <strong style="color: #00ff88;">✅ Phase 2: Analysis Ready</strong><br>
+                <div style="color: #00ff88;">✅ Enhanced Metrics:</div>
+                <div style="margin-left: 10px; color: #ffffff;">Scenario analyses, reproducibility validations, tactical insights</div>
+                <div style="color: #00ff88;">✅ Performance Tracking:</div>
+                <div style="margin-left: 10px; color: #ffffff;">Scenario-specific analysis during evolution</div>
+            </div>
         `;
     }
     log(category, message, data = {}) {
@@ -579,6 +590,12 @@ class AnalystInsights {
                     <strong>Fitness Progressions:</strong> ${this.metrics.fitnessProgressions}<br>
                     <strong>Discoveries:</strong> ${this.metrics.significantDiscoveries}
                 </div>
+                <div style="grid-column: 1 / -1; border-top: 1px solid #00ff88; padding-top: 5px; margin-top: 5px; background: rgba(0,255,136,0.1); border-radius: 3px; padding: 8px;">
+                    <strong style="color: #00ff88;">✅ Phase 2: Enhanced Metrics</strong><br>
+                    <strong>Scenario Analyses:</strong> ${this.metrics.scenarioAnalyses}<br>
+                    <strong>Reproducibility Validations:</strong> ${this.metrics.reproducibilityValidations}<br>
+                    <strong>Tactical Environment Insights:</strong> ${this.metrics.tacticalEnvironmentInsights}
+                </div>
                 <div style="grid-column: 1 / -1; border-top: 1px solid #00aaff; padding-top: 5px; margin-top: 5px;">
                     <strong>Recent Insights:</strong><br>
                     Total Discoveries: ${avgDiscoveries}<br>
@@ -602,7 +619,11 @@ class AnalystInsights {
                 'STRATEGIC_ANALYSIS': '#ff6600',
                 'FITNESS_PROGRESSION': '#aa00ff',
                 'SIGNIFICANT_DISCOVERY': '#ff0088',
-                'ANALYSIS_COMPLETE': '#ffffff'
+                'ANALYSIS_COMPLETE': '#ffffff',
+                // Phase 2: Enhanced Battle Scenarios
+                'SCENARIO_ANALYSIS': '#00ff88',
+                'REPRODUCIBILITY_CHECK': '#88ff00',
+                'TACTICAL_ENVIRONMENT': '#00ffff'
             };
             const color = colorMap[log.category] || '#cccccc';
             return `<div style="margin: 2px 0; padding: 2px; border-left: 3px solid ${color};">
@@ -927,6 +948,104 @@ class AnalystInsights {
         this.updateDiscoveryCharts();
         this.log('SYSTEM', 'Analyst Insights dashboard reset');
     }
+
+    // ======= Phase 2: Enhanced Battle Scenarios Analysis =======
+
+    /**
+     * Analyze scenario-specific performance metrics
+     */
+    analyzeScenarioMetrics(scenarioId, battleResults) {
+        this.metrics.scenarioAnalyses++;
+        
+        const scenarioMetrics = {
+            scenario: scenarioId,
+            duration: battleResults.duration,
+            effectiveness: battleResults.effectiveness,
+            hillControlTime: battleResults.hillControlTime || 0,
+            obstacleNavigationScore: this.calculateObstacleNavigationScore(battleResults)
+        };
+
+        this.log('SCENARIO_ANALYSIS', `Analyzed ${scenarioId} performance`, scenarioMetrics);
+        return scenarioMetrics;
+    }
+
+    /**
+     * Validate reproducibility with seeded battles
+     */
+    validateReproducibility(seed, expectedHash, actualHash) {
+        this.metrics.reproducibilityValidations++;
+        
+        const isReproducible = expectedHash === actualHash;
+        this.log('REPRODUCIBILITY_CHECK', 
+            `Seed ${seed} reproducibility: ${isReproducible ? 'PASS' : 'FAIL'}`, 
+            { expectedHash, actualHash, isReproducible }
+        );
+        
+        return isReproducible;
+    }
+
+    /**
+     * Generate tactical environment insights
+     */
+    generateTacticalEnvironmentInsights(scenarioId, performanceData) {
+        this.metrics.tacticalEnvironmentInsights++;
+        
+        const insights = {
+            scenario: scenarioId,
+            optimalStrategies: this.identifyOptimalStrategies(performanceData),
+            weaknesses: this.identifyTacticalWeaknesses(performanceData),
+            adaptationRate: this.calculateAdaptationRate(performanceData)
+        };
+
+        this.log('TACTICAL_ENVIRONMENT', `Generated insights for ${scenarioId}`, insights);
+        return insights;
+    }
+
+    /**
+     * Calculate obstacle navigation effectiveness
+     */
+    calculateObstacleNavigationScore(battleResults) {
+        // Simple heuristic based on tank survival and movement efficiency
+        const survivalRate = battleResults.tanks ? 
+            battleResults.tanks.filter(t => t.isAlive).length / battleResults.tanks.length : 0;
+        const movementEfficiency = battleResults.avgMovementDistance ? 
+            Math.min(1, 1000 / battleResults.avgMovementDistance) : 0.5;
+        
+        return (survivalRate * 0.6 + movementEfficiency * 0.4);
+    }
+
+    /**
+     * Identify optimal strategies for current scenario
+     */
+    identifyOptimalStrategies(performanceData) {
+        // Analyze patterns in high-performing genomes
+        return performanceData.topPerformers?.map(p => p.strategy) || ['aggressive', 'defensive'];
+    }
+
+    /**
+     * Identify tactical weaknesses in current scenario
+     */
+    identifyTacticalWeaknesses(performanceData) {
+        // Analyze patterns in poor-performing genomes
+        return performanceData.poorPerformers?.map(p => p.weakness) || ['positioning', 'timing'];
+    }
+
+    /**
+     * Calculate how quickly tanks adapt to tactical environment
+     */
+    calculateAdaptationRate(performanceData) {
+        if (!performanceData.generationScores || performanceData.generationScores.length < 2) {
+            return 0;
+        }
+        
+        const firstGen = performanceData.generationScores[0];
+        const lastGen = performanceData.generationScores[performanceData.generationScores.length - 1];
+        const improvement = lastGen - firstGen;
+        const generations = performanceData.generationScores.length;
+        
+        return improvement / generations;
+    }
+
     // Export data for analysis
     exportData() {
         return {

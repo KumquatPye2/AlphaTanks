@@ -20,10 +20,42 @@ class GameEngine {
         this.battleStarted = false; // Flag to track when battle timer should start
         this.redTeam = [];
         this.blueTeam = [];
+        
+        // Enhanced scenario and seeding support
+        this.currentScenario = 'open_field';
+        this.currentSeed = null;
+        this.seedGenerator = null;
+        this.scenarioConfig = null;
+        
+        // Speed control
+        this.timeScale = 1.0;
+        
         this.setupCanvas();
         this.createObstacles();
         this.bindEvents();
     }
+    // Seeded random number generator for reproducible battles
+    seedRandom(seed) {
+        this.currentSeed = seed;
+        this.seedGenerator = this.createSeededRNG(seed);
+    }
+    
+    createSeededRNG(seed) {
+        // Simple LCG (Linear Congruential Generator) for reproducible randomness
+        let state = seed % 2147483647;
+        if (state <= 0) state += 2147483646;
+        
+        return function() {
+            state = (state * 16807) % 2147483647;
+            return (state - 1) / 2147483646;
+        };
+    }
+    
+    // Use seeded random if available, otherwise use Math.random
+    random() {
+        return this.seedGenerator ? this.seedGenerator() : Math.random();
+    }
+    
     setupCanvas() {
         const container = this.canvas.parentElement;
         this.width = container.clientWidth;
@@ -33,61 +65,166 @@ class GameEngine {
         // Set up coordinate system
         this.ctx.imageSmoothingEnabled = false;
     }
-    createObstacles() {
-        // Add strategic obstacles for hill control gameplay
+    createObstacles(scenarioId = 'open_field') {
         this.obstacles = [];
+        this.currentScenario = scenarioId;
         
         const centerX = this.width / 2;
         const centerY = this.height / 2;
         
-        // Large cover blocks near hill for tactical positioning
+        // Get scenario configuration from CONFIG
+        const scenarios = window.CONFIG?.asiArch?.battleScenarios?.scenarios || {};
+        this.scenarioConfig = scenarios[scenarioId] || scenarios['open_field'];
+        
+        switch (scenarioId) {
+            case 'open_field':
+                this.createOpenFieldObstacles(centerX, centerY);
+                break;
+            case 'urban_warfare':
+                this.createUrbanObstacles(centerX, centerY);
+                break;
+            case 'chokepoint_control':
+                this.createChokepointObstacles(centerX, centerY);
+                break;
+            case 'fortress_assault':
+                this.createFortressObstacles(centerX, centerY);
+                break;
+            default:
+                this.createOpenFieldObstacles(centerX, centerY);
+        }
+    }
+    
+    createOpenFieldObstacles(centerX, centerY) {
+        // Minimal obstacles for mobility-focused combat
         this.obstacles.push({
-            x: centerX - 150, y: centerY - 80, 
-            width: 60, height: 40,
+            x: centerX - 100, y: centerY - 40, 
+            width: 40, height: 30,
             type: 'cover'
         });
         this.obstacles.push({
-            x: centerX + 90, y: centerY - 80,
-            width: 60, height: 40, 
+            x: centerX + 60, y: centerY + 10,
+            width: 40, height: 30, 
             type: 'cover'
         });
+    }
+    
+    createUrbanObstacles(centerX, centerY) {
+        // Dense urban-style obstacle layout
+        const buildingSize = 60;
+        const spacing = 80;
+        
+        // Create a grid of buildings with some randomness
+        for (let i = -2; i <= 2; i++) {
+            for (let j = -1; j <= 1; j++) {
+                if (i === 0 && j === 0) continue; // Leave center area clear
+                
+                const baseX = centerX + i * (buildingSize + spacing);
+                const baseY = centerY + j * (buildingSize + spacing);
+                
+                // Add some random variation using seeded random
+                const offsetX = (this.random() - 0.5) * 30;
+                const offsetY = (this.random() - 0.5) * 20;
+                
+                this.obstacles.push({
+                    x: baseX + offsetX,
+                    y: baseY + offsetY,
+                    width: buildingSize + (this.random() - 0.5) * 20,
+                    height: buildingSize + (this.random() - 0.5) * 20,
+                    type: 'building'
+                });
+            }
+        }
+    }
+    
+    createChokepointObstacles(centerX, centerY) {
+        // Create corridors and chokepoints
+        const wallThickness = 40;
+        const corridorWidth = 80;
+        
+        // Horizontal walls creating vertical corridors
         this.obstacles.push({
-            x: centerX - 150, y: centerY + 40,
-            width: 60, height: 40,
-            type: 'cover'
+            x: centerX - 200, y: centerY - corridorWidth/2 - wallThickness,
+            width: 150, height: wallThickness,
+            type: 'wall'
         });
         this.obstacles.push({
-            x: centerX + 90, y: centerY + 40,
-            width: 60, height: 40,
-            type: 'cover'
+            x: centerX + 50, y: centerY - corridorWidth/2 - wallThickness,
+            width: 150, height: wallThickness,
+            type: 'wall'
+        });
+        this.obstacles.push({
+            x: centerX - 200, y: centerY + corridorWidth/2,
+            width: 150, height: wallThickness,
+            type: 'wall'
+        });
+        this.obstacles.push({
+            x: centerX + 50, y: centerY + corridorWidth/2,
+            width: 150, height: wallThickness,
+            type: 'wall'
         });
         
-        // Pathway barriers to funnel tank movement
+        // Central chokepoint obstacles
         this.obstacles.push({
-            x: centerX - 250, y: centerY - 120,
-            width: 30, height: 100,
-            type: 'barrier'
+            x: centerX - 20, y: centerY - 60,
+            width: 40, height: 40,
+            type: 'chokepoint'
         });
         this.obstacles.push({
-            x: centerX + 220, y: centerY - 120,
-            width: 30, height: 100,
-            type: 'barrier'
+            x: centerX - 20, y: centerY + 20,
+            width: 40, height: 40,
+            type: 'chokepoint'
+        });
+    }
+    
+    createFortressObstacles(centerX, centerY) {
+        // Asymmetric fortress with defensive positions
+        const fortressWall = 50;
+        
+        // Outer fortress walls
+        this.obstacles.push({
+            x: centerX + 80, y: centerY - 100,
+            width: fortressWall, height: 200,
+            type: 'fortress_wall'
         });
         this.obstacles.push({
-            x: centerX - 250, y: centerY + 20,
-            width: 30, height: 100,
-            type: 'barrier'
+            x: centerX + 130, y: centerY - 100,
+            width: 100, height: fortressWall,
+            type: 'fortress_wall'
         });
         this.obstacles.push({
-            x: centerX + 220, y: centerY + 20,
-            width: 30, height: 100,
-            type: 'barrier'
+            x: centerX + 130, y: centerY + 50,
+            width: 100, height: fortressWall,
+            type: 'fortress_wall'
+        });
+        
+        // Inner defensive positions
+        this.obstacles.push({
+            x: centerX + 140, y: centerY - 30,
+            width: 30, height: 30,
+            type: 'bunker'
+        });
+        this.obstacles.push({
+            x: centerX + 140, y: centerY + 0,
+            width: 30, height: 30,
+            type: 'bunker'
+        });
+        
+        // Scattered cover for attackers
+        this.obstacles.push({
+            x: centerX - 120, y: centerY - 40,
+            width: 40, height: 25,
+            type: 'cover'
+        });
+        this.obstacles.push({
+            x: centerX - 80, y: centerY + 20,
+            width: 40, height: 25,
+            type: 'cover'
         });
     }
     bindEvents() {
         window.addEventListener('resize', () => this.setupCanvas());
     }
-    initializeBattle(redTanks = 5, blueTanks = 5, mode = 'king_of_hill') {
+    initializeBattle(redTanks = 5, blueTanks = 5, mode = 'king_of_hill', scenarioId = 'open_field', seed = null) {
         this.tanks = [];
         this.projectiles = [];
         this.redTeam = [];
@@ -96,28 +233,42 @@ class GameEngine {
         this.gameState = 'ready'; // Don't automatically start - let start() method handle it
         this.battleStarted = false; // Reset battle started flag
         this.gameMode = mode;
-        // Initialize King of the Hill mode
+        
+        // Set up seeded random generation if seed provided
+        if (seed !== null) {
+            this.seedRandom(seed);
+        } else {
+            this.seedGenerator = null;
+            this.currentSeed = null;
+        }
+        
+        // Create scenario-specific obstacles
+        this.createObstacles(scenarioId);
+        
+        // Initialize King of the Hill mode with scenario-specific hill position
         if (mode === 'king_of_hill') {
-            this.initializeKingOfHill();
+            this.initializeKingOfHill(scenarioId);
         } else {
             this.hill = null;
         }
-        // Create red team (left side)
+        
+        // Create red team (left side) with seeded positioning
         for (let i = 0; i < redTanks; i++) {
             const tank = new Tank(
-                50 + Math.random() * 100,
-                this.height * 0.2 + Math.random() * this.height * 0.6,
+                50 + this.random() * 100,
+                this.height * 0.2 + this.random() * this.height * 0.6,
                 'red',
                 this.generateBasicGenome()
             );
             this.tanks.push(tank);
             this.redTeam.push(tank);
         }
-        // Create blue team (right side)
+        
+        // Create blue team (right side) with seeded positioning
         for (let i = 0; i < blueTanks; i++) {
             const tank = new Tank(
-                this.width - 150 + Math.random() * 100,
-                this.height * 0.2 + Math.random() * this.height * 0.6,
+                this.width - 150 + this.random() * 100,
+                this.height * 0.2 + this.random() * this.height * 0.6,
                 'blue',
                 this.generateBasicGenome()
             );
@@ -129,22 +280,57 @@ class GameEngine {
         // Basic random genome for initial tanks - returns array format
         // [Aggression, Speed, Accuracy, Defense, Teamwork, Adaptability, Learning, RiskTaking, Evasion]
         return [
-            0.3 + Math.random() * 0.4,  // 0: Aggression
-            0.4 + Math.random() * 0.4,  // 1: Speed
-            0.4 + Math.random() * 0.4,  // 2: Accuracy
-            0.3 + Math.random() * 0.4,  // 3: Defense (was caution)
-            0.3 + Math.random() * 0.4,  // 4: Teamwork (was cooperation)
-            0.2 + Math.random() * 0.4,  // 5: Adaptability
-            0.2 + Math.random() * 0.4,  // 6: Learning
-            0.3 + Math.random() * 0.4,  // 7: RiskTaking
-            0.3 + Math.random() * 0.4   // 8: Evasion
+            0.3 + this.random() * 0.4,  // 0: Aggression
+            0.4 + this.random() * 0.4,  // 1: Speed
+            0.4 + this.random() * 0.4,  // 2: Accuracy
+            0.3 + this.random() * 0.4,  // 3: Defense (was caution)
+            0.3 + this.random() * 0.4,  // 4: Teamwork (was cooperation)
+            0.2 + this.random() * 0.4,  // 5: Adaptability
+            0.2 + this.random() * 0.4,  // 6: Learning
+            0.3 + this.random() * 0.4,  // 7: RiskTaking
+            0.3 + this.random() * 0.4   // 8: Evasion
         ];
     }
-    initializeKingOfHill() {
-        // Create hill in the center of the battlefield
-        if (!this.hill) {
-            this.hill = new Hill(this.width / 2, this.height / 2, 60);
+    initializeKingOfHill(scenarioId = 'open_field') {
+        // Create hill with scenario-specific positioning
+        const centerX = this.width / 2;
+        const centerY = this.height / 2;
+        
+        let hillX = centerX;
+        let hillY = centerY;
+        let hillRadius = 60;
+        
+        // Adjust hill position based on scenario
+        switch (scenarioId) {
+            case 'open_field':
+                // Center position
+                break;
+            case 'urban_warfare':
+                // Slightly offset to create tactical complexity
+                hillX = centerX + (this.random() - 0.5) * 60;
+                hillY = centerY + (this.random() - 0.5) * 40;
+                break;
+            case 'chokepoint_control':
+                // Position hill in the main corridor
+                hillY = centerY;
+                hillRadius = 45; // Smaller hill for corridor
+                break;
+            case 'fortress_assault':
+                // Hill positioned within the fortress
+                hillX = centerX + 120;
+                hillY = centerY;
+                hillRadius = 50;
+                break;
         }
+        
+        if (!this.hill) {
+            this.hill = new Hill(hillX, hillY, hillRadius);
+        } else {
+            this.hill.x = hillX;
+            this.hill.y = hillY;
+            this.hill.radius = hillRadius;
+        }
+        
         // Reset hill to neutral state for new battle
         this.hill.reset();
     }
@@ -691,8 +877,182 @@ class Obstacle {
         ctx.strokeRect(this.x, this.y, this.width, this.height);
     }
 }
-    // Export classes to global scope
-    window.GameEngine = GameEngine;
-    window.Obstacle = Obstacle;
+
+// Standalone functions for testing
+function createSeededRNG(seed) {
+    let state = seed % 2147483647;
+    if (state <= 0) state += 2147483646;
+    
+    return {
+        random: function() {
+            state = state * 16807 % 2147483647;
+            return (state - 1) / 2147483646;
+        }
+    };
+}
+
+function createOpenFieldObstacles(canvas, scenario, seed) {
+    const rng = createSeededRNG(seed);
+    const obstacles = [];
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const obstacleSize = scenario.obstacleSize?.min || 30;
+    
+    // Minimal obstacles for mobility-focused combat
+    for (let i = 0; i < (scenario.obstacleCount || 8); i++) {
+        const x = centerX + (rng.random() - 0.5) * (canvas.width * 0.6);
+        const y = centerY + (rng.random() - 0.5) * (canvas.height * 0.6);
+        
+        // Ensure obstacles stay within bounds
+        obstacles.push({
+            x: Math.max(0, Math.min(canvas.width - obstacleSize, x)),
+            y: Math.max(0, Math.min(canvas.height - obstacleSize, y)),
+            width: obstacleSize,
+            height: obstacleSize,
+            type: 'cover'
+        });
+    }
+    return obstacles;
+}
+
+function createUrbanObstacles(canvas, scenario, seed) {
+    const rng = createSeededRNG(seed);
+    const obstacles = [];
+    const minSize = scenario.obstacleSize?.min || 40;
+    const maxSize = scenario.obstacleSize?.max || 80;
+    
+    // Dense urban-style obstacle layout
+    for (let i = 0; i < (scenario.obstacleCount || 20); i++) {
+        const width = minSize + rng.random() * (maxSize - minSize);
+        const height = minSize + rng.random() * (maxSize - minSize);
+        
+        obstacles.push({
+            x: rng.random() * (canvas.width - width),
+            y: rng.random() * (canvas.height - height),
+            width: width,
+            height: height,
+            type: 'building'
+        });
+    }
+    return obstacles;
+}
+
+function createChokepointObstacles(canvas, scenario, seed) {
+    const rng = createSeededRNG(seed);
+    const obstacles = [];
+    
+    // Create chokepoints with barriers
+    const chokepointCount = scenario.obstacleCount || 12;
+    const maxWidth = scenario.obstacleSize?.max || 100;
+    const minHeight = scenario.obstacleSize?.min || 50;
+    
+    for (let i = 0; i < chokepointCount; i++) {
+        obstacles.push({
+            x: rng.random() * (canvas.width - maxWidth),
+            y: rng.random() * (canvas.height - minHeight),
+            width: maxWidth,
+            height: minHeight,
+            type: 'barrier'
+        });
+    }
+    return obstacles;
+}
+
+function createFortressObstacles(canvas, scenario, seed) {
+    const rng = createSeededRNG(seed);
+    const obstacles = [];
+    
+    // Fortress-style defensive positions
+    const fortCount = scenario.obstacleCount || 15;
+    const maxSize = scenario.obstacleSize?.max || 120;
+    
+    for (let i = 0; i < fortCount; i++) {
+        obstacles.push({
+            x: rng.random() * (canvas.width - maxSize),
+            y: rng.random() * (canvas.height - maxSize),
+            width: maxSize,
+            height: maxSize,
+            type: 'fortress'
+        });
+    }
+    return obstacles;
+}
+
+// Test helper functions
+function initializeBattle(canvas, redTeam, blueTeam, scenarioId, seed) {
+    const scenario = window.CONFIG?.asiArch?.battleScenarios?.scenarios?.[scenarioId] || {};
+    let obstacles = [];
+    
+    switch (scenarioId) {
+        case 'open_field':
+            obstacles = createOpenFieldObstacles(canvas, scenario, seed);
+            break;
+        case 'urban_warfare':
+            obstacles = createUrbanObstacles(canvas, scenario, seed);
+            break;
+        case 'chokepoint_control':
+            obstacles = createChokepointObstacles(canvas, scenario, seed);
+            break;
+        case 'fortress_assault':
+            obstacles = createFortressObstacles(canvas, scenario, seed);
+            break;
+        default:
+            obstacles = createOpenFieldObstacles(canvas, scenario, seed);
+    }
+    
+    return {
+        obstacles: obstacles,
+        redTeam: redTeam,
+        blueTeam: blueTeam,
+        scenario: scenarioId,
+        seed: seed
+    };
+}
+
+function initializeKingOfHill(canvas, scenarioId, seed) {
+    const rng = createSeededRNG(seed);
+    const scenario = window.CONFIG?.asiArch?.battleScenarios?.scenarios?.[scenarioId] || {};
+    
+    let hillX, hillY;
+    
+    switch (scenario.hillPosition) {
+        case 'center':
+            hillX = canvas.width / 2;
+            hillY = canvas.height / 2;
+            break;
+        case 'offset':
+            hillX = canvas.width * 0.3 + rng.random() * canvas.width * 0.4;
+            hillY = canvas.height * 0.3 + rng.random() * canvas.height * 0.4;
+            break;
+        case 'defended':
+            hillX = canvas.width * 0.7;
+            hillY = canvas.height * 0.3;
+            break;
+        case 'fortified':
+            hillX = canvas.width * 0.8;
+            hillY = canvas.height * 0.2;
+            break;
+        default:
+            hillX = canvas.width / 2;
+            hillY = canvas.height / 2;
+    }
+    
+    return {
+        x: hillX,
+        y: hillY,
+        radius: 50
+    };
+}
+
+// Export classes and functions to global scope
+window.GameEngine = GameEngine;
+window.Obstacle = Obstacle;
+window.createSeededRNG = createSeededRNG;
+window.createOpenFieldObstacles = createOpenFieldObstacles;
+window.createUrbanObstacles = createUrbanObstacles;
+window.createChokepointObstacles = createChokepointObstacles;
+window.createFortressObstacles = createFortressObstacles;
+window.initializeBattle = initializeBattle;
+window.initializeKingOfHill = initializeKingOfHill;
     // Dependencies for system integration
     // Requires: EvolutionEngine, ASIArchModules, ASIArchVisualizer

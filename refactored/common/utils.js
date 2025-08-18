@@ -380,6 +380,14 @@ class CollisionUtils {
         
         for (const obstacle of obstacles) {
             if (this.lineIntersectsRect(obj1.x, obj1.y, obj2.x, obj2.y, obstacle)) {
+                // Phase 2: Track obstacle interaction for insights
+                if (window.engineerInsights && obj1.tankId) {
+                    window.engineerInsights.trackObstacleInteraction(
+                        obj1.tankId, 
+                        'line_of_sight_blocked', 
+                        obstacle
+                    );
+                }
                 return false;
             }
         }

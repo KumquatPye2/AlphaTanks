@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Scenarios Integration Test</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #1a1a1a;
+            color: #00ff00;
+            margin: 20px;
+            line-height: 1.4;
+        }
+        
+        .console {
+            background-color: #000;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            height: 600px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-size: 14px;
+        }
+        
+        .controls {
+            margin-bottom: 20px;
+        }
+        
+        button {
+            background-color: #333;
+            color: #00ff00;
+            border: 1px solid #555;
+            padding: 10px 20px;
+            margin-right: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        
+        button:hover {
+            background-color: #444;
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .title {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 30px;
+            color: #fff;
+        }
+        
+        .status {
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+        
+        .success { color: #00ff00; }
+        .error { color: #ff4444; }
+        .warning { color: #ffaa00; }
+        .info { color: #4488ff; }
+    </style>
+</head>
+<body>
+    <div class="title">🎮 Enhanced Battle Scenarios - Integration Test</div>
+    
+    <div class="status">
+        <span id="status">Ready to test enhanced scenarios...</span>
+    </div>
+    
+    <div class="controls">
+        <button id="runTests" onclick="runTests()">🚀 Run Integration Tests</button>
+        <button id="clearConsole" onclick="clearConsole()">🗑️ Clear Console</button>
+        <button id="testSingleScenario" onclick="testSingleScenario()">🎯 Test Single Scenario</button>
+        <button id="testScenarioRotation" onclick="testScenarioRotation()">🔄 Test Scenario Rotation</button>
+    </div>
+    
+    <div id="console" class="console"></div>
+
+    <!-- Include dependencies -->
+    <script src="config.js"></script>
+    <script src="deepseek-client.js"></script>
+    <script src="game-engine.js"></script>
+    <script src="llm-enhanced-asi-arch.js"></script>
+    <script src="test-enhanced-scenarios.js"></script>
+    
+    <script>
+        const consoleDiv = document.getElementById('console');
+        const statusSpan = document.getElementById('status');
+        
+        // Override console.log to display in our custom console
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        function logToConsole(message, type = 'log') {
+            originalLog(message); // Still log to browser console
+            
+            const timestamp = new Date().toLocaleTimeString();
+            let formattedMessage = `[${timestamp}] ${message}`;
+            
+            // Add color coding
+            if (type === 'error') {
+                formattedMessage = `🔴 ${formattedMessage}`;
+            } else if (message.includes('✅')) {
+                formattedMessage = `🟢 ${formattedMessage}`;
+            } else if (message.includes('⚠️')) {
+                formattedMessage = `🟡 ${formattedMessage}`;
+            } else if (message.includes('❌')) {
+                formattedMessage = `🔴 ${formattedMessage}`;
+            }
+            
+            consoleDiv.textContent += formattedMessage + '\\n';
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+        
+        console.log = logToConsole;
+        console.error = (message) => {
+            originalError(message);
+            logToConsole(message, 'error');
+        };
+        
+        async function runTests() {
+            const button = document.getElementById('runTests');
+            button.disabled = true;
+            statusSpan.textContent = 'Running integration tests...';
+            statusSpan.className = 'info';
+            
+            try {
+                clearConsole();
+                const success = await runEnhancedScenarioTests();
+                
+                if (success) {
+                    statusSpan.textContent = 'All tests passed! ✅';
+                    statusSpan.className = 'success';
+                } else {
+                    statusSpan.textContent = 'Some tests failed ❌';
+                    statusSpan.className = 'error';
+                }
+            } catch (error) {
+                console.error('Test suite failed:', error);
+                statusSpan.textContent = 'Test suite crashed ❌';
+                statusSpan.className = 'error';
+            } finally {
+                button.disabled = false;
+            }
+        }
+        
+        function clearConsole() {
+            consoleDiv.textContent = '';
+        }
+        
+        async function testSingleScenario() {
+            console.log('🎯 Testing single scenario battle...');
+            
+            try {
+                // Create a test canvas
+                const canvas = document.createElement('canvas');
+                canvas.width = 800;
+                canvas.height = 600;
+                
+                // Create test teams
+                const redTeam = [
+                    { id: 'r1', x: 100, y: 100, health: 100, team: 'red' }
+                ];
+                const blueTeam = [
+                    { id: 'b1', x: 600, y: 400, health: 100, team: 'blue' }
+                ];
+                
+                // Test each scenario
+                const scenarios = Object.keys(window.CONFIG.asiArch.battleScenarios.scenarios);
+                for (const scenarioId of scenarios) {
+                    console.log(`Testing scenario: ${scenarioId}`);
+                    const result = initializeBattle(canvas, redTeam, blueTeam, scenarioId, 123);
+                    console.log(`✅ ${scenarioId}: ${result.obstacles.length} obstacles`);
+                }
+                
+                console.log('✅ Single scenario test completed');
+                
+            } catch (error) {
+                console.error('❌ Single scenario test failed:', error);
+            }
+        }
+        
+        async function testScenarioRotation() {
+            console.log('🔄 Testing scenario rotation...');
+            
+            try {
+                const mockClient = {
+                    analyzeBattleResults: async () => ({ analysis: 'test', recommendations: [] }),
+                    generateTacticalProposal: async () => ({
+                        proposal: { modifications: [] },
+                        rationale: 'test'
+                    })
+                };
+                
+                const asiArch = new LLMEnhancedASIArch(window.CONFIG, mockClient);
+                
+                console.log('Initial scenario:', asiArch.getCurrentScenario().id);
+                
+                // Test rotation
+                for (let i = 0; i < 10; i++) {
+                    asiArch.advanceScenarioRotation();
+                    const scenario = asiArch.getCurrentScenario();
+                    console.log(`Cycle ${i + 1}: ${scenario.id}`);
+                }
+                
+                console.log('✅ Scenario rotation test completed');
+                
+            } catch (error) {
+                console.error('❌ Scenario rotation test failed:', error);
+            }
+        }
+        
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🎮 Enhanced Scenarios Test Suite Ready');
+            console.log('Click "Run Integration Tests" to begin comprehensive testing');
+            console.log('Or use individual test buttons for specific features');
+        });
+    </script>
+</body>
+</html>

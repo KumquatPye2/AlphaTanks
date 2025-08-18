@@ -668,8 +668,18 @@ class EvolutionEngine {
             this.experimentHistory,
             this.cognitionBase
         );
-        // ASI-ARCH Module 2: Engineer - Evaluate in real environment
-        const battleResult = await this.engineer.runBattle(redGenomes, blueGenomes);
+        
+        // Phase 2: Get current scenario and generate seed for reproducible battles
+        const scenarioSelector = document.getElementById('scenarioSelector');
+        const currentScenario = scenarioSelector ? scenarioSelector.value : 'open_field';
+        const battleSeed = Date.now() % 10000; // Generate consistent seed for this battle
+        
+        // ASI-ARCH Module 2: Engineer - Evaluate in real environment with scenario
+        const battleResult = await this.engineer.runBattle(redGenomes, blueGenomes, currentScenario, battleSeed);
+        
+        // Phase 2: Add scenario context to battle result for insights tracking
+        battleResult.scenarioId = currentScenario;
+        battleResult.seed = battleSeed;
         // ASI-ARCH Module 3: Analyst - Generate insights
         const analysis = this.analyst.analyzeResults(battleResult, this.experimentHistory);
         // Record experiment
@@ -728,6 +738,36 @@ class EvolutionEngine {
             this.draws++;
         }
         this.updateUI();
+        
+        // Phase 2: Track battle completion with enhanced insights
+        if (window.engineerInsights) {
+            // Track reproducibility check if we have scenario and seed info
+            if (battleResult.scenarioId && battleResult.seed) {
+                window.engineerInsights.trackReproducibilityCheck(battleResult.seed, battleResult);
+            }
+            
+            // Track hill control attempts based on hill control duration
+            if (battleResult.hillControlData) {
+                Object.entries(battleResult.hillControlData).forEach(([team, data]) => {
+                    if (data.attempts > 0) {
+                        window.engineerInsights.trackHillControlAttempt(
+                            `${team}_team`, 
+                            team, 
+                            data.avgDistance || 100, 
+                            data.dominantStrategy || 'standard'
+                        );
+                    }
+                });
+            }
+        }
+        
+        // Phase 2: Analyst insights for scenario performance
+        if (window.analystInsights && battleResult.scenarioId) {
+            const scenarioMetrics = window.analystInsights.analyzeScenarioMetrics(
+                battleResult.scenarioId, 
+                battleResult
+            );
+        }
         
         // Update tactical evolution display if available
         if (window.tacticalDisplay) {

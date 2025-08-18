@@ -141,22 +141,52 @@ class BattlefieldManager {
     }
     
     /**
-     * Get spawn position for team
+     * Get spawn position for team (safe from obstacles)
      */
     getSpawnPosition(team, _index, _teamSize) {
         const config = GAME_CONFIG.BATTLEFIELD;
+        const tankSize = 20; // Typical tank size for collision checking
+        let attempts = 0;
+        const maxAttempts = 50; // Prevent infinite loops
+        
+        while (attempts < maxAttempts) {
+            let spawnPos;
+            
+            if (team === 'red') {
+                // Left side spawn
+                spawnPos = {
+                    x: config.MIN_SPAWN_DISTANCE + Math.random() * (config.MAX_SPAWN_DISTANCE - config.MIN_SPAWN_DISTANCE),
+                    y: this.height * config.SPAWN_MARGIN_RATIO + Math.random() * this.height * (1 - 2 * config.SPAWN_MARGIN_RATIO)
+                };
+            } else {
+                // Right side spawn
+                spawnPos = {
+                    x: this.width - config.MAX_SPAWN_DISTANCE + Math.random() * (config.MAX_SPAWN_DISTANCE - config.MIN_SPAWN_DISTANCE),
+                    y: this.height * config.SPAWN_MARGIN_RATIO + Math.random() * this.height * (1 - 2 * config.SPAWN_MARGIN_RATIO)
+                };
+            }
+            
+            // Check if this position is safe (not in an obstacle)
+            if (this.isValidPosition(spawnPos.x - tankSize/2, spawnPos.y - tankSize/2, tankSize, tankSize)) {
+                return spawnPos;
+            }
+            
+            attempts++;
+        }
+        
+        // Fallback: if we can't find a safe spawn after many attempts, 
+        // return a position at the edge of the spawn area
+        console.warn(`Could not find safe spawn for ${team} team after ${maxAttempts} attempts, using fallback position`);
         
         if (team === 'red') {
-            // Left side spawn
             return {
-                x: config.MIN_SPAWN_DISTANCE + Math.random() * (config.MAX_SPAWN_DISTANCE - config.MIN_SPAWN_DISTANCE),
-                y: this.height * config.SPAWN_MARGIN_RATIO + Math.random() * this.height * (1 - 2 * config.SPAWN_MARGIN_RATIO)
+                x: config.MIN_SPAWN_DISTANCE,
+                y: this.height / 2
             };
         } else {
-            // Right side spawn
             return {
-                x: this.width - config.MAX_SPAWN_DISTANCE + Math.random() * (config.MAX_SPAWN_DISTANCE - config.MIN_SPAWN_DISTANCE),
-                y: this.height * config.SPAWN_MARGIN_RATIO + Math.random() * this.height * (1 - 2 * config.SPAWN_MARGIN_RATIO)
+                x: this.width - config.MIN_SPAWN_DISTANCE,
+                y: this.height / 2
             };
         }
     }

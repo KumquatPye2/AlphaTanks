@@ -76,6 +76,15 @@
             white-space: nowrap;
         }
         
+        /* Disabled scenario selector styling */
+        select:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #444 !important;
+            color: #999 !important;
+            border-color: #666 !important;
+        }
+        
         .game-container {
             display: flex;
             gap: 20px;
@@ -483,6 +492,17 @@
     <!-- Evolution Control Bar -->
     <div class="evolution-control-bar">
         <div class="evolution-controls">
+            <!-- Battle Scenario Selection -->
+            <div class="control-group" style="margin-right: 15px;">
+                <label for="scenarioSelector" style="color: #00ff88; font-weight: bold;">🎯 Battle Scenario:</label>
+                <select id="scenarioSelector" style="background: #333; color: white; border: 1px solid #00ff88; padding: 3px 8px; border-radius: 3px; margin-left: 5px; transition: opacity 0.3s;">
+                    <option value="open_field">🌾 Open Field Combat</option>
+                    <option value="urban_warfare">🏢 Urban Warfare</option>
+                    <option value="chokepoint_control">🔒 Chokepoint Defense</option>
+                    <option value="fortress_assault">🏰 Fortress Assault</option>
+                </select>
+            </div>
+            
             <button id="startEvolution">Start Evolution</button>
             <button id="pauseEvolution">Pause</button>
             <button id="resetBattle">Reset Battle</button>

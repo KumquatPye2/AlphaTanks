@@ -533,7 +533,7 @@ class TankEngineer {
         this.battleTimeLimit = 120; // Seconds to match game engine timeout
         this.activeTimeoutId = null; // Track active timeout
     }
-    async runBattle(redGenomes, blueGenomes) {
+    async runBattle(redGenomes, blueGenomes, scenarioId = null, seed = null) {
         // Track battle setup in Engineer Insights
         if (window.engineerInsights) {
             window.engineerInsights.trackBattleSetup(redGenomes, blueGenomes);
@@ -542,7 +542,9 @@ class TankEngineer {
         if (window.emitASIArchEvent) {
             window.emitASIArchEvent('engineer', 'run_battle', { 
                 trait: 'battle_setup',
-                teams: `Red: ${redGenomes.length} vs Blue: ${blueGenomes.length}`
+                teams: `Red: ${redGenomes.length} vs Blue: ${blueGenomes.length}`,
+                scenario: scenarioId || 'default',
+                seed: seed || 'random'
             });
         }
         return new Promise((resolve) => {
@@ -552,8 +554,16 @@ class TankEngineer {
                 const redCount = Math.min(redGenomes.length, 5); // Respect max 5 tanks per team
                 const blueCount = Math.min(blueGenomes.length, 5);
                 
-                // Initialize battle with the game's standard system
-                window.game.initializeBattle(redCount, blueCount, 'king_of_hill');
+                // Initialize battle with scenario and seed support
+                window.game.initializeBattle(redCount, blueCount, 'king_of_hill', scenarioId, seed);
+                
+                // Phase 2: Track seeded battle initialization
+                if (window.engineerInsights && scenarioId && seed) {
+                    window.engineerInsights.trackSeededBattle(scenarioId, seed);
+                }
+                if (window.researcherInsights && scenarioId && seed) {
+                    window.researcherInsights.trackScenarioContext(scenarioId, seed, 'evolution_battle');
+                }
                 
                 // Now update the genomes of existing tanks with evolved ones
                 // Update red team genomes
@@ -775,35 +785,17 @@ class TankAnalyst {
                 historySize: history.length 
             });
         }
-        console.log('Debug - analyzePerformanceTrends called with history length:', history.length);
+        
         if (history.length < 2) {
-            console.log('Debug - Not enough history, returning null');
             return null;
         }
         const recent = history.slice(-5);
-        console.log('Debug - AnalyzePerformanceTrends:', {
-            historyLength: history.length,
-            recentLength: recent.length,
-            recentBattles: recent.map(exp => ({
-                winner: exp.result.winner,
-                duration: exp.result.duration,
-                redStats: exp.result.redTeamStats,
-                blueStats: exp.result.blueTeamStats
-            }))
-        });
+        
         const avgFitness = recent.reduce((sum, exp) => {
             const redFitness = this.calculateBattleFitness(exp.result, 'red');
             const blueFitness = this.calculateBattleFitness(exp.result, 'blue');
-            console.log('Debug - Fitness calculations:', {
-                redFitness,
-                blueFitness,
-                winner: exp.result.winner,
-                redStats: exp.result.redTeamStats,
-                blueStats: exp.result.blueTeamStats
-            });
             return sum + (redFitness + blueFitness) / 2;
         }, 0) / recent.length;
-        console.log('Debug - Final avgFitness:', avgFitness);
         return {
             average_fitness: avgFitness,
             improvement_rate: this.calculateImprovementRate(recent),
@@ -916,14 +908,8 @@ class TankAnalyst {
     calculateBattleFitness(result, team) {
         if (team === 'timeout') {return 0.3;} // Draw fitness
         const teamStats = team === 'red' ? result.redTeamStats : result.blueTeamStats;
-        console.log('Debug - calculateBattleFitness:', {
-            team,
-            winner: result.winner,
-            teamStats,
-            hasTeamStats: !!teamStats
-        });
+        
         if (!teamStats) {
-            console.warn('Debug - No team stats available for team:', team);
             return 0;
         }
         const won = result.winner === team;
@@ -932,15 +918,7 @@ class TankAnalyst {
         const accuracyScore = teamStats.averageAccuracy * 0.2;
         const damageScore = Math.min(teamStats.totalDamageDealt / 100, 0.1);
         const totalFitness = winBonus + survivalScore + accuracyScore + damageScore;
-        console.log('Debug - Fitness breakdown:', {
-            team,
-            won,
-            winBonus,
-            survivalScore,
-            accuracyScore,
-            damageScore,
-            totalFitness
-        });
+        
         return totalFitness;
     }
     calculateImprovementRate(experiments) {
