@@ -15,10 +15,17 @@ function createIntegrationTestEnvironment() {
   document.body.innerHTML = `
     <canvas id="gameCanvas" width="800" height="600"></canvas>
     <div id="generationDisplay">Generation: 1</div>
+    <div id="experiments">0</div>
+    <div id="battles">0</div>
+    <div id="redWins">0</div>
+    <div id="blueWins">0</div>
     <div id="redScore">Red Score: 0</div>
     <div id="blueScore">Blue Score: 0</div>
     <div id="redFitness">Red Fitness: 0</div>
     <div id="blueFitness">Blue Fitness: 0</div>
+    <div id="redBest">None</div>
+    <div id="blueBest">None</div>
+    <div id="novelDesigns">0</div>
     <span id="researcherRedMutations">0</span>
     <span id="researcherBlueMutations">0</span>
     <span id="analystRedInsights">0</span>
@@ -27,6 +34,7 @@ function createIntegrationTestEnvironment() {
     <span id="cognitionBlueTactics">0</span>
     <div id="redAdaptations">Red Adaptations: 0</div>
     <div id="blueAdaptations">Blue Adaptations: 0</div>
+    <div id="evolutionLog"></div>
     <button id="evolveBtn">Evolve Generation</button>
     <button id="resetBtn">Reset Evolution</button>
   `;

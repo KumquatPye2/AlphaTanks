@@ -42,6 +42,17 @@ global.Hill = class Hill {
     update(_deltaTime, _tanks) {
         // Mock update method - no-op for tests
     }
+    render(_ctx) {
+        // Mock render method - no-op for tests
+    }
+    isGameWon() {
+        // Mock method - return false to prevent game ending during tests
+        return false;
+    }
+    getWinner() {
+        // Mock method - return null since isGameWon() returns false
+        return null;
+    }
 };
 
 // Load the game engine file

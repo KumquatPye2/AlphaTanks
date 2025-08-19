@@ -136,6 +136,12 @@ class EvolutionEngine {
         // Create proper Tank instance (same as game engine does)
         const tank = new Tank(x, y, team, genome);
         tank.fitness = 0.5;
+        
+        // Create AI instance for the tank (for testing compatibility)
+        if (typeof TankAI !== 'undefined') {
+            tank.ai = new TankAI(tank);
+        }
+        
         return tank;
     }
     calculateTeamFitness(teamOrGenomes, battleResults, team) {
