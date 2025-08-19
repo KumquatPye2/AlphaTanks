@@ -39,6 +39,9 @@ global.Hill = class Hill {
     reset() {
         this.controlPoints = { red: 0, blue: 0 };
     }
+    update(_deltaTime, _tanks) {
+        // Mock update method - no-op for tests
+    }
 };
 
 // Load the game engine file
