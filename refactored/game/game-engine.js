@@ -28,6 +28,10 @@ class GameEngine {
         this.gameMode = options.gameMode || 'king_of_hill';
         this.timeScale = options.timeScale || 1.0;
         
+        // Phase 2: Store scenario and seed for battle tracking
+        this.currentScenarioId = null;
+        this.currentSeed = null;
+        
         // Core game state
         this.gameState = GAME_STATES.READY;
         this.lastTime = 0;
@@ -96,6 +100,10 @@ class GameEngine {
      * Initialize a new battle with optional scenario support
      */
     initializeBattle(redTanks = 3, blueTanks = 3, mode = 'king_of_hill', scenarioId = null, seed = null) {
+        // Phase 2: Store scenario and seed for tracking
+        this.currentScenarioId = scenarioId;
+        this.currentSeed = seed;
+        
         // Reset all systems
         this.tanks = [];
         this.redTeam = [];
@@ -385,6 +393,9 @@ class GameEngine {
             redTeamStats: this.stats.calculateTeamStats(this.redTeam),
             blueTeamStats: this.stats.calculateTeamStats(this.blueTeam),
             hillControlData,
+            // Phase 2: Include scenario and seed for tracking
+            scenarioId: this.currentScenarioId,
+            seed: this.currentSeed,
             tacticalMetrics: this.stats.calculateTacticalMetrics(this.redTeam, this.blueTeam)
         };
     }

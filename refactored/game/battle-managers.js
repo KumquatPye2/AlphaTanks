@@ -73,7 +73,8 @@ class BattlefieldManager {
      */
     initializeKingOfHill() {
         if (!this.hill) {
-            this.hill = new Hill(this.width / 2, this.height / 2, GAME_CONFIG.BATTLE.KING_OF_HILL.CONTROL_RADIUS);
+            this.hill = new Hill(400, this.height / 2, GAME_CONFIG.BATTLE.KING_OF_HILL.CONTROL_RADIUS);
+            console.log(`🏔️ Hill created at fixed position (400, ${this.height / 2}) on battlefield (${this.width}x${this.height})`);
         }
         this.hill.reset();
     }
@@ -149,44 +150,68 @@ class BattlefieldManager {
         let attempts = 0;
         const maxAttempts = 50; // Prevent infinite loops
         
+        // Fixed positioning relative to left edge for perfect visual balance
+        const hillX = 400; // Hill at fixed position
+        const hillY = this.height / 2;
+        const redX = 100;   // Red team at fixed position
+        const blueX = 700;  // Blue team at fixed position
+        
+        // Calculate distance from positions to hill for logging
+        const spawnDistance = Math.abs(hillX - redX); // Should be 300 for both teams
+        
         while (attempts < maxAttempts) {
             let spawnPos;
             
             if (team === 'red') {
-                // Left side spawn
+                // Spawn red team at fixed X position with vertical spread
+                const xPos = redX;
+                const verticalRange = Math.min(200, hillY - tankSize, this.height - hillY - tankSize);
+                const yOffset = (Math.random() - 0.5) * verticalRange * 1.5;
                 spawnPos = {
-                    x: config.MIN_SPAWN_DISTANCE + Math.random() * (config.MAX_SPAWN_DISTANCE - config.MIN_SPAWN_DISTANCE),
-                    y: this.height * config.SPAWN_MARGIN_RATIO + Math.random() * this.height * (1 - 2 * config.SPAWN_MARGIN_RATIO)
+                    x: xPos,
+                    y: hillY + yOffset
                 };
             } else {
-                // Right side spawn
+                // Spawn blue team at fixed X position with identical vertical spread
+                const xPos = blueX;
+                const verticalRange = Math.min(200, hillY - tankSize, this.height - hillY - tankSize);
+                const yOffset = (Math.random() - 0.5) * verticalRange * 1.5;
                 spawnPos = {
-                    x: this.width - config.MAX_SPAWN_DISTANCE + Math.random() * (config.MAX_SPAWN_DISTANCE - config.MIN_SPAWN_DISTANCE),
-                    y: this.height * config.SPAWN_MARGIN_RATIO + Math.random() * this.height * (1 - 2 * config.SPAWN_MARGIN_RATIO)
+                    x: xPos,
+                    y: hillY + yOffset
                 };
             }
             
-            // Check if this position is safe (not in an obstacle)
-            if (this.isValidPosition(spawnPos.x - tankSize/2, spawnPos.y - tankSize/2, tankSize, tankSize)) {
-                return spawnPos;
+            // Verify the position is within battlefield boundaries (should be guaranteed now)
+            if (spawnPos.x >= tankSize && spawnPos.x <= this.width - tankSize &&
+                spawnPos.y >= tankSize && spawnPos.y <= this.height - tankSize) {
+                
+                // Check if this position is safe (not in an obstacle)
+                if (this.isValidPosition(spawnPos.x - tankSize/2, spawnPos.y - tankSize/2, tankSize, tankSize)) {
+                    // Debug: Log the actual distance from hill to verify equidistance
+                    const actualDistance = Math.sqrt(Math.pow(spawnPos.x - hillX, 2) + Math.pow(spawnPos.y - hillY, 2));
+                    console.log(`${team} team spawned at (${spawnPos.x.toFixed(1)}, ${spawnPos.y.toFixed(1)}) distance ${actualDistance.toFixed(1)} from hill at (${hillX}, ${hillY}) (target: ${spawnDistance.toFixed(1)})`);
+                    return spawnPos;
+                }
             }
             
             attempts++;
         }
         
         // Fallback: if we can't find a safe spawn after many attempts, 
-        // return a position at the edge of the spawn area
+        // return a position at the edge of the spawn area, still equidistant from hill
         console.warn(`Could not find safe spawn for ${team} team after ${maxAttempts} attempts, using fallback position`);
         
+        const fallbackDistance = spawnDistance * 0.8; // Slightly closer as fallback
         if (team === 'red') {
             return {
-                x: config.MIN_SPAWN_DISTANCE,
-                y: this.height / 2
+                x: Math.max(tankSize, hillX - fallbackDistance),
+                y: hillY
             };
         } else {
             return {
-                x: this.width - config.MIN_SPAWN_DISTANCE,
-                y: this.height / 2
+                x: Math.min(this.width - tankSize, hillX + fallbackDistance),
+                y: hillY
             };
         }
     }
