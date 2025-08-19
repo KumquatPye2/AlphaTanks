@@ -78,6 +78,16 @@ global.Projectile = class Projectile {
 // Set global references for the game engine
 global.window.Projectile = global.Projectile;
 
+// Mock Hill class
+global.Hill = class Hill {
+    constructor(x, y, radius) {
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.controlPoints = { red: 0, blue: 0 };
+    }
+};
+
 // Load the game engine file (it will set window.GameEngine)
 require('../game-engine.js');
 const GameEngine = global.window.GameEngine;

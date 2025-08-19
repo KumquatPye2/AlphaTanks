@@ -31,6 +31,13 @@ global.Tank = class Tank {
     update() {} render() {} takeDamage() {}
 };
 
+global.Hill = class Hill {
+    constructor(x, y, radius) {
+        this.x = x; this.y = y; this.radius = radius;
+        this.controlPoints = { red: 0, blue: 0 };
+    }
+};
+
 // Load the game engine file
 require('../game-engine.js');
 const GameEngine = global.window.GameEngine;

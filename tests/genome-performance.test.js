@@ -9,6 +9,8 @@ const path = require('path');
 // Load source files
 const mainSource = fs.readFileSync(path.join(__dirname, '../main.js'), 'utf8');
 const evolutionEngineSource = fs.readFileSync(path.join(__dirname, '../evolution-engine.js'), 'utf8');
+const tankAiSource = fs.readFileSync(path.join(__dirname, '../tank-ai.js'), 'utf8');
+const hillControlSource = fs.readFileSync(path.join(__dirname, '../hill-control.js'), 'utf8');
 
 function createPerformanceTestEnvironment() {
   document.body.innerHTML = `<canvas id="gameCanvas"></canvas>`;
@@ -21,7 +23,9 @@ function createPerformanceTestEnvironment() {
     lastSuccessLog: 0
   };
 
-  // Evaluate evolution engine
+  // Evaluate required dependencies first
+  eval(tankAiSource); // Provides Tank class
+  eval(hillControlSource); // Provides Hill class
   eval(evolutionEngineSource);
 
   // Extract getBestGenomeForTeam function
