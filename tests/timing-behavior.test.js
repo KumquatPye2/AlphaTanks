@@ -36,6 +36,9 @@ global.Hill = class Hill {
         this.x = x; this.y = y; this.radius = radius;
         this.controlPoints = { red: 0, blue: 0 };
     }
+    reset() {
+        this.controlPoints = { red: 0, blue: 0 };
+    }
 };
 
 // Load the game engine file
