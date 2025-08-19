@@ -37,7 +37,6 @@ class DeepSeekClient {
         
         // Don't override user's explicit setting
         if (originalMockMode === false) {
-            console.log('User explicitly disabled mock mode, respecting setting');
             return;
         }
         

@@ -4,6 +4,7 @@
 const CONFIG = {
     // DeepSeek API Configuration
     deepseek: {
+        // SECURITY: Never commit API keys to version control!
         // OPTION 1: Set your API key directly here (browser-friendly)
         apiKey: 'sk-391b52e4a9aa41f4a66af4e403d3d0aa', // Your DeepSeek API key
         

@@ -101,9 +101,6 @@ class ResearcherInsights {
         // Use DataCollector's new tracking method
         this.dataCollector.trackScenarioContext(scenarioId, seed, researchContext);
         this.eventManager.emit('dataUpdate');
-        
-        // Log for research documentation
-        console.log(`🔬 Research Context: ${scenarioId} (seed: ${seed}) - ${researchContext}`);
     }
 
     /**

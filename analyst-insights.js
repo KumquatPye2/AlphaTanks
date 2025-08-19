@@ -242,7 +242,6 @@ class AnalystInsights {
     }
     trackPerformanceTrends(trendsData) {
         this.metrics.trendAnalyses++;
-        console.log('Debug - trackPerformanceTrends received:', trendsData);
         
         if (trendsData) {
             this.insightHistory.performance_trends.push({
@@ -645,13 +644,7 @@ class AnalystInsights {
     }
     updateFitnessChart() {
         const chartContainer = document.getElementById('trend-analysis-charts');
-        console.log('Debug - updateFitnessChart:', {
-            hasChartContainer: !!chartContainer,
-            trendsCount: this.insightHistory.performance_trends.length,
-            trends: this.insightHistory.performance_trends
-        });
         if (!chartContainer) {
-            console.log('Debug - No chart container found');
             return;
         }
         // Remove existing fitness chart
@@ -663,9 +656,7 @@ class AnalystInsights {
         chartDiv.id = 'fitness-trend-chart';
         chartDiv.className = 'chart';
         const recentTrends = this.insightHistory.performance_trends.slice(-20);
-        console.log('Debug - recentTrends:', recentTrends);
         if (recentTrends.length === 0) {
-            console.log('Debug - No recent trends to display');
             chartDiv.innerHTML = `
                 <h4>📈 Average Fitness Trend</h4>
                 <div style="color: #888; text-align: center; padding: 20px;">
@@ -677,7 +668,6 @@ class AnalystInsights {
         }
         const labels = recentTrends.map((_, i) => `T${i + 1}`);
         const fitness = recentTrends.map(t => (t.averageFitness * 100).toFixed(1));
-        console.log('Debug - Chart data:', { labels, fitness });
         chartDiv.innerHTML = `
             <h4>📈 Average Fitness Trend</h4>
             <canvas id="fitness-trend-canvas" width="400" height="150"></canvas>
