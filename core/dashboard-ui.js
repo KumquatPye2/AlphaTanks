@@ -199,7 +199,7 @@ class DashboardUI {
             <div class="metric-item">🧪 Experiments: ${metrics.experiments}</div>
             <div class="metric-item">⚔️ Red Queen Adaptations: ${metrics.redQueenAdaptations}</div>
             <div style="border-top: 1px solid #00ff88; margin-top: 10px; padding-top: 10px;">
-                <div style="color: #00ff88; font-weight: bold; margin-bottom: 5px;">📊 Phase 2: Enhanced Scenarios</div>
+                <div style="color: #00ff88; font-weight: bold; margin-bottom: 5px;">📊 Advanced Scenarios</div>
                 <div class="metric-item">🎯 Current Scenario: ${metrics.currentScenario || 'None'}</div>
                 <div class="metric-item">📋 Scenario Contexts: ${metrics.scenarioContexts}</div>
                 <div class="metric-item">🎲 Total Seeds Used: ${metrics.totalSeeds}</div>

@@ -507,7 +507,7 @@ class EngineerInsights {
                     <strong>Adaptability Assessments:</strong> ${this.metrics.adaptabilityAssessments}
                 </div>
                 <div style="grid-column: 1 / -1; border-top: 1px solid #00ff88; padding-top: 5px; margin-top: 5px;">
-                    <strong>Phase 2: Enhanced Scenarios</strong><br>
+                    <strong>Advanced Scenarios</strong><br>
                     Current Scenario: ${this.metrics.currentScenario || 'None'}<br>
                     Seeded Battles: ${this.metrics.seededBattles}<br>
                     Obstacle Interactions: ${this.metrics.obstacleInteractions}<br>

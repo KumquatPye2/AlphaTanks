@@ -1,10 +1,10 @@
 # ASI-ARCH (Tanks) — Gap Analysis and Implementation Plan
 
-Date: 2025-08-16
+Date: 2025-08-19
 Scope: AlphaTanks (browser-based tank AI), focusing on `asi-arch-modules.js`, `llm-enhanced-asi-arch.js`, `game-engine.js`, `tank-ai.js`, and LLM integration.
 
 ## TL;DR
-The current app is a strong, working adaptation of ASI-ARCH: all four roles exist, composite fitness (quant/qual/innovation) is implemented, battles run in a real simulator, and a Red-Queen arms race is modeled. To better match the paper, implement: (1) top-50 candidate pool with batched updates, (2) explicit exploration→verification staging with held-out scenarios and multi-seed evaluation, (3) novelty/degeneracy checks, (4) richer cognition base and persistent analysis memory, (5) persistent experiment artifacts, and (6) judge calibration and drift monitoring. Also remove the hard-coded API key and switch to secure config.
+The current app is a strong, working adaptation of ASI-ARCH: all four roles exist, composite fitness (quant/qual/innovation) is implemented, battles run in a real simulator, and a Red-Queen arms race is modeled. One simulation runs at a time (single-sim constraint). To better match the paper while respecting the Red Queen and single-sim runtime, implement: (1) top-50 candidate pool with batch selection policy but serialized evaluation via an explicit queue/lock, (2) lightweight verification gating using held-out seeds/scenarios within the single-phase loop (no separate two-phase orchestrator), (3) novelty/degeneracy checks, (4) richer cognition base and persistent analysis memory, (5) persistent experiment artifacts, and (6) judge calibration and drift monitoring. Also remove the hard-coded API key and switch to secure config.
 
 ---
 
@@ -17,7 +17,7 @@ The current app is a strong, working adaptation of ASI-ARCH: all four roles exis
   - Game-engine-backed evaluation with tactical metrics; Red-Queen dynamics.
 - Key divergences vs. paper:
   - Candidate pool size/policy (`10` vs. `50`; no explicit batch updates).
-  - No explicit two-phase exploration→verification pipeline.
+  - No explicit two-phase exploration→verification pipeline (intentionally omitted for Red Queen single-phase dynamics; use in-loop verification gating instead).
   - Limited novelty/sanity checks; small cognition base; simulated scoring paths exist.
   - No persistent replay set; limited judge calibration; hard-coded API key in `config.js`.
 
@@ -33,6 +33,8 @@ The current app is a strong, working adaptation of ASI-ARCH: all four roles exis
 ## Implementation Roadmap (phased)
 Each task lists target files, concrete edits, and acceptance criteria. Preserve public APIs unless a change is explicit here.
 
+Note on single-simulation constraint: All evaluations must be serialized. “Batch” refers to selection/pruning policy, not concurrent battles. Implement an evaluation queue and a process-wide lock so only one battle runs at a time.
+
 ### Phase 1 — Security + Config Baseline
 1) Remove hard-coded API key and support secure configuration
 - Files: `config.js`, `deepseek-client.js`.
@@ -47,19 +49,19 @@ Each task lists target files, concrete edits, and acceptance criteria. Preserve 
 - Files: `config.js`, `llm-enhanced-asi-arch.js`.
 - Edits:
   - Set `asiArch.candidatePoolSize = 50` (config-driven).
-  - Add `asiArch.batchUpdateSize` (e.g., 10) for batched pool updates.
-- Acceptance: `updateCandidatePool` respects sizes; tests pass.
+  - Add `asiArch.batchUpdateSize` (e.g., 10) for batched pool updates (selection/pruning only; evaluations are serialized).
+- Acceptance: `updateCandidatePool` respects sizes; evaluation queue enforces single active battle; tests pass.
 
-### Phase 2 — Enhanced Battle Scenarios (Single-Phase Red Queen)
-3) ~~Add explicit two-phase cycle orchestration~~ (SKIPPED - Not suitable for Red Queen dynamics)
+### Phase 2 — Enhanced Battle Scenarios (Single-Phase Red Queen) — COMPLETED
+3) ~~Add explicit two-phase cycle orchestration~~ (SKIPPED — Not suitable for Red Queen dynamics)
 
-4) Enhanced battle scenarios and seeded evaluation
+4) Enhanced battle scenarios and seeded evaluation — DONE
 - Files: `game-engine.js`, `llm-enhanced-asi-arch.js`, `config.js`.
-- Edits:
-  - Add deterministic seeding hooks (obstacles/hill/RNG/tank positions) via init params.
-  - Define multiple scenario presets with varied tactical challenges (open field, urban, chokepoints).
-  - Implement scenario rotation for diverse evaluation within single-phase evolution.
-  - Add multi-scenario fitness aggregation to reward adaptable strategies.
+- Implemented:
+  - Deterministic seeding hooks (obstacles/hill/RNG/tank positions) via init params.
+  - Multiple scenario presets with varied tactical challenges (open field, urban, chokepoints).
+  - Scenario rotation for diverse evaluation within single-phase evolution.
+  - Multi-scenario fitness aggregation to reward adaptable strategies.
 - Acceptance: Identical seeds+scenario IDs → reproducible stats; teams face varied tactical challenges.
 
 ### Phase 3 — Novelty and Sanity Checks
@@ -96,7 +98,7 @@ Each task lists target files, concrete edits, and acceptance criteria. Preserve 
 9) Remove simulated scoring paths
 - Files: `llm-enhanced-asi-arch.js`.
 - Edits:
-  - Ensure evaluations go through `TankEngineer.runBattle` across configured seeds.
+  - Ensure evaluations go through `TankEngineer.runBattle` across configured seeds (serialized via evaluation queue/lock).
   - LLM judge stays qualitative only.
 - Acceptance: No performance estimation without battles.
 
@@ -127,25 +129,26 @@ Each task lists target files, concrete edits, and acceptance criteria. Preserve 
 - `config.js`
   - `candidatePoolSize: 50`, `batchUpdateSize`, phase seeds/scenarios, secure API handling.
 - `llm-enhanced-asi-arch.js`
-  - Two-phase cycle, batch updates, novelty filter, diversity floor, persistence hooks, seed-based evaluation, judge calibration, no simulated scoring.
+  - Single-phase loop with evaluation queue/lock (single-sim); batch selection/pruning policy; novelty filter; diversity floor; persistence hooks; seed-based evaluation; judge calibration; no simulated scoring.
 - `asi-arch-modules.js`
-  - Researcher: diversity constraints and cognition retrieval; Engineer: seed-aware battles; Analyst: constraint and phase logs.
+  - Researcher: diversity constraints and cognition retrieval; Engineer: seed-aware battles; Analyst: constraint logs and single-phase verification notes.
 - `game-engine.js`
   - Deterministic seeding, scenario presets via init params.
 - `enhanced-asi-arch.js`
   - Reuse/add diversity metrics and clustering utilities.
 - `asi-arch-integration.js`
-  - Export/import wiring; status UI for phases and verification counts.
+  - Export/import wiring; status UI for evaluation queue state and verification counts.
 - `deepseek-client.js`
   - No inline key; optional ensemble judge prompts; keep caching.
 - New: `cognition/tactics.json`, `storage/persist.js`, `benchmarks/judge-bench.json`.
+ - Optional new (if preferred): `core/eval-queue.js` for a minimal serialized evaluation scheduler.
 
 ---
 
 ## Tests and Acceptance
 Create/extend tests under `tests/`:
 - `tests/pool-policy.test.js`: Pool size=50; batch updates honored; pruning consistent.
-- `tests/two-phase-cycle.test.js`: Only verified candidates enter pool.
+- `tests/evaluation-queue.test.js`: Only one battle at a time; queue drains in order; lock prevents overlap.
 - `tests/seeded-scenarios.test.js`: Seeds+scenarios → reproducible stats.
 - `tests/novelty-degeneracy.test.js`: Degenerates rejected; diversity floor maintained.
 - `tests/persistence.test.js`: Export/import round-trip; resume state.
@@ -153,7 +156,8 @@ Create/extend tests under `tests/`:
 
 Global acceptance criteria:
 - Composite fitness remains: quantitative (sigmoid deltas), qualitative (LLM judge), innovation (novelty/diversity) — weights from `config.js`.
-- No simulated performance: verification uses real battles across seeds/scenarios.
+- No simulated performance: verification uses real battles across seeds/scenarios, serialized by the evaluation queue.
+- Single-simulation runtime respected: never more than one active battle.
 - Security: No secrets committed; mock mode works without keys.
 
 ---
@@ -176,14 +180,14 @@ Global acceptance criteria:
 ---
 
 ## Appendix B — Quick Agent Checklist
-- [ ] Update `config.js` (pool=50, batch, secure API comment).
-- [ ] Refactor `runExperimentCycle` into exploration and verification.
-- [ ] Add seeded scenarios and deterministic hooks in `game-engine.js`.
+- [ ] Update `config.js` (pool=50, batch selection size, secure API comment).
+- [ ] Ensure `runExperimentCycle` uses a serialized evaluation queue/lock; in-loop verification gating with held-out seeds.
+- [ ] Confirm seeded scenarios and deterministic hooks in `game-engine.js` (Phase 2 DONE).
 - [ ] Implement novelty/diversity metrics and degeneracy filter.
 - [ ] Externalize cognition to `cognition/tactics.json` with retrieval.
 - [ ] Implement persistence (export/import + autosave) and remove simulated scoring.
 - [ ] Add judge calibration with a fixed benchmark set and optional ensemble prompts.
-- [ ] Add and run new tests; keep existing tests green.
+- [ ] Add and run new tests (incl. evaluation queue); keep existing tests green.
 
 ---
 

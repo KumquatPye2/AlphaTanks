@@ -206,7 +206,7 @@ class AnalystInsights {
                 </div>
             ` : ''}
             <div style="margin-top: 8px; padding: 6px; background: rgba(0,255,136,0.1); border: 1px solid #00ff88; border-radius: 3px; font-size: 11px;">
-                <strong style="color: #00ff88;">✅ Phase 2: Analysis Ready</strong><br>
+                <strong style="color: #00ff88;">✅ Advanced Analysis Ready</strong><br>
                 <div style="color: #00ff88;">✅ Enhanced Metrics:</div>
                 <div style="margin-left: 10px; color: #ffffff;">Scenario analyses, reproducibility validations, tactical insights</div>
                 <div style="color: #00ff88;">✅ Performance Tracking:</div>
@@ -591,7 +591,7 @@ class AnalystInsights {
                     <strong>Discoveries:</strong> ${this.metrics.significantDiscoveries}
                 </div>
                 <div style="grid-column: 1 / -1; border-top: 1px solid #00ff88; padding-top: 5px; margin-top: 5px; background: rgba(0,255,136,0.1); border-radius: 3px; padding: 8px;">
-                    <strong style="color: #00ff88;">✅ Phase 2: Enhanced Metrics</strong><br>
+                    <strong style="color: #00ff88;">✅ Advanced Metrics</strong><br>
                     <strong>Scenario Analyses:</strong> ${this.metrics.scenarioAnalyses}<br>
                     <strong>Reproducibility Validations:</strong> ${this.metrics.reproducibilityValidations}<br>
                     <strong>Tactical Environment Insights:</strong> ${this.metrics.tacticalEnvironmentInsights}
