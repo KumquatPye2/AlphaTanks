@@ -74,7 +74,7 @@ class BattlefieldManager {
     initializeKingOfHill() {
         if (!this.hill) {
             this.hill = new Hill(400, this.height / 2, GAME_CONFIG.BATTLE.KING_OF_HILL.CONTROL_RADIUS);
-            console.log(`🏔️ Hill created at fixed position (400, ${this.height / 2}) on battlefield (${this.width}x${this.height})`);
+            // Hill created at fixed position
         }
         this.hill.reset();
     }
@@ -190,7 +190,7 @@ class BattlefieldManager {
                 if (this.isValidPosition(spawnPos.x - tankSize/2, spawnPos.y - tankSize/2, tankSize, tankSize)) {
                     // Debug: Log the actual distance from hill to verify equidistance
                     const actualDistance = Math.sqrt(Math.pow(spawnPos.x - hillX, 2) + Math.pow(spawnPos.y - hillY, 2));
-                    console.log(`${team} team spawned at (${spawnPos.x.toFixed(1)}, ${spawnPos.y.toFixed(1)}) distance ${actualDistance.toFixed(1)} from hill at (${hillX}, ${hillY}) (target: ${spawnDistance.toFixed(1)})`);
+                    // Team spawned with distance logging removed for production
                     return spawnPos;
                 }
             }

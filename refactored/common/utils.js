@@ -507,7 +507,7 @@ class PerformanceUtils {
         const start = performance.now();
         const result = func();
         const end = performance.now();
-        console.log(`${name} took ${(end - start).toFixed(2)}ms`);
+        // Performance timing removed for production
         return result;
     }
 

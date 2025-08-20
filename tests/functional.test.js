@@ -88,13 +88,12 @@ describe('ASI-ARCH Tank Evolution System - Functional Tests', () => {
       expect(htmlContent).toContain('id="researcherRedMutations"');
       expect(htmlContent).toContain('id="researcherBlueMutations"');
       
-      // Check for genome display elements
-      expect(htmlContent).toContain('🧬 Best Genomes');
-      expect(htmlContent).toContain('id="redChampionFitness"');
-      expect(htmlContent).toContain('id="blueChampionFitness"');
-      expect(htmlContent).toContain('id="redAggression"');
-      expect(htmlContent).toContain('id="blueAggression"');
-      expect(htmlContent).toContain('class="genome-display"');
+      // Check for tactical evolution monitor (replaced genome display)
+      expect(htmlContent).toContain('🎯 Tactical Evolution Monitor');
+      expect(htmlContent).toContain('📊 Top Performers');
+      expect(htmlContent).toContain('red-champions');
+      expect(htmlContent).toContain('blue-champions');
+      expect(htmlContent).toContain('class="tactical-section"');
     });
   });
 

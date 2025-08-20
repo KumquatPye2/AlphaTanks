@@ -273,8 +273,8 @@ describe('TankResearcher Module - Comprehensive Tests', () => {
       
       expect(experiment).toHaveProperty('redGenomes');
       expect(experiment).toHaveProperty('blueGenomes');
-      expect(experiment.redGenomes).toHaveLength(3);
-      expect(experiment.blueGenomes).toHaveLength(3);
+      expect(experiment.redGenomes).toHaveLength(5);
+      expect(experiment.blueGenomes).toHaveLength(5);
       
       // All genomes should be valid
       [...experiment.redGenomes, ...experiment.blueGenomes].forEach(genome => {
@@ -399,8 +399,8 @@ describe('TankResearcher Module - Comprehensive Tests', () => {
       const redGenomes = researcher.generateTeamGenomes(parents, cognitionBase, 'red', history);
       const blueGenomes = researcher.generateTeamGenomes(parents, cognitionBase, 'blue', history);
       
-      expect(redGenomes).toHaveLength(3);
-      expect(blueGenomes).toHaveLength(3);
+      expect(redGenomes).toHaveLength(5);
+      expect(blueGenomes).toHaveLength(5);
       
       // Should generate different genomes for different teams
       expect(redGenomes).not.toEqual(blueGenomes);

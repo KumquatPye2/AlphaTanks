@@ -50,6 +50,46 @@ function createTestEnvironment() {
     width: 800,
     height: 600,
     gameLoop: jest.fn(),
+    initializeBattle: jest.fn((redCount, blueCount, _battleType, _scenarioId, _seed) => {
+      // Mock battle initialization
+      global.window.game.redTeam = Array.from({ length: redCount }, (_, i) => {
+        const tank = { 
+          id: `red_${i}`, 
+          team: 'red',
+          entity: {
+            calculateBehaviorWeights: jest.fn(),
+            calculateSpeed: jest.fn(),
+            calculateFireRate: jest.fn(),
+            calculateDamage: jest.fn(),
+            calculateRange: jest.fn(),
+            calculateAccuracy: jest.fn()
+          }
+        };
+        // Call Tank constructor for test tracking with expected signature
+        global.Tank(50, 100 + i * 50, 'red', [0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.9]);
+        return tank;
+      });
+      global.window.game.blueTeam = Array.from({ length: blueCount }, (_, i) => {
+        const tank = { 
+          id: `blue_${i}`, 
+          team: 'blue',
+          entity: {
+            calculateBehaviorWeights: jest.fn(),
+            calculateSpeed: jest.fn(),
+            calculateFireRate: jest.fn(),
+            calculateDamage: jest.fn(),
+            calculateRange: jest.fn(),
+            calculateAccuracy: jest.fn()
+          }
+        };
+        // Call Tank constructor for test tracking with expected signature
+        global.Tank(750, 100 + i * 50, 'blue', [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]);
+        return tank;
+      });
+      global.window.game.tanks = [...global.window.game.redTeam, ...global.window.game.blueTeam];
+      global.window.game.battleTime = 0;
+      global.window.game.battleStarted = true;
+    }),
     endBattle: jest.fn((reason) => {
       // Simulate battle end event
       const event = new CustomEvent('battleEnd', {
@@ -74,6 +114,12 @@ function createTestEnvironment() {
         }
       });
       window.dispatchEvent(event);
+    }),
+    start: jest.fn(() => {
+      // Mock game start - immediately trigger battle end for testing
+      setTimeout(() => {
+        global.window.game.endBattle('test_complete');
+      }, 10);
     })
   };
 

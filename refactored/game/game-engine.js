@@ -137,7 +137,7 @@ class GameEngine {
                     // Create the actual Hill object for rendering
                     this.battlefield.hill = new Hill(battleData.hill.x, battleData.hill.y, battleData.hill.radius);
                 }
-                console.log(`🎯 Battle initialized with scenario: ${battleData.scenario?.name || scenarioId}`);
+                // Battle initialized with scenario
             } else {
                 // Use default initialization
                 this.battlefield.initializeKingOfHill();
@@ -899,8 +899,6 @@ function initializeBattle(canvas, scenarioId = 'open_field', seed = null, hill =
     const battleSeed = seed || (config.seededEvaluation?.enabled ? 
         Math.floor(Math.random() * (config.seededEvaluation.seedRange[1] - config.seededEvaluation.seedRange[0])) + config.seededEvaluation.seedRange[0] :
         Math.floor(Math.random() * 10000));
-    
-    console.log(`🎯 Initializing ${scenario.name} (seed: ${battleSeed})`);
     
     // Generate obstacles based on scenario, avoiding hill if provided
     let obstacles = [];
