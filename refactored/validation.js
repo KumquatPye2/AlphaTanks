@@ -4,7 +4,6 @@
  */
 
 function validateIntegration() {
-    console.log('🔍 Starting integration validation...');
     
     const results = {
         componentsLoaded: false,
@@ -17,7 +16,6 @@ function validateIntegration() {
     
     try {
         // Test 1: Check if all components are loaded
-        console.log('📦 Checking component loading...');
         const requiredComponents = [
             'GAME_CONFIG', 'MathUtils', 'GenomeUtils', 'CollisionUtils',
             'TankEntity', 'TankAI', 'TankCombat', 'Tank',
@@ -29,27 +27,23 @@ function validateIntegration() {
         
         if (missingComponents.length === 0) {
             results.componentsLoaded = true;
-            console.log('✅ All components loaded successfully');
         } else {
             console.error('❌ Missing components:', missingComponents);
             return results;
         }
         
         // Test 2: Validate configuration
-        console.log('⚙️ Checking configuration...');
         if (typeof GAME_CONFIG !== 'undefined' && 
             GAME_CONFIG.BATTLEFIELD && 
             GAME_CONFIG.TANK && 
             GAME_CONFIG.BATTLE) {
             results.configurationValid = true;
-            console.log('✅ Configuration is valid');
         } else {
             console.error('❌ GAME_CONFIG is invalid or incomplete');
             return results;
         }
         
         // Test 3: Test GameEngine creation
-        console.log('🎮 Testing GameEngine...');
         const mockCanvas = document.createElement('canvas');
         mockCanvas.width = 800;
         mockCanvas.height = 600;
@@ -61,7 +55,6 @@ function validateIntegration() {
         
         if (gameEngine && typeof gameEngine.update === 'function') {
             results.gameEngineWorking = true;
-            console.log('✅ GameEngine created and working');
         } else {
             console.error('❌ GameEngine creation failed');
             return results;

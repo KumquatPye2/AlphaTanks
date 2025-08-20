@@ -188,9 +188,8 @@ class BattlefieldManager {
                 
                 // Check if this position is safe (not in an obstacle)
                 if (this.isValidPosition(spawnPos.x - tankSize/2, spawnPos.y - tankSize/2, tankSize, tankSize)) {
-                    // Debug: Log the actual distance from hill to verify equidistance
+                    // Verify equidistance from hill (calculation only, no logging)
                     const actualDistance = Math.sqrt(Math.pow(spawnPos.x - hillX, 2) + Math.pow(spawnPos.y - hillY, 2));
-                    // Team spawned with distance logging removed for production
                     return spawnPos;
                 }
             }
