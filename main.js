@@ -530,22 +530,10 @@ function updateGenomeDisplay() {
             }
         } else {
             // EMERGENCY FALLBACK: If Blue team has no champion, ensure it gets one
-            // If Red has a champion, create a Blue variant
+            // If Red has a champion, create a Blue variant with no bias - just copy
             if (redBest && redBest.genome) {
-                // Create a Blue team variant by modifying Red's genome slightly
+                // Pure copy with no modifications - let evolution handle differentiation
                 const blueGenome = Array.isArray(redBest.genome) ? [...redBest.genome] : { ...redBest.genome };
-                // Slightly modify some traits to differentiate Blue from Red
-                if (Array.isArray(blueGenome)) {
-                    // Array format: [aggression, speed, accuracy, defense, teamwork, adaptability, learning, riskTaking, evasion]
-                    blueGenome[0] = Math.max(0, Math.min(1, (blueGenome[0] || 0.5) * 0.9)); // Slightly less aggressive
-                    blueGenome[1] = Math.max(0, Math.min(1, (blueGenome[1] || 0.5) * 1.1)); // Slightly faster
-                    blueGenome[3] = Math.max(0, Math.min(1, (blueGenome[3] || 0.5) * 1.1)); // More defensive
-                } else {
-                    // Object format
-                    blueGenome.aggression = Math.max(0, Math.min(1, (blueGenome.aggression || 0.5) * 0.9));
-                    blueGenome.speed = Math.max(0, Math.min(1, (blueGenome.speed || 0.5) * 1.1));
-                    blueGenome.defense = Math.max(0, Math.min(1, (blueGenome.defense || blueGenome.caution || 0.5) * 1.1));
-                }
                 displayGenomeWithEvolvingFitness('blue', blueGenome);
             } else {
                 displayNoGenomeDataForTeam('blue');

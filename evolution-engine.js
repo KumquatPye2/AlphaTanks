@@ -56,14 +56,10 @@ class EvolutionEngine {
     }
     initializeCandidatePool() {
         // Create initial candidate pool with team-specific diverse genomes
-        // Create 10 red-oriented genomes
+        // Create 10 red genomes with pure random diversity
         for (let i = 0; i < 10; i++) {
             const genome = this.generateTankGenome();
-            // Make red genomes more aggressive and risk-taking
-            genome[0] = Math.min(1, genome[0] + 0.2); // More aggression
-            genome[1] = Math.min(1, genome[1] + 0.1); // More speed
-            genome[7] = Math.min(1, genome[7] + 0.2); // More risk-taking
-            genome[3] = Math.max(0, genome[3] - 0.1); // Less defensive
+            // No biases - let evolution discover optimal strategies naturally
             // Track team-specific genome generation
             if (window.researcherInsights) {
                 window.researcherInsights.trackGenomeGeneration(genome, 'red', 'team-specific');
@@ -80,14 +76,10 @@ class EvolutionEngine {
             };
             this.candidatePool.push(candidate);
         }
-        // Create 10 blue-oriented genomes
+        // Create 10 blue genomes with pure random diversity
         for (let i = 0; i < 10; i++) {
             const genome = this.generateTankGenome();
-            // Make blue genomes more defensive and cooperative
-            genome[2] = Math.min(1, genome[2] + 0.2); // More accuracy
-            genome[3] = Math.min(1, genome[3] + 0.1); // More defense
-            genome[4] = Math.min(1, genome[4] + 0.1); // More teamwork
-            genome[0] = Math.max(0, genome[0] - 0.1); // Less aggression
+            // No biases - let evolution discover optimal strategies naturally
             // Track team-specific genome generation
             if (window.researcherInsights) {
                 window.researcherInsights.trackGenomeGeneration(genome, 'blue', 'team-specific');

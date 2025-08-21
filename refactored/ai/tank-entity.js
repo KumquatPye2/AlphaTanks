@@ -23,7 +23,7 @@ class TankEntity {
         this.isAlive = true;
         
         // Movement properties
-        this.angle = team === 'red' ? 0 : Math.PI; // Red faces right, blue faces left
+        this.angle = team === 'red' ? 0 : 0; // Both teams start facing toward center/hill
         this.speed = this.calculateSpeed();
         this.targetX = x;
         this.targetY = y;
