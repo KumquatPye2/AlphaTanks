@@ -100,7 +100,7 @@
         }
         
         .control-panel {
-            width: 300px;
+            width: 350px;
             background: #222;
             border-radius: 5px;
             padding: 15px;
@@ -217,6 +217,20 @@
         .module-indicator.working {
             color: #ffaa00;
             animation: pulse 1s infinite;
+        }
+        
+        .module-tooltip {
+            cursor: help;
+            color: #888;
+            margin-left: 4px;
+            font-size: 10px;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+        
+        .module-tooltip:hover {
+            opacity: 1;
+            color: #aaa;
         }
         
         .module-indicator.idle {
@@ -547,6 +561,7 @@
                         <div class="module-header">
                             <span class="module-icon">🔬</span>
                             <span class="module-name">Researcher</span>
+                            <span class="module-tooltip" title="The Researcher module autonomously proposes new tank behavioral architectures using genetic algorithms. It evolves tank genomes through crossover, mutation, and selection, implementing Red Queen competitive coevolution where teams continuously adapt to counter each other's strategies." style="cursor: help; color: #888; margin-left: 4px; font-size: 10px;">❓</span>
                             <span class="module-indicator" id="researcherIndicator">●</span>
                         </div>
                         <div class="module-activity" id="researcherActivity">Initializing...</div>
@@ -561,6 +576,7 @@
                         <div class="module-header">
                             <span class="module-icon">⚙️</span>
                             <span class="module-name">Engineer</span>
+                            <span class="module-tooltip" title="The Engineer module evaluates tank architectures through real combat testing. It runs actual battles, calculates fitness scores based on kill/death ratios and survival time, detects suboptimal behaviors, and provides multi-component performance metrics with Red Queen competitive weighting." style="cursor: help; color: #888; margin-left: 4px; font-size: 10px;">❓</span>
                             <span class="module-indicator" id="engineerIndicator">●</span>
                         </div>
                         <div class="module-activity" id="engineerActivity">Standby</div>
@@ -575,6 +591,7 @@
                         <div class="module-header">
                             <span class="module-icon">📊</span>
                             <span class="module-name">Analyst</span>
+                            <span class="module-tooltip" title="The Analyst module generates strategic insights from experimental battle data. It performs pattern recognition to identify successful tactical combinations, tracks fitness evolution across generations, detects breakthrough performance improvements, and applies conditional learning when statistically significant." style="cursor: help; color: #888; margin-left: 4px; font-size: 10px;">❓</span>
                             <span class="module-indicator" id="analystIndicator">●</span>
                         </div>
                         <div class="module-activity" id="analystActivity">Ready</div>
@@ -589,6 +606,7 @@
                         <div class="module-header">
                             <span class="module-icon">🧠</span>
                             <span class="module-name">Cognition</span>
+                            <span class="module-tooltip" title="The Cognition module applies military knowledge and meta-learning to tank behavior. It integrates a military knowledge base (phalanx, pincer, blitzkrieg, guerrilla tactics), implements meta-learning to improve learning effectiveness, applies strategic combat doctrine principles, and adapts learned patterns to new tactical situations." style="cursor: help; color: #888; margin-left: 4px; font-size: 10px;">❓</span>
                             <span class="module-indicator" id="cognitionIndicator">●</span>
                         </div>
                         <div class="module-activity" id="cognitionActivity">Knowledge base loaded</div>
@@ -621,17 +639,17 @@
                 
                 <!-- Strategy Diversity Section -->
                 <div id="strategy-diversity-sidebar" class="tactical-section">
-                    <h4>🎭 Strategy Diversity</h4>
+                    <h4>🎭 Strategy Diversity <span class="module-tooltip" title="Strategy Diversity measures the variety of tactical approaches in each team's candidate pool. It analyzes tank genomes and classifies them into distinct strategies (Sniper, Berserker, Support, Assassin, Adaptive, Fortress, Scout, etc.) based on behavioral traits like aggression, accuracy, teamwork, and evasion. Higher diversity indicates more varied tactical evolution and strategic flexibility." style="cursor: help; color: #888; margin-left: 4px; font-size: 10px;">❓</span></h4>
                     <div id="strategy-diversity-content">
                         <div class="team-stats">
                             <div class="team-red">🔴 Red Team Strategies:</div>
                             <div id="red-strategy-list" class="strategy-list">No data</div>
-                            <div class="diversity-score">Diversity: <span id="red-diversity">0%</span></div>
+                            <div class="diversity-score">Diversity<span class="module-tooltip" title="Diversity percentage measures how varied the team's tactical approaches are. It's calculated as the ratio of unique strategy types to total candidates. 100% means all tanks use different strategies, while lower percentages indicate convergence on similar tactical approaches. Higher diversity suggests better evolutionary exploration and strategic adaptability." style="cursor: help; color: #888; margin-left: 3px; font-size: 9px;">❓</span>: <span id="red-diversity">0%</span></div>
                         </div>
                         <div class="team-stats">
                             <div class="team-blue">🔵 Blue Team Strategies:</div>
                             <div id="blue-strategy-list" class="strategy-list">No data</div>
-                            <div class="diversity-score">Diversity: <span id="blue-diversity">0%</span></div>
+                            <div class="diversity-score">Diversity<span class="module-tooltip" title="Diversity percentage measures how varied the team's tactical approaches are. It's calculated as the ratio of unique strategy types to total candidates. 100% means all tanks use different strategies, while lower percentages indicate convergence on similar tactical approaches. Higher diversity suggests better evolutionary exploration and strategic adaptability." style="cursor: help; color: #888; margin-left: 3px; font-size: 9px;">❓</span>: <span id="blue-diversity">0%</span></div>
                         </div>
                     </div>
                 </div>
@@ -660,8 +678,8 @@
                             <div>Total Experiments: <span id="total-experiments">0</span></div>
                         </div>
                         <div class="team-stats">
-                            <div class="team-red">🔴 Red Innovation: <span id="red-innovation">0%</span></div>
-                            <div class="team-blue">🔵 Blue Innovation: <span id="blue-innovation">0%</span></div>
+                            <div class="team-red">🔴 Red Innovation<span class="module-tooltip" title="Innovation percentage tracks how many tanks are using unconventional or experimental strategies. This includes unusual trait combinations like Pacifist tanks (low aggression, high defense+evasion), Kamikaze tanks (very high aggression, very low defense), high-Learning tanks, and Team Coordinators (high teamwork, low aggression). Higher innovation indicates more experimental evolution and creative tactical solutions." style="cursor: help; color: #888; margin-left: 3px; font-size: 9px;">❓</span>: <span id="red-innovation">0%</span></div>
+                            <div class="team-blue">🔵 Blue Innovation<span class="module-tooltip" title="Innovation percentage tracks how many tanks are using unconventional or experimental strategies. This includes unusual trait combinations like Pacifist tanks (low aggression, high defense+evasion), Kamikaze tanks (very high aggression, very low defense), high-Learning tanks, and Team Coordinators (high teamwork, low aggression). Higher innovation indicates more experimental evolution and creative tactical solutions." style="cursor: help; color: #888; margin-left: 3px; font-size: 9px;">❓</span>: <span id="blue-innovation">0%</span></div>
                         </div>
                     </div>
                 </div>
@@ -682,9 +700,9 @@
             <div class="panel-section">
                     <h3>Architecture Evolution</h3>
                     <div class="stats">
-                        <div>Novel Designs: <span id="novelDesigns">0</span></div>
-                        <div style="color: #ff6666;">🔴 Red Adaptations: <span id="redAdaptations">0</span></div>
-                        <div style="color: #6666ff;">🔵 Blue Adaptations: <span id="blueAdaptations">0</span></div>
+                        <div>Novel Designs<span class="module-tooltip" title="Novel Designs tracks the current candidate pool size - the number of unique tank architectures being evaluated in the current generation. This represents the breadth of genetic diversity available for evolution, with higher numbers indicating more experimental designs and evolutionary exploration." style="cursor: help; color: #888; margin-left: 3px; font-size: 9px;">❓</span>: <span id="novelDesigns">0</span></div>
+                        <div style="color: #ff6666;">🔴 Red Adaptations<span class="module-tooltip" title="Red Adaptations counts successful mutations and evolutionary improvements for the red team. This tracks when genetic changes lead to fitness improvements, representing the team's ability to adapt and evolve better strategies over time. Higher numbers indicate more successful evolutionary progress." style="cursor: help; color: #888; margin-left: 3px; font-size: 9px;">❓</span>: <span id="redAdaptations">0</span></div>
+                        <div style="color: #6666ff;">🔵 Blue Adaptations<span class="module-tooltip" title="Blue Adaptations counts successful mutations and evolutionary improvements for the blue team. This tracks when genetic changes lead to fitness improvements, representing the team's ability to adapt and evolve better strategies over time. Higher numbers indicate more successful evolutionary progress." style="cursor: help; color: #888; margin-left: 3px; font-size: 9px;">❓</span>: <span id="blueAdaptations">0</span></div>
                     </div>
                 </div>            <div class="panel-section">
                 <h3>Evolution Log</h3>

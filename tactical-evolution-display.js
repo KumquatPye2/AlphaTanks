@@ -126,7 +126,8 @@ class TacticalEvolutionDisplay {
             redSorted.forEach(([strategy, count]) => {
                 const percentage = (count / redTotal * 100).toFixed(0);
                 const emoji = this.getStrategyEmoji(strategy);
-                redHtml += `<div>${emoji} ${strategy}: ${count} (${percentage}%)</div>`;
+                const tooltip = this.getStrategyTooltip(strategy);
+                redHtml += `<div>${emoji} ${strategy}<span class="strategy-tooltip" title="${tooltip}" style="cursor: help; color: #888; margin-left: 3px; font-size: 9px;">❓</span>: ${count} (${percentage}%)</div>`;
             });
             redStrategyList.innerHTML = redHtml;
             // Store for next generation transition
@@ -155,7 +156,8 @@ class TacticalEvolutionDisplay {
             blueSorted.forEach(([strategy, count]) => {
                 const percentage = (count / blueTotal * 100).toFixed(0);
                 const emoji = this.getStrategyEmoji(strategy);
-                blueHtml += `<div>${emoji} ${strategy}: ${count} (${percentage}%)</div>`;
+                const tooltip = this.getStrategyTooltip(strategy);
+                blueHtml += `<div>${emoji} ${strategy}<span class="strategy-tooltip" title="${tooltip}" style="cursor: help; color: #888; margin-left: 3px; font-size: 9px;">❓</span>: ${count} (${percentage}%)</div>`;
             });
             blueStrategyList.innerHTML = blueHtml;
             // Store for next generation transition
@@ -197,7 +199,8 @@ class TacticalEvolutionDisplay {
             redCandidates.forEach((candidate, i) => {
                 const strategy = this.classifyAdvancedStrategy(candidate.genome);
                 const emoji = this.getStrategyEmoji(strategy);
-                redHtml += `<div>${i + 1}. ${emoji} ${candidate.fitness.toFixed(3)}</div>`;
+                const tooltip = this.getStrategyTooltip(strategy);
+                redHtml += `<div>${i + 1}. ${emoji} ${strategy}<span class="strategy-tooltip" title="${tooltip}" style="cursor: help; color: #888; margin-left: 3px; font-size: 8px;">❓</span> ${candidate.fitness.toFixed(3)}</div>`;
             });
             redChampions.innerHTML = redHtml;
             // Store this as previous champions for next time
@@ -219,7 +222,8 @@ class TacticalEvolutionDisplay {
             blueCandidates.forEach((candidate, i) => {
                 const strategy = this.classifyAdvancedStrategy(candidate.genome);
                 const emoji = this.getStrategyEmoji(strategy);
-                blueHtml += `<div>${i + 1}. ${emoji} ${candidate.fitness.toFixed(3)}</div>`;
+                const tooltip = this.getStrategyTooltip(strategy);
+                blueHtml += `<div>${i + 1}. ${emoji} ${strategy}<span class="strategy-tooltip" title="${tooltip}" style="cursor: help; color: #888; margin-left: 3px; font-size: 8px;">❓</span> ${candidate.fitness.toFixed(3)}</div>`;
             });
             blueChampions.innerHTML = blueHtml;
             // Store this as previous champions for next time
@@ -408,6 +412,27 @@ class TacticalEvolutionDisplay {
             'Balanced': '⚖️'
         };
         return emojis[strategy] || '❓';
+    }
+
+    getStrategyTooltip(strategy) {
+        const tooltips = {
+            'Sniper': 'High accuracy and defense, low aggression. Specializes in precise long-range combat while maintaining defensive positioning.',
+            'Berserker': 'High aggression, speed, and risk-taking. Charges into battle with overwhelming force and little regard for safety.',
+            'Support': 'High teamwork and adaptability. Focuses on supporting allies and adapting to battlefield conditions.',
+            'Assassin': 'High evasion and speed. Excels at hit-and-run tactics and avoiding enemy fire while striking quickly.',
+            'Adaptive': 'High learning and adaptability. Continuously evolves tactics based on battle experience and changing conditions.',
+            'Fortress': 'High defense and evasion, low aggression. Creates strong defensive positions and survives through resilience.',
+            'Scout': 'High speed and risk-taking, low accuracy. Specializes in reconnaissance, mobility, and battlefield awareness.',
+            'GlassCannon': 'High accuracy, low defense. Delivers devastating attacks but vulnerable to return fire.',
+            'Coordinator': 'High teamwork, low aggression. Orchestrates team movements and tactical formations.',
+            'Kamikaze': 'High aggression, low defense. Sacrifices survivability for maximum damage output.',
+            'Generalist': 'Balanced learning and adaptability. Maintains versatility across multiple combat situations.',
+            'Aggressive': 'High aggression traits. Favors direct confrontation and offensive tactics.',
+            'Defensive': 'High defensive traits. Prioritizes survival and protective positioning.',
+            'Cooperative': 'High teamwork traits. Excels in coordinated group tactics.',
+            'Balanced': 'Well-rounded traits across all categories. Adaptable to various tactical situations.'
+        };
+        return tooltips[strategy] || 'A tactical approach with unique behavioral characteristics.';
     }
 }
 
