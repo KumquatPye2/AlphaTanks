@@ -25,6 +25,7 @@ class DashboardUI {
         DOMUtils.removeElement('#researcher-insights-dashboard');
         this.injectStyles();
         this.createDashboardHTML();
+        this.initializeEvolutionCharts();
         this.updateDisplay();
     }
     /**
@@ -36,7 +37,7 @@ class DashboardUI {
                 position: fixed;
                 top: 10px;
                 right: 10px;
-                width: 500px;
+                width: 550px;
                 background: rgba(0,0,0,0.9);
                 color: white;
                 padding: 15px;
@@ -107,6 +108,28 @@ class DashboardUI {
                 padding: 10px;
                 border-radius: 5px;
             }
+            .evolution-tracking-panel {
+                background: rgba(255,255,255,0.05);
+                border-radius: 5px;
+                padding: 15px;
+                border: 1px solid rgba(255,255,255,0.1);
+                margin-top: 15px;
+            }
+            .chart-container {
+                background: rgba(0,0,0,0.3);
+                border-radius: 5px;
+                padding: 10px;
+                margin: 10px 0;
+                height: 200px;
+                position: relative;
+            }
+            .chart-title {
+                color: #00ff88;
+                font-weight: bold;
+                margin-bottom: 10px;
+                text-align: center;
+                font-size: 14px;
+            }
         `;
         DOMUtils.injectCSS(css, 'researcher-insights-styles');
     }
@@ -134,6 +157,13 @@ class DashboardUI {
                 <div class="metrics-panel">
                     <h3>📊 Real-time Metrics</h3>
                     <div id="live-metrics"></div>
+                </div>
+                <div class="evolution-tracking-panel">
+                    <h3>📈 Evolution Tracking</h3>
+                    <div class="chart-container">
+                        <div class="chart-title">Fitness Evolution</div>
+                        <canvas id="fitness-evolution-chart"></canvas>
+                    </div>
                 </div>
                 <div class="logs-panel">
                     <h3>📝 Detailed Logs</h3>
@@ -221,6 +251,113 @@ class DashboardUI {
     updateDisplay() {
         this.updateMetricsDisplay();
         this.updateLogsDisplay();
+        this.updateEvolutionCharts();
+    }
+
+    /**
+     * Initialize evolution tracking charts
+     */
+    initializeEvolutionCharts() {
+        if (typeof Chart === 'undefined') {
+            console.warn('Chart.js not available, evolution charts disabled');
+            return;
+        }
+
+        this.initializeFitnessChart();
+    }
+
+    /**
+     * Initialize fitness evolution chart
+     */
+    initializeFitnessChart() {
+        const canvas = DOMUtils.getElementById('fitness-evolution-chart');
+        if (!canvas) {
+            return;
+        }
+
+        const config = {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Red Team Fitness',
+                    data: [],
+                    borderColor: '#ff4444',
+                    backgroundColor: 'rgba(255, 68, 68, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }, {
+                    label: 'Blue Team Fitness',
+                    data: [],
+                    borderColor: '#4444ff',
+                    backgroundColor: 'rgba(68, 68, 255, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: { color: '#ffffff' }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: '#ffffff' },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        max: 1,
+                        ticks: { color: '#ffffff' },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    }
+                }
+            }
+        };
+
+        this.chartManager.createChart('fitness-evolution-chart', config);
+    }
+
+    /**
+     * Update fitness evolution chart
+     */
+    updateFitnessChart() {
+        const chart = this.chartManager.getChart('fitness-evolution-chart');
+        if (!chart) {
+            return;
+        }
+
+        const data = this.dataCollector.exportData();
+        const generationData = data.generationData.slice(-20); // Last 20 generations
+
+        if (generationData.length === 0) {
+            return;
+        }
+
+        const labels = generationData.map(g => `Gen ${g.generation}`);
+        const redFitness = generationData.map(g => g.savedFitness?.red || 0.5);
+        const blueFitness = generationData.map(g => g.savedFitness?.blue || 0.5);
+
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = redFitness;
+        chart.data.datasets[1].data = blueFitness;
+        chart.update('none');
+    }
+
+    /**
+     * Update evolution charts with current data
+     */
+    updateEvolutionCharts() {
+        if (!this.isVisible || typeof Chart === 'undefined') {
+            return;
+        }
+
+        this.updateFitnessChart();
     }
     /**
      * Toggle dashboard visibility
@@ -237,6 +374,8 @@ class DashboardUI {
             button.textContent = this.isVisible ? '🔬 Hide Researcher' : '🔬 Researcher Insights';
         }
         if (this.isVisible) {
+            // Initialize charts if not already done
+            this.initializeEvolutionCharts();
             // Update everything when showing
             this.updateDisplay();
         } else {
