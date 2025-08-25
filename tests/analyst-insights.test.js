@@ -13,7 +13,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Load source files
-const analystInsightsSource = fs.readFileSync(path.join(__dirname, '../analyst-insights.js'), 'utf8');
+const analystInsightsSource = fs.readFileSync(path.join(__dirname, '../core/analyst-insights.js'), 'utf8');
 
 // Create test environment
 function createTestEnvironment() {
@@ -59,16 +59,6 @@ function createTestEnvironment() {
     removeItem: jest.fn(),
     clear: jest.fn()
   };
-
-  // Add missing elements that other modules might look for
-  // This prevents warnings from dashboard-ui.js and other modules
-  const chartsDiv = document.createElement('div');
-  chartsDiv.id = 'evolution-charts';
-  chartsDiv.innerHTML = `
-    <canvas id="fitness-chart-canvas" width="400" height="200"></canvas>
-    <canvas id="pressure-chart-canvas" width="400" height="200"></canvas>
-  `;
-  document.body.appendChild(chartsDiv);
 
   // Execute the source code in our test environment
   eval(analystInsightsSource);

@@ -62,27 +62,11 @@ class DashboardUI {
                 flex-direction: column;
                 gap: 15px;
             }
-            .metrics-panel, .evolution-panel, .logs-panel {
+            .metrics-panel, .logs-panel {
                 background: rgba(255,255,255,0.05);
                 border-radius: 5px;
                 padding: 10px;
                 border: 1px solid rgba(255,255,255,0.1);
-            }
-            .chart-container {
-                margin: 10px 0;
-                padding: 10px;
-                background: rgba(255,255,255,0.05);
-                border-radius: 5px;
-                border: 1px solid rgba(255,255,255,0.1);
-            }
-            .chart-container h4 {
-                margin: 0 0 10px 0;
-                color: #00ff88;
-                text-align: center;
-            }
-            .chart-container canvas {
-                max-width: 100%;
-                height: auto !important;
             }
             .metric-item {
                 margin: 5px 0;
@@ -151,10 +135,6 @@ class DashboardUI {
                     <h3>📊 Real-time Metrics</h3>
                     <div id="live-metrics"></div>
                 </div>
-                <div class="evolution-panel">
-                    <h3>🧬 Evolution Tracking</h3>
-                    <div id="evolution-charts"></div>
-                </div>
                 <div class="logs-panel">
                     <h3>📝 Detailed Logs</h3>
                     <div class="logs-container" id="researcher-logs"></div>
@@ -173,9 +153,6 @@ class DashboardUI {
         // Listen for data updates
         this.eventManager.on('dataUpdate', () => {
             this.updateDisplay();
-        });
-        this.eventManager.on('generationComplete', () => {
-            this.updateEvolutionCharts();
         });
         // Clean up on page unload
         window.addEventListener('beforeunload', () => {
@@ -239,169 +216,6 @@ class DashboardUI {
         logsDiv.scrollTop = logsDiv.scrollHeight;
     }
     /**
-     * Update evolution charts
-     */
-    updateEvolutionCharts() {
-        const chartsDiv = DOMUtils.getElementById('evolution-charts');
-        if (!chartsDiv) {
-            return;
-        }
-        // Create canvas elements if they don't exist
-        if (!DOMUtils.getElementById('fitness-chart-canvas')) {
-            chartsDiv.innerHTML = `
-                <div class="chart-container">
-                    <h4>Team Fitness Evolution</h4>
-                    <canvas id="fitness-chart-canvas" width="400" height="200"></canvas>
-                </div>
-                <div class="chart-container">
-                    <h4>Evolutionary Pressure</h4>
-                    <canvas id="pressure-chart-canvas" width="400" height="200"></canvas>
-                </div>
-            `;
-        }
-        const generationData = this.dataCollector.generationData;
-        if (generationData.length === 0) {
-            this.renderEmptyCharts();
-            return;
-        }
-        const maxPoints = window.GAME_CONFIG?.UI?.CHART_MAX_POINTS || 10;
-        const recentGenerations = generationData.slice(-maxPoints);
-        this.renderFitnessChart(recentGenerations);
-        this.renderPressureChart(recentGenerations);
-    }
-    /**
-     * Render fitness evolution chart
-     */
-    renderFitnessChart(generations) {
-        let labels = [];
-        let redFitness = [];
-        let blueFitness = [];
-        if (generations.length > 0) {
-            redFitness = generations.map(g => {
-                const fitness = g.savedFitness ? g.savedFitness.red : 
-                              this.dataCollector.getTeamFitness(g.battleResults, g.eventData, 'red');
-                return fitness;
-            });
-            blueFitness = generations.map(g => {
-                const fitness = g.savedFitness ? g.savedFitness.blue : 
-                               this.dataCollector.getTeamFitness(g.battleResults, g.eventData, 'blue');
-                return fitness;
-            });
-            labels = generations.map(g => `Gen ${g.generation}`);
-        } else {
-            labels = ['Waiting for evolution data...'];
-            redFitness = [null];
-            blueFitness = [null];
-        }
-        const config = {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: 'Red Team Fitness',
-                        data: redFitness,
-                        borderColor: window.TEAM_COLORS?.red?.primary || 'rgb(255, 99, 132)',
-                        backgroundColor: window.TEAM_COLORS?.red?.background || 'rgba(255, 99, 132, 0.2)',
-                        fill: false,
-                        tension: 0.2
-                    },
-                    {
-                        label: 'Blue Team Fitness',
-                        data: blueFitness,
-                        borderColor: window.TEAM_COLORS?.blue?.primary || 'rgb(54, 162, 235)',
-                        backgroundColor: window.TEAM_COLORS?.blue?.background || 'rgba(54, 162, 235, 0.2)',
-                        fill: false,
-                        tension: 0.2
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        labels: { color: '#fff' }
-                    }
-                },
-                scales: {
-                    x: {
-                        ticks: { color: '#fff' },
-                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                    },
-                    y: {
-                        beginAtZero: true,
-                        max: 1,
-                        ticks: { color: '#fff' },
-                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                    }
-                }
-            }
-        };
-        this.chartManager.createChart('fitness-chart-canvas', config);
-    }
-    /**
-     * Render evolutionary pressure chart
-     */
-    renderPressureChart(generations) {
-        let labels = [];
-        let pressures = [];
-        if (generations.length > 0) {
-            pressures = generations.map(g => this.dataCollector.calculateEvolutionaryPressure(g));
-            labels = generations.map(g => `Gen ${g.generation}`);
-        } else {
-            labels = ['Waiting for evolution data...'];
-            pressures = [null];
-        }
-        const config = {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: 'Evolutionary Pressure',
-                        data: pressures,
-                        backgroundColor: 'rgba(255, 159, 64, 0.8)',
-                        borderColor: 'rgb(255, 159, 64)',
-                        borderWidth: 1
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        labels: { color: '#fff' }
-                    }
-                },
-                scales: {
-                    x: {
-                        ticks: { color: '#fff' },
-                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                    },
-                    y: {
-                        beginAtZero: true,
-                        suggestedMax: 1.0,
-                        ticks: {
-                            color: '#fff',
-                            callback: function(value) {
-                                return value.toFixed(3);
-                            }
-                        },
-                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                    }
-                }
-            }
-        };
-        this.chartManager.createChart('pressure-chart-canvas', config);
-    }
-    /**
-     * Render empty charts as placeholders
-     */
-    renderEmptyCharts() {
-        this.renderFitnessChart([]);
-        this.renderPressureChart([]);
-    }
-    /**
      * Update all display components
      */
     updateDisplay() {
@@ -425,7 +239,6 @@ class DashboardUI {
         if (this.isVisible) {
             // Update everything when showing
             this.updateDisplay();
-            this.updateEvolutionCharts();
         } else {
             // Clean up charts when hiding to save memory
             this.chartManager.destroyAll();
