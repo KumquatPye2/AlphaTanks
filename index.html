@@ -171,6 +171,125 @@
         .log-mutation { color: #aa88ff; }
         .log-battle { color: #88ffaa; }
         
+        /* API Key Configuration */
+        .api-key-section {
+            background: #2a2a2a;
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 8px 12px;
+            margin: 5px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .api-key-input-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 250px;
+        }
+        
+        .api-key-section label {
+            color: #ffa500;
+            font-size: 11px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        
+        .api-key-input {
+            flex: 1;
+            background: #333;
+            border: 1px solid #666;
+            color: white;
+            padding: 4px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-family: monospace;
+            min-width: 200px;
+        }
+        
+        .api-key-input:focus {
+            border-color: #00ff88;
+            outline: none;
+        }
+        
+        .api-key-input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .api-key-status {
+            font-size: 9px;
+            color: #888;
+            white-space: nowrap;
+        }
+        
+        .api-key-status.connected {
+            color: #00ff88;
+        }
+        
+        .api-key-status.error {
+            color: #ff6666;
+        }
+        
+        .api-key-status.mock {
+            color: #88ff88;
+        }
+        
+        .mock-mode-toggle {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: #333;
+            padding: 4px 8px;
+            border-radius: 3px;
+            border: 1px solid #555;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .mock-mode-toggle:hover {
+            background: #444;
+        }
+        
+        .mock-mode-toggle input[type="checkbox"] {
+            margin: 0;
+        }
+        
+        .mock-mode-toggle label {
+            font-size: 9px;
+            color: #88ff88;
+            cursor: pointer;
+            margin: 0;
+        }
+        
+        /* Responsive API Key Section */
+        @media (max-width: 768px) {
+            .api-key-section {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+            
+            .api-key-input-group {
+                min-width: unset;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 4px;
+            }
+            
+            .api-key-input-group label {
+                align-self: flex-start;
+            }
+            
+            .mock-mode-toggle {
+                justify-content: center;
+            }
+        }
+        
         /* ASI-ARCH Module Visualization */
         .asi-arch-modules {
             display: grid;
@@ -519,7 +638,7 @@
             
             <button id="startEvolution">Start Evolution</button>
             <button id="pauseEvolution">Pause</button>
-            <button id="resetBattle">Reset Battle</button>
+            <button id="resetBattle">Reset Evolution</button>
             <button id="researcherInsightsButton">🔬 Researcher Insights</button>
             <button id="engineerInsightsButton">⚙️ Engineer Insights</button>
             <button id="analystInsightsButton">📊 Analyst Insights</button>
@@ -537,6 +656,22 @@
             <div class="control-group">
                 <label>Population:</label>
                 <input type="number" id="populationSize" min="10" max="100" value="30">
+            </div>
+            
+            <!-- API Key Configuration -->
+            <div class="api-key-section">
+                <div class="api-key-input-group">
+                    <label for="apiKeyInput">🔑 API Key:</label>
+                    <input type="password" id="apiKeyInput" class="api-key-input" 
+                           placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxx"
+                           title="Enter your LLM API key to enable AI-powered insights">
+                    <div id="apiKeyStatus" class="api-key-status">No key configured</div>
+                </div>
+                
+                <div class="mock-mode-toggle" title="Use simulated AI responses instead of real API calls - perfect for testing">
+                    <input type="checkbox" id="enableMockMode">
+                    <label for="enableMockMode">🎭 Mock Mode</label>
+                </div>
             </div>
         </div>
         
@@ -795,9 +930,11 @@
     <!-- LLM Integration (DeepSeek) -->
     <script src="config.js?v=1754540001"></script>
     <script src="deepseek-client.js?v=1754540001"></script>
+    <script src="api-key-manager.js"></script>
     <script src="force-real-api.js"></script>
     <script src="llm-enhanced-asi-arch.js?v=1754541003"></script>
     <script src="asi-arch-integration.js?v=1754540001"></script>
+    <script src="test-mode-update.js"></script>
     <script src="test-deepseek-integration.js?v=1754540001"></script>
     
     <!-- Core refactored modules (load first) -->

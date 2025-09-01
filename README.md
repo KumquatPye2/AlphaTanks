@@ -394,7 +394,7 @@ This project serves as an educational demonstration of the ASI-ARCH methodology,
 | Key | Action |
 |-----|--------|
 | `SPACE` | Start/Pause Evolution |
-| `R` | Reset Battle |
+| `R` | Reset Evolution |
 | `D` | Toggle Debug Mode |
 
 ## 🎮 How It Works

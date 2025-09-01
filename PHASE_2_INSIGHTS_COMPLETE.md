@@ -43,7 +43,7 @@ The Phase 2 enhanced battle scenarios insights are now fully implemented and vis
 
 1. **Open AlphaTanks** → http://localhost:8000
 2. **Select Urban Warfare** scenario (high obstacles)  
-3. **Reset Battle** to initialize with scenario
+3. **Reset Evolution** to initialize with scenario
 4. **Open Each Insights Module**:
    - 🔧 Engineer: Should show current scenario and seeded battle count
    - 📊 Analyst: Should show enhanced metrics

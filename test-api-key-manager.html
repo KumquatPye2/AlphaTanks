@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Key Manager Test</title>
+    <style>
+        body {
+            margin: 20px;
+            font-family: monospace;
+            background: #1a1a1a;
+            color: white;
+        }
+        .test-section {
+            background: #222;
+            border: 1px solid #444;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .api-key-section {
+            background: #2a2a2a;
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 8px;
+            margin: 5px 0;
+            max-width: 300px;
+        }
+        .api-key-section label {
+            display: block;
+            color: #ffa500;
+            font-size: 11px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        .api-key-input {
+            width: 100%;
+            background: #333;
+            border: 1px solid #666;
+            color: white;
+            padding: 4px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-family: monospace;
+        }
+        .api-key-input:focus {
+            border-color: #00ff88;
+            outline: none;
+        }
+        .api-key-status {
+            font-size: 9px;
+            margin-top: 2px;
+            color: #888;
+        }
+        .api-key-status.connected {
+            color: #00ff88;
+        }
+        .api-key-status.error {
+            color: #ff6666;
+        }
+        button {
+            background: #333;
+            color: white;
+            border: 1px solid #666;
+            padding: 8px 12px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #444;
+        }
+        #testOutput {
+            background: #111;
+            padding: 10px;
+            border-radius: 3px;
+            font-size: 11px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>API Key Manager Test</h1>
+    
+    <div class="test-section">
+        <h2>API Key Configuration</h2>
+        <div class="api-key-section">
+            <label for="apiKeyInput">🔑 DeepSeek API Key:</label>
+            <input type="password" id="apiKeyInput" class="api-key-input" 
+                   placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxx">
+            <div id="apiKeyStatus" class="api-key-status">No API key configured</div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test Functions</h2>
+        <button onclick="testValidation()">Test Validation</button>
+        <button onclick="testStorage()">Test Storage</button>
+        <button onclick="testConfigUpdate()">Test Config Update</button>
+        <button onclick="clearApiKey()">Clear API Key</button>
+        <button onclick="showCurrentConfig()">Show Current Config</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test Output</h2>
+        <div id="testOutput"></div>
+    </div>
+
+    <!-- Include the required scripts -->
+    <script src="config.js"></script>
+    <script src="deepseek-client.js"></script>
+    <script src="api-key-manager.js"></script>
+
+    <script>
+        let output = document.getElementById('testOutput');
+        
+        function log(message) {
+            output.textContent += new Date().toLocaleTimeString() + ': ' + message + '\n';
+            output.scrollTop = output.scrollHeight;
+        }
+        
+        function testValidation() {
+            log('=== Testing Validation ===');
+            const testKeys = [
+                'sk-391b52e4a9aa41f4a66af4e403d3d0aa', // Valid format
+                'sk-short', // Too short
+                'invalid-key', // Wrong format
+                '', // Empty
+                'sk-' + 'a'.repeat(50) // Valid length
+            ];
+            
+            testKeys.forEach(key => {
+                const valid = window.apiKeyManager.isValidApiKeyFormat(key);
+                log(`"${key.substring(0, 10)}..." -> ${valid ? 'VALID' : 'INVALID'}`);
+            });
+        }
+        
+        function testStorage() {
+            log('=== Testing Storage ===');
+            const testKey = 'sk-test' + 'a'.repeat(40);
+            
+            window.apiKeyManager.inputElement.value = testKey;
+            window.apiKeyManager.validateAndSaveApiKey();
+            
+            const saved = localStorage.getItem('deepseek_api_key');
+            log(`Saved to localStorage: ${saved === testKey ? 'SUCCESS' : 'FAILED'}`);
+            
+            // Test loading
+            window.apiKeyManager.loadSavedApiKey();
+            const loaded = window.apiKeyManager.inputElement.value;
+            log(`Loaded from localStorage: ${loaded === testKey ? 'SUCCESS' : 'FAILED'}`);
+        }
+        
+        function testConfigUpdate() {
+            log('=== Testing Config Update ===');
+            const testKey = 'sk-config' + 'b'.repeat(40);
+            
+            log(`Before update: CONFIG.deepseek.apiKey = "${CONFIG.deepseek.apiKey.substring(0, 10)}..."`);
+            
+            window.apiKeyManager.updateConfigAndStatus(testKey);
+            
+            log(`After update: CONFIG.deepseek.apiKey = "${CONFIG.deepseek.apiKey.substring(0, 10)}..."`);
+            log(`Update successful: ${CONFIG.deepseek.apiKey === testKey ? 'SUCCESS' : 'FAILED'}`);
+        }
+        
+        function clearApiKey() {
+            log('=== Clearing API Key ===');
+            window.apiKeyManager.clearApiKey();
+            log('API key cleared');
+        }
+        
+        function showCurrentConfig() {
+            log('=== Current Configuration ===');
+            log(`CONFIG.deepseek.apiKey: "${CONFIG.deepseek.apiKey.substring(0, 10)}..."`);
+            log(`Input value: "${window.apiKeyManager.getApiKey().substring(0, 10)}..."`);
+            log(`Has valid key: ${window.apiKeyManager.hasValidApiKey()}`);
+            log(`Mock mode enabled: ${CONFIG.development?.enableMockMode}`);
+        }
+        
+        // Initialize when page loads
+        window.addEventListener('load', () => {
+            log('API Key Manager Test Page Loaded');
+            log('Testing initialization...');
+            showCurrentConfig();
+        });
+    </script>
+</body>
+</html>

@@ -329,6 +329,31 @@ class ResearcherInsights {
     }
 
     /**
+     * Reset all tracking data and charts
+     */
+    reset() {
+        // Reset data collector
+        this.dataCollector.resetAll();
+        
+        // Reset dashboard UI and charts
+        if (this.dashboardUI) {
+            // Clear any existing charts
+            this.dashboardUI.chartManager.destroyAll();
+            
+            // Update displays to show reset state
+            this.dashboardUI.updateDisplay();
+            
+            // Reinitialize charts if dashboard is visible
+            if (this.dashboardUI.isVisible) {
+                this.dashboardUI.initializeEvolutionCharts();
+            }
+        }
+        
+        // Emit reset event
+        this.eventManager.emit('dataReset');
+    }
+
+    /**
      * Clean up resources
      */
     destroy() {

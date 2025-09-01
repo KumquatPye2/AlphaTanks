@@ -1,12 +1,23 @@
 // Configuration for DeepSeek LLM Integration
 // ASI-ARCH Implementation with DeepSeek API
 
+// Function to load API key from localStorage
+function loadApiKeyFromStorage() {
+    try {
+        return localStorage.getItem('deepseek_api_key') || '';
+    } catch (error) {
+        console.warn('Could not access localStorage for API key:', error);
+        return '';
+    }
+}
+
 const CONFIG = {
     // DeepSeek API Configuration
     deepseek: {
         // SECURITY: Never commit API keys to version control!
-        // OPTION 1: Set your API key directly here (browser-friendly)
-        apiKey: 'sk-391b52e4a9aa41f4a66af4e403d3d0aa', // Your DeepSeek API key
+        // API key will be loaded from user input and stored in localStorage
+        // Users must provide their own DeepSeek API key for LLM features
+        apiKey: loadApiKeyFromStorage(), // Will be populated from localStorage or user input
         
         // OPTION 2: Environment variable (Node.js only)
         // The code will automatically check process.env.DEEPSEEK_API_KEY if apiKey is empty

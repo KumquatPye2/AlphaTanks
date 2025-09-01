@@ -215,6 +215,28 @@ function setupEventHandlers() {
 function resetBattle() {
     // Reset evolution
     evolutionEngine.resetEvolution();
+    
+    // Reset researcher insights data and charts
+    if (window.researcherInsights) {
+        window.researcherInsights.reset();
+    }
+    
+    // Reset other insights systems if they exist
+    if (window.analystInsights && typeof window.analystInsights.reset === 'function') {
+        window.analystInsights.reset();
+    }
+    if (window.engineerInsights && typeof window.engineerInsights.reset === 'function') {
+        window.engineerInsights.reset();
+    }
+    if (window.cognitionInsights && typeof window.cognitionInsights.reset === 'function') {
+        window.cognitionInsights.reset();
+    }
+    
+    // Update ASI-ARCH mode display in case API key status changed
+    if (window.asiArch && typeof window.asiArch.updateModeDisplay === 'function') {
+        window.asiArch.updateModeDisplay();
+    }
+    
     // Reset game state first
     gameEngine.reset();
     // Get current scenario from dropdown (if available)

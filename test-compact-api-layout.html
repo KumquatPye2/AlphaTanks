@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compact API Key Layout Demo</title>
+    <style>
+        body {
+            margin: 20px;
+            font-family: monospace;
+            background: #1a1a1a;
+            color: white;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        /* API Key Configuration */
+        .api-key-section {
+            background: #2a2a2a;
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 8px 12px;
+            margin: 5px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .api-key-input-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 250px;
+        }
+        
+        .api-key-section label {
+            color: #ffa500;
+            font-size: 11px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        
+        .api-key-input {
+            flex: 1;
+            background: #333;
+            border: 1px solid #666;
+            color: white;
+            padding: 4px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-family: monospace;
+            min-width: 200px;
+        }
+        
+        .api-key-input:focus {
+            border-color: #00ff88;
+            outline: none;
+        }
+        
+        .api-key-input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .api-key-status {
+            font-size: 9px;
+            color: #888;
+            white-space: nowrap;
+        }
+        
+        .api-key-status.connected {
+            color: #00ff88;
+        }
+        
+        .api-key-status.error {
+            color: #ff6666;
+        }
+        
+        .api-key-status.mock {
+            color: #88ff88;
+        }
+        
+        .mock-mode-toggle {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: #333;
+            padding: 4px 8px;
+            border-radius: 3px;
+            border: 1px solid #555;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .mock-mode-toggle:hover {
+            background: #444;
+        }
+        
+        .mock-mode-toggle input[type="checkbox"] {
+            margin: 0;
+        }
+        
+        .mock-mode-toggle label {
+            font-size: 9px;
+            color: #88ff88;
+            cursor: pointer;
+            margin: 0;
+        }
+        
+        /* Responsive API Key Section */
+        @media (max-width: 768px) {
+            .api-key-section {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+            
+            .api-key-input-group {
+                min-width: unset;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 4px;
+            }
+            
+            .api-key-input-group label {
+                align-self: flex-start;
+            }
+            
+            .mock-mode-toggle {
+                justify-content: center;
+            }
+        }
+        
+        .demo-section {
+            background: #222;
+            border: 1px solid #444;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .old-style {
+            background: #2a2a2a;
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 8px;
+            margin: 5px 0;
+            max-width: 300px;
+        }
+        
+        .old-style label {
+            display: block;
+            color: #ffa500;
+            font-size: 11px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        
+        .old-style input {
+            width: 100%;
+            background: #333;
+            border: 1px solid #666;
+            color: white;
+            padding: 4px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-family: monospace;
+            margin-bottom: 4px;
+        }
+        
+        .old-style .status {
+            font-size: 9px;
+            color: #888;
+        }
+        
+        .old-style .mock-section {
+            margin-top: 8px;
+            padding: 6px;
+            background: #333;
+            border-radius: 3px;
+            font-size: 9px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Compact API Key Layout</h1>
+        
+        <div class="demo-section">
+            <h2>✨ New Compact Design</h2>
+            <p>Horizontal layout saves vertical space and looks more professional:</p>
+            
+            <!-- New Compact Layout -->
+            <div class="api-key-section">
+                <div class="api-key-input-group">
+                    <label for="apiKeyInput">🔑 API Key:</label>
+                    <input type="password" id="apiKeyInput" class="api-key-input" 
+                           placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxx"
+                           title="Enter your LLM API key to enable AI-powered insights">
+                    <div id="apiKeyStatus" class="api-key-status">No key configured</div>
+                </div>
+                
+                <div class="mock-mode-toggle" title="Use simulated AI responses instead of real API calls - perfect for testing">
+                    <input type="checkbox" id="enableMockMode">
+                    <label for="enableMockMode">🎭 Mock Mode</label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="demo-section">
+            <h2>📊 Before vs After Comparison</h2>
+            <div class="comparison">
+                <div>
+                    <h3>❌ Old Vertical Layout</h3>
+                    <div class="old-style">
+                        <label>🔑 LLM API Key (for AI-powered insights):</label>
+                        <input type="password" placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxx">
+                        <div class="status">No API key configured</div>
+                        <div class="mock-section">
+                            <label style="display: flex; align-items: center;">
+                                <input type="checkbox" style="margin-right: 5px;">
+                                🎭 Use Mock Mode (simulated AI responses)
+                            </label>
+                            <div style="margin-top: 2px; color: #888;">
+                                Perfect for testing or when you don't have an API key
+                            </div>
+                        </div>
+                    </div>
+                    <p style="font-size: 11px; color: #ff6666;">
+                        ❌ Takes up lots of vertical space<br>
+                        ❌ Looks cluttered<br>
+                        ❌ Hard to scan quickly
+                    </p>
+                </div>
+                
+                <div>
+                    <h3>✅ New Horizontal Layout</h3>
+                    <div class="api-key-section">
+                        <div class="api-key-input-group">
+                            <label>🔑 API Key:</label>
+                            <input type="password" class="api-key-input" placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxx">
+                            <div class="api-key-status">No key configured</div>
+                        </div>
+                        <div class="mock-mode-toggle">
+                            <input type="checkbox">
+                            <label>🎭 Mock Mode</label>
+                        </div>
+                    </div>
+                    <p style="font-size: 11px; color: #00ff88;">
+                        ✅ Compact and efficient<br>
+                        ✅ Clean professional look<br>
+                        ✅ Everything visible at once
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="demo-section">
+            <h2>📱 Responsive Design</h2>
+            <p>Try resizing your browser window to see how it adapts to smaller screens!</p>
+            
+            <div class="api-key-section">
+                <div class="api-key-input-group">
+                    <label for="responsiveKey">🔑 API Key:</label>
+                    <input type="password" id="responsiveKey" class="api-key-input" 
+                           placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxx">
+                    <div class="api-key-status connected">API key configured ✓</div>
+                </div>
+                
+                <div class="mock-mode-toggle">
+                    <input type="checkbox">
+                    <label>🎭 Mock Mode</label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="demo-section">
+            <h2>🎯 Features</h2>
+            <ul style="font-size: 12px;">
+                <li><strong>Horizontal Layout</strong> - Saves vertical space in the control bar</li>
+                <li><strong>Flex Design</strong> - Input field grows to use available space</li>
+                <li><strong>Compact Status</strong> - Short, clear status messages</li>
+                <li><strong>Toggle Button</strong> - Mock mode is now a sleek toggle</li>
+                <li><strong>Responsive</strong> - Stacks vertically on mobile devices</li>
+                <li><strong>Tooltips</strong> - Hover for explanations</li>
+                <li><strong>Visual Feedback</strong> - Clear color coding for different states</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Demo functionality
+        const mockToggle = document.getElementById('enableMockMode');
+        const apiInput = document.getElementById('apiKeyInput');
+        const status = document.getElementById('apiKeyStatus');
+        
+        mockToggle.addEventListener('change', () => {
+            if (mockToggle.checked) {
+                apiInput.disabled = true;
+                status.textContent = '🎭 Mock mode enabled';
+                status.className = 'api-key-status mock';
+            } else {
+                apiInput.disabled = false;
+                status.textContent = 'No key configured';
+                status.className = 'api-key-status';
+            }
+        });
+        
+        apiInput.addEventListener('input', () => {
+            if (!mockToggle.checked) {
+                const value = apiInput.value;
+                if (value.length === 0) {
+                    status.textContent = 'No key configured';
+                    status.className = 'api-key-status';
+                } else if (value.match(/^sk-[a-zA-Z0-9]{32,64}$/)) {
+                    status.textContent = 'Valid key format ✓';
+                    status.className = 'api-key-status connected';
+                } else {
+                    status.textContent = 'Invalid key format';
+                    status.className = 'api-key-status error';
+                }
+            }
+        });
+    </script>
+</body>
+</html>

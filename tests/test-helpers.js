@@ -18,7 +18,7 @@ try {
         console.log('CONFIG was empty, creating manual setup');
         global.CONFIG = {
             deepseek: {
-                apiKey: 'sk-391b52e4a9aa41f4a66af4e403d3d0aa',
+                apiKey: 'sk-test123456789012345678901234567890123456',
                 baseURL: 'https://api.deepseek.com/v1',
                 model: 'deepseek-chat',
                 temperatures: { researcher: 0.8, analyst: 0.3, judge: 0.5, cognition: 0.2 },

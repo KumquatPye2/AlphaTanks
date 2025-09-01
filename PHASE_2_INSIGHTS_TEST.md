@@ -8,7 +8,7 @@ To verify that the Phase 2 insights tracking is working:
 
 2. **Select a Battle Scenario**: 
    - Choose "Urban Warfare" or "Chokepoint Control" (high obstacle scenarios)
-   - Click "Reset Battle" to initialize with the scenario
+   - Click "Reset Evolution" to initialize with the scenario
 
 3. **Open Engineer Insights**:
    - Click the "🔧 Engineer" button to open the insights dashboard

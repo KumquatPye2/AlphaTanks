@@ -15,7 +15,7 @@ describe('Configuration Validation', () => {
             console.log('Setting up CONFIG manually in beforeAll');
             window.CONFIG = {
                 deepseek: {
-                    apiKey: 'sk-391b52e4a9aa41f4a66af4e403d3d0aa',
+                    apiKey: 'sk-test123456789012345678901234567890123456',
                     baseURL: 'https://api.deepseek.com/v1',
                     model: 'deepseek-chat',
                     temperatures: { researcher: 0.8, analyst: 0.3, judge: 0.5, cognition: 0.2 },
@@ -175,7 +175,7 @@ describe('Configuration Validation', () => {
         });
 
         test('should validate API key format', () => {
-            const validKey = 'sk-391b52e4a9aa41f4a66af4e403d3d0aa';
+            const validKey = 'sk-test123456789012345678901234567890123456';
             const invalidKeys = ['invalid', '', 'sk-short', 'wrong-prefix-123'];
             
             expect(validKey).toMatch(/^sk-[a-f0-9]{32}$/);

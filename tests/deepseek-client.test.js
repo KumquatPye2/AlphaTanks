@@ -326,7 +326,7 @@ describe('DeepSeek Client and API Integration', () => {
     describe('Configuration Validation', () => {
         test('should validate API key format', () => {
             const validKeys = [
-                'sk-391b52e4a9aa41f4a66af4e403d3d0aa',
+                'sk-test123456789012345678901234567890123456',
                 'sk-1234567890abcdef1234567890abcdef'
             ];
             
