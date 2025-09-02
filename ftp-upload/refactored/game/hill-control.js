@@ -1,0 +1,379 @@
+// King of the Hill - Control Point System
+// Refactored version for the new architecture
+class Hill {
+    constructor(x, y, radius = 60) {
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.controllingTeam = null;
+        this.controlProgress = 0; // 0-100, how contested the hill is
+        this.captureTime = 3.0; // Seconds to capture
+        this.contestRadius = this.radius + 20; // Larger radius for contesting
+        
+        // Victory conditions using GAME_CONFIG
+        this.occupationTime = GAME_CONFIG.BATTLE.KING_OF_HILL.WIN_TIME;
+        this.redControlTime = 0; // Time red team has been controlling hill
+        this.blueControlTime = 0; // Time blue team has been controlling hill
+        
+        // Enhanced tracking for tactical analysis
+        this.controlChanges = 0;
+        this.maxRedControl = 0;
+        this.maxBlueControl = 0;
+        this.currentRedStreak = 0;
+        this.currentBlueStreak = 0;
+        this.previousController = null;
+        
+        // Scoring (legacy - now used for display only)
+        this.pointsPerSecond = 10;
+        this.redScore = 0;
+        this.blueScore = 0;
+        this.maxScore = 500;
+        
+        // Visual effects
+        this.pulseTimer = 0;
+        this.captureEffects = [];
+        
+        // Capture history for AI learning
+        this.captureEvents = [];
+    }
+    
+    update(deltaTime, tanks) {
+        this.pulseTimer += deltaTime;
+        
+        // Find tanks on the hill
+        const tanksOnHill = this.getTanksInArea(tanks, this.contestRadius);
+        const redTanks = tanksOnHill.filter(tank => tank.team === 'red');
+        const blueTanks = tanksOnHill.filter(tank => tank.team === 'blue');
+        
+        // Determine hill status
+        const redCount = redTanks.length;
+        const blueCount = blueTanks.length;
+        
+        if (redCount > 0 && blueCount === 0) {
+            // Red team capturing/holding
+            this.updateCapture('red', deltaTime);
+        } else if (blueCount > 0 && redCount === 0) {
+            // Blue team capturing/holding
+            this.updateCapture('blue', deltaTime);
+        } else if (redCount > 0 && blueCount > 0) {
+            // Contested - no progress
+            this.controlProgress = Math.max(0, this.controlProgress - deltaTime * 30);
+        } else {
+            // Empty hill - slow decay
+            this.controlProgress = Math.max(0, this.controlProgress - deltaTime * 10);
+            if (this.controlProgress === 0) {
+                this.controllingTeam = null;
+            }
+        }
+        
+        // Award points and track time if hill is controlled
+        if (this.controllingTeam && this.controlProgress >= 100) {
+            const pointsToAdd = this.pointsPerSecond * deltaTime;
+            if (this.controllingTeam === 'red') {
+                this.redScore += pointsToAdd;
+                this.redControlTime += deltaTime;
+            } else {
+                this.blueScore += pointsToAdd;
+                this.blueControlTime += deltaTime;
+            }
+        }
+        
+        // Update visual effects
+        this.updateEffects(deltaTime);
+    }
+    
+    updateCapture(team, deltaTime) {
+        const previousControllingTeam = this.controllingTeam;
+        
+        if (this.controllingTeam === team) {
+            // Same team, increase control
+            this.controlProgress = Math.min(100, this.controlProgress + deltaTime * (100 / this.captureTime));
+            
+            // Track continuous control streaks
+            if (team === 'red') {
+                this.currentRedStreak += deltaTime;
+                this.currentBlueStreak = 0;
+                this.maxRedControl = Math.max(this.maxRedControl, this.currentRedStreak);
+            } else {
+                this.currentBlueStreak += deltaTime;
+                this.currentRedStreak = 0;
+                this.maxBlueControl = Math.max(this.maxBlueControl, this.currentBlueStreak);
+            }
+        } else if (this.controllingTeam === null) {
+            // Neutral hill, start capturing
+            this.controllingTeam = team;
+            this.controlProgress = deltaTime * (100 / this.captureTime);
+            
+            // Reset streaks and track control change
+            this.currentRedStreak = team === 'red' ? deltaTime : 0;
+            this.currentBlueStreak = team === 'blue' ? deltaTime : 0;
+            
+            if (this.previousController !== null && this.previousController !== team) {
+                this.controlChanges++;
+            }
+            this.previousController = team;
+        } else {
+            // Enemy team, contest the hill
+            this.controlProgress = Math.max(0, this.controlProgress - deltaTime * 40);
+            if (this.controlProgress === 0) {
+                this.controllingTeam = team;
+                this.controlProgress = deltaTime * (100 / this.captureTime);
+                
+                // Track control change
+                if (previousControllingTeam && previousControllingTeam !== team) {
+                    this.controlChanges++;
+                }
+                this.previousController = team;
+                
+                // Reset opposing streak, start new streak
+                if (team === 'red') {
+                    this.currentRedStreak = deltaTime;
+                    this.currentBlueStreak = 0;
+                } else {
+                    this.currentBlueStreak = deltaTime;
+                    this.currentRedStreak = 0;
+                }
+                
+                // Record capture event for AI learning
+                this.captureEvents.push({
+                    time: Date.now(),
+                    previousTeam: previousControllingTeam,
+                    newTeam: team,
+                    contestDuration: deltaTime
+                });
+            } else {
+                // Still contesting, reset streaks
+                this.currentRedStreak = 0;
+                this.currentBlueStreak = 0;
+            }
+        }
+    }
+    
+    getTanksInArea(tanks, radius) {
+        return tanks.filter(tank => {
+            if (!tank.isAlive) {
+                return false;
+            }
+            const distance = MathUtils.distance(tank.x + tank.width / 2, tank.y + tank.height / 2, this.x, this.y);
+            return distance <= radius;
+        });
+    }
+    
+    updateEffects(deltaTime) {
+        // Update capture effects
+        this.captureEffects = this.captureEffects.filter(effect => {
+            effect.life -= deltaTime;
+            effect.scale += deltaTime * 2;
+            effect.alpha = effect.life / effect.maxLife;
+            return effect.life > 0;
+        });
+        
+        // Add new effects when capturing
+        if (this.controlProgress > 0 && this.controlProgress < 100 && Math.random() < 0.3) {
+            this.captureEffects.push({
+                x: this.x + (Math.random() - 0.5) * this.radius,
+                y: this.y + (Math.random() - 0.5) * this.radius,
+                scale: 0.5,
+                life: 1.0,
+                maxLife: 1.0,
+                alpha: 1.0,
+                color: this.controllingTeam === 'red' ? '#ff4444' : '#4444ff'
+            });
+        }
+    }
+    
+    render(ctx) {
+        ctx.save();
+        
+        // Hill base (always visible)
+        const pulseScale = 1 + Math.sin(this.pulseTimer * 2) * 0.05;
+        
+        // Outer contest radius (faint)
+        ctx.strokeStyle = '#666666';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.contestRadius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        // Main hill circle
+        ctx.fillStyle = this.getHillColor();
+        ctx.globalAlpha = 0.3;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius * pulseScale, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Control progress ring
+        if (this.controlProgress > 0) {
+            ctx.globalAlpha = 0.8;
+            ctx.strokeStyle = this.controllingTeam === 'red' ? '#ff4444' : '#4444ff';
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius + 10, 
+                   -Math.PI / 2, 
+                   -Math.PI / 2 + (this.controlProgress / 100) * Math.PI * 2);
+            ctx.stroke();
+        }
+        
+        // Hill center indicator
+        ctx.globalAlpha = 1.0;
+        ctx.fillStyle = this.controllingTeam === 'red' ? '#ff6666' : 
+                       this.controllingTeam === 'blue' ? '#6666ff' : '#888888';
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 8, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Render capture effects
+        this.captureEffects.forEach(effect => {
+            ctx.globalAlpha = effect.alpha;
+            ctx.fillStyle = effect.color;
+            ctx.beginPath();
+            ctx.arc(effect.x, effect.y, effect.scale * 3, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        
+        ctx.restore();
+        
+        // Score display
+        this.renderScoreUI(ctx);
+    }
+    
+    getHillColor() {
+        if (this.controllingTeam === 'red') {
+            return '#ff4444';
+        } else if (this.controllingTeam === 'blue') {
+            return '#4444ff';
+        } else {
+            return '#888888';
+        }
+    }
+    
+    renderScoreUI(ctx) {
+        // Score display in top center
+        ctx.save();
+        ctx.font = 'bold 20px Arial';
+        ctx.textAlign = 'center';
+        
+        // Background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        ctx.fillRect(this.x - 180, 10, 360, 80);
+        
+        // Control timer display - show total time held by each team
+        const redTotalTime = this.redControlTime || 0;
+        const blueTotalTime = this.blueControlTime || 0;
+        
+        // Red team total control time
+        ctx.fillStyle = '#ff4444';
+        ctx.fillText(`Red: ${redTotalTime.toFixed(1)}s`, this.x - 80, 35);
+        
+        // Blue team total control time  
+        ctx.fillStyle = '#4444ff';
+        ctx.fillText(`Blue: ${blueTotalTime.toFixed(1)}s`, this.x + 80, 35);
+        
+        // Victory condition text
+        ctx.font = '12px Arial';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(`First to hold hill for ${this.occupationTime}s wins`, this.x, 52);
+        
+        // Hill status
+        ctx.font = '14px Arial';
+        let statusText = 'Neutral';
+        if (this.controllingTeam) {
+            const progress = Math.floor(this.controlProgress);
+            statusText = `${this.controllingTeam.toUpperCase()} ${progress}%`;
+        }
+        ctx.fillText(statusText, this.x, 70);
+        
+        // Progress bar for current control - show progress toward victory
+        if (this.controllingTeam && this.controlProgress >= 100) {
+            const controlTime = this.controllingTeam === 'red' ? this.redControlTime : this.blueControlTime;
+            const progressWidth = Math.min(1, (controlTime / this.occupationTime)) * 300;
+            
+            ctx.fillStyle = this.controllingTeam === 'red' ? 'rgba(255, 68, 68, 0.3)' : 'rgba(68, 68, 255, 0.3)';
+            ctx.fillRect(this.x - 150, 75, progressWidth, 8);
+            
+            ctx.strokeStyle = this.controllingTeam === 'red' ? '#ff4444' : '#4444ff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(this.x - 150, 75, 300, 8);
+        }
+        
+        ctx.restore();
+    }
+    
+    // Check if game is won
+    isGameWon() {
+        // Victory by occupation time
+        if (this.redControlTime >= this.occupationTime || this.blueControlTime >= this.occupationTime) {
+            return true;
+        }
+        // Legacy victory by points (kept for compatibility)
+        return this.redScore >= this.maxScore || this.blueScore >= this.maxScore;
+    }
+    
+    getWinner() {
+        // Check occupation time victory first
+        if (this.redControlTime >= this.occupationTime) {
+            return 'red';
+        }
+        if (this.blueControlTime >= this.occupationTime) {
+            return 'blue';
+        }
+        // Legacy point-based victory
+        if (this.redScore >= this.maxScore) {
+            return 'red';
+        }
+        if (this.blueScore >= this.maxScore) {
+            return 'blue';
+        }
+        return null;
+    }
+    
+    // Get strategic information for AI
+    getStrategicInfo() {
+        return {
+            position: { x: this.x, y: this.y },
+            radius: this.radius,
+            contestRadius: this.contestRadius,
+            controllingTeam: this.controllingTeam,
+            controlProgress: this.controlProgress,
+            redScore: this.redScore,
+            blueScore: this.blueScore,
+            redControlTime: this.redControlTime,
+            blueControlTime: this.blueControlTime,
+            hillOccupationTime: this.occupationTime,
+            redTimeToWin: Math.max(0, this.occupationTime - this.redControlTime),
+            blueTimeToWin: Math.max(0, this.occupationTime - this.blueControlTime),
+            isContested: this.controlProgress > 0 && this.controlProgress < 100,
+            isNeutral: this.controllingTeam === null,
+            isSecure: this.controlProgress >= 100
+        };
+    }
+    
+    // Reset hill to neutral state for new battle
+    reset() {
+        this.controllingTeam = null;
+        this.controlProgress = 0;
+        this.redControlTime = 0;
+        this.blueControlTime = 0;
+        this.redScore = 0;
+        this.blueScore = 0;
+        this.captureEvents = [];
+        this.captureEffects = [];
+        
+        // Reset tactical tracking
+        this.controlChanges = 0;
+        this.maxRedControl = 0;
+        this.maxBlueControl = 0;
+        this.currentRedStreak = 0;
+        this.currentBlueStreak = 0;
+        this.previousController = null;
+    }
+}
+
+// Export for use in other modules
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = Hill;
+} else {
+    window.Hill = Hill;
+}

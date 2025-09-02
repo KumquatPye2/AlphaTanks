@@ -1,0 +1,20 @@
+AlphaTanks Deployment Package
+============================
+Created: 09/02/2025 10:54:09
+Target: DiscountASP.NET
+
+Files included:
+- index.html (main application)
+- All core JavaScript modules
+- core/ directory (insights modules)
+- refactored/ directory (refactored components)
+- favicon.svg
+- web.config (IIS configuration)
+
+Deployment Instructions:
+1. Upload all files to your DiscountASP.NET web hosting root directory
+2. Ensure all files maintain their relative structure
+3. The application will be accessible at your domain root
+4. All API calls are configured for client-side operation
+
+Note: This is a static web application that runs entirely in the browser.
