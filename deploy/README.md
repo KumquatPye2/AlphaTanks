@@ -323,11 +323,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Primary Research Source:**
 ```bibtex
-@article{asi_arch_2024,
+@article{asi_arch_2025,
   title={Artificial Superintelligence for AI Research (ASI-ARCH): A Framework for Computational Research Scaling},
   author={[ASI-ARCH Research Team]},
   journal={arXiv preprint arXiv:2507.18074v1},
-  year={2024},
+  year={2025},
   note={Available at: https://arxiv.org/abs/2507.18074v1}
 }
 ```
