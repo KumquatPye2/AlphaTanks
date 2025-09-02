@@ -282,7 +282,7 @@ npm run serve      # Python development server
 - **[Design Document](Design_Document.md)**: Implementation strategy
 - **[Implementation Status](Implementation_Status.md)**: Development progress
 - **[Sprint Plan](Sprint_Plan.md)**: Development roadmap
-- **[ASI-ARCH Paper](2507.18074v1.pdf)**: Original research methodology
+- **[ASI-ARCH Paper](https://arxiv.org/abs/2507.18074)**: Original research methodology
 
 ### Research Papers
 - **ASI-ARCH**: Artificial Superintelligence for AI Research methodology
@@ -537,7 +537,7 @@ As evolution progresses, you should observe:
 
 ## 📚 References
 
-- **ASI-ARCH Paper**: "AlphaGo Moment for Model Architecture Discovery" (2507.18074v1.pdf)
+- **ASI-ARCH Paper**: "AlphaGo Moment for Model Architecture Discovery" ([arXiv:2507.18074](https://arxiv.org/abs/2507.18074))
 - **Genetic Algorithms**: Holland, J.H. "Adaptation in Natural and Artificial Systems"
 - **Military Strategy**: Clausewitz, C. "On War" 
 - **Game AI**: Millington, I. "AI for Games"
