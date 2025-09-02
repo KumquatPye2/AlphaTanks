@@ -80,7 +80,9 @@ class MultiProviderLLMClient {
             this.lastRequestTime[providerKey] = 0;
         }
 
-        console.log(`Initialized ${provider.name} provider`);
+                
+        // Provider initialized successfully
+        return this;
     }
 
     loadApiKeyFromStorage(providerKey) {
@@ -127,8 +129,6 @@ class MultiProviderLLMClient {
         if (apiKey && window.CONFIG?.development) {
             window.CONFIG.development.enableMockMode = false;
         }
-
-        console.log(`${this.provider.name} API key updated`);
     }
 
     async makeRequest(prompt, temperature = 0.7, systemPrompt = '', model = null) {

@@ -36,7 +36,6 @@ class ApiKeyManager {
         }
         
         this.initialized = true;
-        console.log('API Key Manager initialized');
     }
 
     loadSavedApiKey() {
@@ -45,7 +44,6 @@ class ApiKeyManager {
             if (savedKey) {
                 this.inputElement.value = savedKey;
                 this.updateConfigAndStatus(savedKey);
-                console.log('Loaded saved API key from localStorage');
             } else {
                 // Check if mock mode should be used instead
                 this.updateMockModeStatus();
@@ -89,19 +87,13 @@ class ApiKeyManager {
         }
         
         this.updateMockModeStatus();
-        console.log('Mock mode:', mockModeEnabled ? 'enabled' : 'disabled');
         
         // Update ASI-ARCH status display
-        console.log('API Key Manager: Attempting to update ASI-ARCH mode display...');
         const tryUpdateASIArch = (attempts = 0) => {
             if (window.asiArch && typeof window.asiArch.updateModeDisplay === 'function') {
-                console.log('API Key Manager: Calling asiArch.updateModeDisplay() (attempt', attempts + 1, ')');
                 window.asiArch.updateModeDisplay();
                 return true;
             } else if (attempts < 5) {
-                console.log('API Key Manager: asiArch not ready, retrying in 100ms... (attempt', attempts + 1, ')');
-                console.log('- window.asiArch exists:', !!window.asiArch);
-                console.log('- updateModeDisplay is function:', typeof window.asiArch?.updateModeDisplay === 'function');
                 setTimeout(() => tryUpdateASIArch(attempts + 1), 100);
                 return false;
             } else {
@@ -186,7 +178,6 @@ class ApiKeyManager {
     saveApiKey(apiKey) {
         try {
             localStorage.setItem(this.storageKey, apiKey);
-            console.log('API key saved to localStorage');
         } catch (error) {
             console.error('Failed to save API key:', error);
             this.updateStatus('Failed to save API key', 'error');
@@ -198,7 +189,6 @@ class ApiKeyManager {
             localStorage.removeItem(this.storageKey);
             this.updateConfigAndStatus('');
             this.updateStatus('API key cleared', 'default');
-            console.log('API key cleared');
         } catch (error) {
             console.error('Failed to clear API key:', error);
         }
@@ -240,16 +230,11 @@ class ApiKeyManager {
         }
         
         // Update ASI-ARCH status display
-        console.log('API Key Manager: Attempting to update ASI-ARCH display...');
         const tryUpdateASIArch = (attempts = 0) => {
             if (window.asiArch && typeof window.asiArch.updateModeDisplay === 'function') {
-                console.log('API Key Manager: Calling asiArch.updateModeDisplay() (attempt', attempts + 1, ')');
                 window.asiArch.updateModeDisplay();
                 return true;
             } else if (attempts < 5) {
-                console.log('API Key Manager: asiArch not ready, retrying in 100ms... (attempt', attempts + 1, ')');
-                console.log('- window.asiArch exists:', !!window.asiArch);
-                console.log('- updateModeDisplay is function:', typeof window.asiArch?.updateModeDisplay === 'function');
                 setTimeout(() => tryUpdateASIArch(attempts + 1), 100);
                 return false;
             } else {

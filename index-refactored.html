@@ -426,14 +426,14 @@
         if (typeof window.researcherInsights === 'undefined') {
             window.researcherInsights = {
                 trackGenomeGeneration: function(genome, team, type) {
-                    console.log(`📊 Early Fallback: Genome tracked - ${team} ${type}`, genome);
+                    // Early fallback - track genome generation silently
                 },
                 trackExperiment: function() {},
                 trackMutation: function() {},
                 trackCrossover: function() {},
                 trackTournament: function() {}
             };
-            console.log('✅ Early fallback ResearcherInsights created');
+            // Early fallback ResearcherInsights created
         }
     </script>
     
@@ -493,7 +493,7 @@
         
         // Initialize application
         document.addEventListener('DOMContentLoaded', async () => {
-            console.log('🚀 Initializing Refactored AlphaTanks...');
+            // Initialize Refactored AlphaTanks
             
             // Wait a bit for all scripts to load
             await new Promise(resolve => setTimeout(resolve, 100));
@@ -506,36 +506,36 @@
                     typeof EventManager !== 'undefined') {
                     // Replace fallback with real ResearcherInsights
                     window.researcherInsights = new ResearcherInsights();
-                    console.log('✅ Real ResearcherInsights initialized (replaced fallback)');
+
                 } else {
                     console.warn('⚠️ ResearcherInsights dependencies not available, keeping fallback');
                 }
                 
                 if (typeof EngineerInsights !== 'undefined') {
                     window.engineerInsights = new EngineerInsights();
-                    console.log('✅ EngineerInsights initialized');
+
                 } else {
                     console.warn('⚠️ EngineerInsights not available');
                 }
                 
                 if (typeof AnalystInsights !== 'undefined') {
                     window.analystInsights = new AnalystInsights();
-                    console.log('✅ AnalystInsights initialized');
+
                 } else {
                     console.warn('⚠️ AnalystInsights not available');
                 }
             } catch (error) {
                 console.warn('⚠️ Some insights systems failed to initialize:', error);
-                console.log('🔄 Keeping fallback ResearcherInsights for compatibility');
+
             }
             
             // Verify ResearcherInsights compatibility
             if (window.researcherInsights && typeof window.researcherInsights.trackGenomeGeneration === 'function') {
-                console.log('✅ ResearcherInsights.trackGenomeGeneration confirmed working');
+
                 // Test it
                 try {
                     window.researcherInsights.trackGenomeGeneration([0.5, 0.5, 0.5], 'test', 'validation');
-                    console.log('✅ ResearcherInsights test call successful');
+
                 } catch (error) {
                     console.error('❌ ResearcherInsights test call failed:', error);
                 }
@@ -550,7 +550,7 @@
                 return;
             }
             
-            console.log('✅ All components initialized successfully');
+
             
             // Initialize game engine with refactored components
             gameEngine = new GameEngine(canvas, {
@@ -598,7 +598,7 @@
                 }
             });
             
-            console.log('🎮 AlphaTanks ready to play!');
+
         });
         
         function setupEventListeners() {
@@ -640,7 +640,7 @@
                     gameEngine.startEvolution();
                 }
                 
-                console.log('🧬 Evolution started');
+
             }
         }
         
@@ -657,7 +657,7 @@
                     }
                 }
                 
-                console.log(isPaused ? '⏸️ Paused' : '▶️ Resumed');
+
             }
         }
         
@@ -673,13 +673,13 @@
                 gameEngine.reset();
             }
             
-            console.log('🔄 Simulation reset');
+
         }
         
         function startQuickBattle() {
             if (gameEngine) {
                 gameEngine.startQuickBattle();
-                console.log('⚡ Quick battle started');
+
             }
         }
         

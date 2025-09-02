@@ -45,27 +45,21 @@ class DeepSeekClient {
             }
         }
     }
-    
     // Method to update API key at runtime
     updateApiKey(newApiKey) {
         this.apiKey = newApiKey;
         this.config.apiKey = newApiKey;
-        
         // Update mock mode based on API key availability
         if (newApiKey && window.CONFIG?.development) {
             window.CONFIG.development.enableMockMode = false;
         } else if (!newApiKey && window.CONFIG?.development) {
             window.CONFIG.development.enableMockMode = true;
         }
-        
-        console.log('DeepSeek API key updated:', newApiKey ? 'Key configured' : 'Key cleared');
-        
         // Update ASI-ARCH status display
         if (window.asiArch && typeof window.asiArch.updateModeDisplay === 'function') {
             window.asiArch.updateModeDisplay();
         }
     }
-    
     async makeRequest(prompt, temperature = 0.7, systemPrompt = '') {
         // Check cache first
         const cacheKey = `${systemPrompt}-${prompt}-${temperature}`;

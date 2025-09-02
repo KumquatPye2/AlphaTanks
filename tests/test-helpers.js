@@ -11,11 +11,9 @@ try {
     const loadedConfig = require(configPath);
     global.CONFIG = loadedConfig;
     global.window.CONFIG = loadedConfig;
-    console.log('CONFIG loaded successfully, keys:', Object.keys(loadedConfig));
     
     // If the loaded config is empty, create a manual setup
     if (!loadedConfig || Object.keys(loadedConfig).length === 0) {
-        console.log('CONFIG was empty, creating manual setup');
         global.CONFIG = {
             deepseek: {
                 apiKey: 'sk-test123456789012345678901234567890123456',

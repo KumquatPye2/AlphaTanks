@@ -69,7 +69,6 @@ class MultiProviderApiKeyManager {
         this.loadSavedApiKey();
         
         this.initialized = true;
-        console.log('Multi-Provider API Key Manager initialized');
     }
 
     handleProviderChange() {
@@ -109,7 +108,6 @@ class MultiProviderApiKeyManager {
             if (savedKey) {
                 this.elements.apiKeyInput.value = savedKey;
                 this.updateConfigAndStatus(savedKey);
-                console.log(`Loaded saved ${this.providers[this.currentProvider].name} API key`);
             } else {
                 this.updateStatus('No API key configured', 'default');
             }
@@ -158,7 +156,6 @@ class MultiProviderApiKeyManager {
     saveApiKey(apiKey) {
         try {
             localStorage.setItem(this.storagePrefix + this.currentProvider, apiKey);
-            console.log(`${this.providers[this.currentProvider].name} API key saved`);
         } catch (error) {
             console.error(`Failed to save ${this.currentProvider} API key:`, error);
             this.updateStatus('Failed to save API key', 'error');
@@ -170,7 +167,6 @@ class MultiProviderApiKeyManager {
             localStorage.removeItem(this.storagePrefix + this.currentProvider);
             this.updateConfigAndStatus('');
             this.updateStatus('API key cleared', 'default');
-            console.log(`${this.providers[this.currentProvider].name} API key cleared`);
         } catch (error) {
             console.error(`Failed to clear ${this.currentProvider} API key:`, error);
         }

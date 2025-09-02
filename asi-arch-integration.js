@@ -10,32 +10,19 @@ class ASIArchIntegration {
         this.initializeUI();
     }
     getDisplayMode() {
-        console.log('ASI-ARCH: Checking display mode...');
-        console.log('- isEnabled:', this.isEnabled);
-        console.log('- CONFIG.development.enableMockMode:', window.CONFIG?.development?.enableMockMode);
-        console.log('- apiKeyManager.hasValidApiKey():', window.apiKeyManager?.hasValidApiKey());
-        console.log('- CONFIG.deepseek.apiKey length:', window.CONFIG?.deepseek?.apiKey?.length || 0);
-        
         if (!this.isEnabled) {
-            console.log('ASI-ARCH: Returning Rule-Based (not enabled)');
             return 'Rule-Based';
         }
-        
         // Check if mock mode is enabled
         if (window.CONFIG?.development?.enableMockMode === true) {
-            console.log('ASI-ARCH: Returning Mock Mode (explicitly enabled)');
             return 'Mock Mode';
         }
-        
         // Check if we have a valid API key
         const hasApiKey = window.apiKeyManager?.hasValidApiKey() || 
                          (window.CONFIG?.deepseek?.apiKey && window.CONFIG.deepseek.apiKey.length > 0);
-        
         const result = hasApiKey ? 'AI-Enhanced' : 'Mock Mode';
-        console.log('ASI-ARCH: Returning', result, '(hasApiKey:', hasApiKey, ')');
         return result;
     }
-
     initializeUI() {
         // Add ASI-ARCH status indicator to UI
         const statusIndicator = document.createElement('div');
@@ -275,13 +262,9 @@ class ASIArchIntegration {
     updateModeDisplay() {
         const modeEl = document.getElementById('asi-arch-mode');
         const newMode = this.getDisplayMode();
-        console.log('ASI-ARCH: Updating mode display to:', newMode);
-        
         if (modeEl) {
             modeEl.textContent = `Mode: ${newMode}`;
-            console.log('ASI-ARCH: Mode display updated successfully');
         } else {
-            console.warn('ASI-ARCH: Mode element not found');
         }
     }
     // Debug methods
