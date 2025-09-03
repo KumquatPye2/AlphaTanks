@@ -1,4 +1,28 @@
-# 🚀 AlphaTanks: ASI-ARCH## 🎯 Overview
+# 🚀 AlphaTanks: ASI-### 🌐 Live Demo
+**Experience the evolutio## 📋 Table of Contents
+- [🎮 Try It Live](#-try-it-live---no-installation-required)
+- [🎯 Overview](#-overview)
+- [✨ Features](#-features)
+- [🏗️ ASI-ARCH Implementation](#️-asi-arch-implementation)
+- [🚀 Quick Start](#-quick-start)
+- [🔑 API Key Setup](#-api-key-setup)
+- [🎮 How to Play](#-how-to-play)
+- [🧬 Evolution System](#-evolution-system)
+- [🔬 Research Methodology](#-research-methodology)
+- [📊 Testing](#-testing)
+- [🛠️ Development](#️-development)
+- [📚 Documentation](#-documentation)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)[https://kumquatpye2.github.io/AlphaTanks/](https://kumquatpye2.github.io/AlphaTanks/)CH Tank Evolution
+
+## 🎮 Try It Live - No Installation Required!
+**[▶️ Launch AlphaTanks Now](https://kumquatpye2.github.io/AlphaTanks/)**
+
+*Click the link above to instantly start watching AI evolve its own tank battle strategies!*
+
+---
+
+## 🎯 Overview
 
 **AlphaTanks** is a revolutionary tank battle simulation that implements the **ASI-ARCH** (Artificial Superintelligence for AI Research) methodology. Unlike traditional games, AlphaTanks features autonomous AI that evolves its own strategies without human intervention, demonstrating real-time computational research scaling.
 
@@ -10,8 +34,9 @@ The system showcases how AI can conduct independent research, discovering novel 
 > 
 > The paper presents a novel approach where AI systems conduct autonomous research, and AlphaTanks demonstrates these principles through evolutionary tank AI that discovers emergent military tactics without human guidance.
 
-### 🎥 Demo
-![Tank Battle Animation](docs/demo.gif)
+### � Live Demo
+**Experience the evolution in action:** [https://kumquatpye2.github.io/AlphaTanks/](https://kumquatpye2.github.io/AlphaTanks/)
+
 *Watch Red and Blue teams evolve competing strategies in real-time*
 
 ## ✨ Features
@@ -40,7 +65,7 @@ The system showcases how AI can conduct independent research, discovering novel 
 - **Four-Module Architecture**: Researcher, Engineer, Analyst, Cognition
 - **Military Knowledge Base**: Phalanx, pincer, blitzkrieg, guerrilla tactics
 - **Automated Research Scaling**: Self-improving research capabilities
-- **Tactical Pattern Recognition**: AI discovers and codifies successful strategiesBattle
+- **Tactical Pattern Recognition**: AI discovers and codifies successful strategies
 
 > A cutting-edge tank battle simulation demonstrating autonomous AI evolution through the **ASI-ARCH methodology**
 
@@ -52,10 +77,12 @@ The system showcases how AI can conduct independent research, discovering novel 
 [![ESLint](https://img.shields.io/badge/ESLint-Zero%20Errors-green)](eslint.config.mjs)
 
 ## 📋 Table of Contents
-- [🎯 Overview](#-overview)
+- [� Try It Live](#-try-it-live---no-installation-required)
+- [�🎯 Overview](#-overview)
 - [✨ Features](#-features)
 - [🏗️ ASI-ARCH Implementation](#️-asi-arch-implementation)
 - [🚀 Quick Start](#-quick-start)
+- [🔑 API Key Setup](#-api-key-setup)
 - [🎮 How to Play](#-how-to-play)
 - [🧬 Evolution System](#-evolution-system)
 - [🔬 Research Methodology](#-research-methodology)
@@ -126,20 +153,25 @@ cognitionModule.applyLearning(tank, team, insights);
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- **Node.js** 14+ 
-- **Modern Web Browser** (Chrome, Firefox, Safari, Edge)
-- **Git** for cloning the repository
+### 🌐 For Users (No Installation Required)
 
-### Installation
+**Just visit the live demo:**
+1. **Go to:** [https://kumquatpye2.github.io/AlphaTanks/](https://kumquatpye2.github.io/AlphaTanks/)
+2. **Add your API key** (see [API Key Setup](#-api-key-setup) below)
+3. **Click "Start Evolution"** to watch AI evolve tank strategies
+4. **Enjoy!** No downloads, no setup, no hassle
+
+### 💻 For Developers
+
+Want to modify the code or run locally?
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/AlphaTanks.git
+   git clone https://github.com/KumquatPye2/AlphaTanks.git
    cd AlphaTanks
    ```
 
-2. **Install dependencies**
+2. **Install dependencies** (for testing/development only)
    ```bash
    npm install
    ```
@@ -149,11 +181,71 @@ cognitionModule.applyLearning(tank, team, insights);
    npm test
    ```
 
-4. **Start the application**
+4. **Start local development**
    ```bash
-   npm start
-   # Or simply open index.html in your browser
+   # Simple Python server
+   python serve.py
+   # Or just open index.html in your browser
    ```
+
+## 🔑 API Key Setup
+
+AlphaTanks uses AI language models to enhance the evolution process. You'll need to provide your own API key:
+
+### Supported Providers
+- **DeepSeek** (Recommended - Fast and affordable)
+- **OpenAI** (GPT-4, GPT-3.5)
+- **Anthropic** (Claude)
+
+### How to Add Your API Key
+1. **Visit the live demo:** [AlphaTanks](https://kumquatpye2.github.io/AlphaTanks/)
+2. **Click the "API Key" button** in the top-right corner
+3. **Select your provider** (DeepSeek, OpenAI, or Anthropic)
+4. **Paste your API key** - it's stored locally in your browser only
+5. **Start evolution!**
+
+### Getting API Keys
+- **DeepSeek:** Visit [platform.deepseek.com](https://platform.deepseek.com) (Most cost-effective)
+- **OpenAI:** Visit [platform.openai.com](https://platform.openai.com)
+- **Anthropic:** Visit [console.anthropic.com](https://console.anthropic.com)
+
+> **🔒 Security Note:** Your API key is stored only in your browser's local storage and never transmitted to any third-party servers. The app communicates directly with your chosen AI provider.
+
+## 🎮 How to Play
+
+### Getting Started
+1. **Open AlphaTanks:** [https://kumquatpye2.github.io/AlphaTanks/](https://kumquatpye2.github.io/AlphaTanks/)
+2. **Configure your API key** (see [API Key Setup](#-api-key-setup))
+3. **Click "Start Evolution"** to begin the autonomous AI evolution process
+
+### Controls & Interface
+
+| Control | Action |
+|---------|--------|
+| **Start Evolution** | Begin autonomous AI evolution |
+| **Pause/Resume** | Pause or resume the evolution process |
+| **Reset** | Start fresh with new random tank populations |
+| **Speed Controls** | Adjust simulation speed (1x to 5x) |
+| **API Key Button** | Configure your AI provider and API key |
+
+### What You'll See
+
+- **Battle Arena:** Real-time tank battles with physics simulation
+- **Evolution Dashboard:** Live statistics showing fitness scores, generation progress
+- **Team Statistics:** Performance metrics for Red and Blue teams
+- **Tactical Insights:** AI-discovered strategies and behaviors
+- **Generation Counter:** Track evolutionary progress over time
+
+### Understanding the Evolution
+
+The AI continuously experiments with different tank behaviors:
+- **Aggression levels:** How eager tanks are to attack
+- **Defensive strategies:** Shield usage and evasive maneuvers  
+- **Team coordination:** Group tactics and formation behavior
+- **Risk assessment:** When to engage vs. when to retreat
+- **Adaptive learning:** Real-time strategy adjustment
+
+Watch as simple random behaviors evolve into sophisticated military tactics!
 
 ## 🧬 Evolution System
 
@@ -217,7 +309,7 @@ Named after the Red Queen's statement in Alice in Wonderland ("you have to run a
 - **Functional Tests**: End-to-end system validation
 - **Evolution Tests**: Genetic algorithm correctness
 
-### Running Tests
+### For Developers: Running Tests Locally
 ```bash
 # Run all tests
 npm test
@@ -239,7 +331,19 @@ Snapshots:   0 total
 Time:        ~2s
 ```
 
+### User Testing
+The live application at [https://kumquatpye2.github.io/AlphaTanks/](https://kumquatpye2.github.io/AlphaTanks/) is continuously tested and validated for:
+- Cross-browser compatibility
+- Performance optimization  
+- Evolution algorithm correctness
+- AI integration functionality
+
 ## 🛠️ Development
+
+### Live Application
+**Primary deployment:** [https://kumquatpye2.github.io/AlphaTanks/](https://kumquatpye2.github.io/AlphaTanks/)
+
+The application is deployed via GitHub Pages with automatic updates from the main branch.
 
 ### Code Quality
 - **ESLint**: Zero errors with strict configuration
@@ -254,8 +358,9 @@ AlphaTanks/
 ├── game-engine.js          # Core battle simulation
 ├── tank-ai.js             # Individual tank behavior
 ├── evolution-engine.js     # Genetic algorithm implementation
-├── asi-arch-modules.js     # Four-module ASI-ARCH system
+├── enhanced-asi-arch.js    # Four-module ASI-ARCH system
 ├── asi-arch-visualizer.js  # Real-time data visualization
+├── deepseek-client.js      # AI provider integration
 ├── main.js                 # Application orchestration
 ├── tests/                  # Comprehensive test suite
 │   ├── evolution-engine.test.js
@@ -263,17 +368,26 @@ AlphaTanks/
 │   ├── tank-ai.test.js
 │   ├── integration.test.js
 │   └── functional.test.js
+├── core/                   # Additional modules
 ├── docs/                   # Documentation and diagrams
 └── package.json           # Dependencies and scripts
 ```
 
-### Key Scripts
+### Development Scripts
 ```bash
-npm start          # Start development server
 npm test           # Run test suite
 npm run lint       # ESLint code analysis
-npm run serve      # Python development server
+npm run serve      # Python development server (python serve.py)
+npm run test:watch # Watch mode for testing
+npm run test:coverage # Test coverage reports
 ```
+
+### Local Development Setup
+1. Clone the repository
+2. Install Node.js dependencies: `npm install`
+3. Start local server: `python serve.py` or open `index.html`
+4. Make changes and test locally
+5. Push to GitHub for automatic deployment
 
 ## 📚 Documentation
 
@@ -289,24 +403,25 @@ npm run serve      # Python development server
 - **Red Queen Race**: Competitive coevolution dynamics
 - **Genetic Algorithms**: Evolutionary computation principles
 
-## 🤝 Contributing
-
+### Contributing
 We welcome contributions! Here's how to get started:
 
 ### Development Setup
-1. Fork the repository
+1. Fork the repository: [https://github.com/KumquatPye2/AlphaTanks](https://github.com/KumquatPye2/AlphaTanks)
 2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Make your changes and add tests
-4. Ensure all tests pass: `npm test`
-5. Commit your changes: `git commit -m 'Add amazing feature'`
-6. Push to your branch: `git push origin feature/amazing-feature`
-7. Open a Pull Request
+3. Set up local development: `npm install`
+4. Make your changes and add tests
+5. Ensure all tests pass: `npm test`
+6. Commit your changes: `git commit -m 'Add amazing feature'`
+7. Push to your branch: `git push origin feature/amazing-feature`
+8. Open a Pull Request
 
 ### Contribution Areas
 - **New Evolution Strategies**: Alternative genetic algorithms
 - **Additional Tactical Modules**: Extended military knowledge base
 - **Visualization Improvements**: Enhanced real-time displays
 - **Performance Optimization**: Faster evolution cycles
+- **AI Provider Integration**: Support for additional LLM APIs
 - **Documentation**: Examples, tutorials, API documentation
 
 ### Code Standards
@@ -339,7 +454,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   author={AlphaTanks Development Team},
   year={2025},
   note={Implementation of ASI-ARCH methodology for autonomous AI evolution},
-  url={https://github.com/YOUR_USERNAME/AlphaTanks}
+  url={https://github.com/KumquatPye2/AlphaTanks}
 }
 ```
 
@@ -369,23 +484,11 @@ This project serves as an educational demonstration of the ASI-ARCH methodology,
 
 ---
 
-**🚀 Ready to witness AI evolve its own strategies? [Get started now!](#-quick-start)**
+**🚀 Ready to witness AI evolve its own strategies? [Try AlphaTanks now!](https://kumquatpye2.github.io/AlphaTanks/)**
 
 ---
 
 *AlphaTanks demonstrates that with the right framework, AI can become an autonomous researcher, discovering novel solutions through computational evolution. The future of AI research is AI conducting its own research.*
-
-### Prerequisites
-- Python 3.6+ (for development server)
-- Modern web browser (Chrome, Firefox, Safari, Edge)
-
-### Running the Game
-
-1. **Clone/Download** the project files
-2. **Start the server**:
-   ```bash
-   python serve.py
-   ```
 3. **Open browser** to `http://localhost:8000`
 4. **Click "Start Evolution"** to begin autonomous tank evolution
 
@@ -474,89 +577,29 @@ As evolution progresses, you should observe:
 4. **Team Coordination**: Better formation and cooperation strategies
 5. **Emergent Strategies**: Novel tactics not seen in initial population
 
-## 🛠️ Development Status
+## 🔮 Future Roadmap
 
-### ✅ Sprint 1 Complete (Weeks 1-2)
-- [x] Core game engine with 60 FPS performance
-- [x] Tank physics and combat system  
-- [x] Battlefield with strategic obstacles
-- [x] Basic AI behaviors and team dynamics
-- [x] Real-time battle simulation
-- [x] Performance monitoring and statistics
+### Planned Features
+- **Multi-species Evolution**: Different tank types with unique capabilities
+- **3D Visualization**: Enhanced battle graphics and analysis tools
+- **Tournament Mode**: Automated competitions between evolutionary runs
+- **Export/Import**: Save and share successful genome populations
+- **Additional AI Providers**: Expanded LLM integration options
 
-### 🚧 Sprint 2 In Progress (Weeks 3-4)
-- [x] ASI-ARCH four-module framework
-- [x] Evolution engine with genetic algorithms
-- [x] Tank genome system and fitness evaluation
-- [x] Military tactics knowledge integration
-- [x] Real-time evolution dashboard
-- [ ] Advanced trait emergence (flanking, ambush)
+### Research Extensions
+- **Transfer Learning**: Apply evolved strategies to new domains
+- **Multi-objective Optimization**: Balance multiple fitness criteria
+- **Swarm Intelligence**: Collective behavior emergence
+- **Neural Architecture Search**: Evolution of neural network structures
 
-### 📋 Sprint 3 Planned (Weeks 5-6)
-- [ ] Sophisticated formation behaviors
-- [ ] Advanced decision-making algorithms
-- [ ] Enhanced user interface and visualizations
-- [ ] Behavior analysis and replay tools
-- [ ] Performance optimization
+## 📚 Additional Resources
+- **[Architecture Document](Architecture_Document.md)**: Detailed system design
+- **[Design Document](Design_Document.md)**: Implementation strategy
+- **[Implementation Status](Implementation_Status.md)**: Development progress
+- **[Sprint Plan](Sprint_Plan.md)**: Development roadmap
+- **[ASI-ARCH Paper](https://arxiv.org/abs/2507.18074)**: Original research methodology
 
-### 📋 Sprint 4 Planned (Weeks 7-8)
-- [ ] Code optimization and bug fixes
-- [ ] Comprehensive documentation
-- [ ] Cross-browser compatibility
-- [ ] Mobile responsiveness
-- [ ] Deployment and hosting
-
-## 🎯 Success Metrics
-
-### Technical Performance
-- **Frame Rate**: Maintain 60 FPS with 20 tanks
-- **Evolution Speed**: 50+ generations in 10 minutes
-- **Emergence Rate**: 3+ distinct tactical patterns
-- **Stability**: <5 bugs per 100 battles
-
-### Research Validation
-- **Fitness Improvement**: Measurable generation-over-generation gains
-- **Behavioral Diversity**: Multiple successful strategies emerge
-- **Tactical Sophistication**: Advanced maneuvers develop autonomously
-- **Scaling Demonstration**: Performance scales with computational resources
-
-## 🔮 Future Extensions
-
-### Advanced Features
-- **Neural Networks**: Replace rule-based AI with actual neural networks
-- **3D Battlefield**: WebGL rendering with terrain and elevation
-- **Multiplayer Evolution**: Collaborative genome sharing between users
-- **VR Support**: Immersive battlefield observation
-- **Machine Learning**: TensorFlow.js integration for real AI training
-
-### Research Applications  
-- **Academic Tool**: Platform for AI education and research
-- **Algorithm Testing**: Framework for comparing evolution strategies
-- **Benchmarking**: Standard for ASI-ARCH implementations
-- **Publication**: Research paper on emergent military tactics
-
-## 📚 References
-
-- **ASI-ARCH Paper**: "AlphaGo Moment for Model Architecture Discovery" ([arXiv:2507.18074](https://arxiv.org/abs/2507.18074))
-- **Genetic Algorithms**: Holland, J.H. "Adaptation in Natural and Artificial Systems"
-- **Military Strategy**: Clausewitz, C. "On War" 
-- **Game AI**: Millington, I. "AI for Games"
-
-## 🤝 Contributing
-
-This project demonstrates ASI-ARCH principles in an educational context. Contributions welcome:
-
-1. **Bug Reports**: Issues with evolution or rendering
-2. **Feature Requests**: New behavioral traits or visualizations
-3. **Performance Optimization**: Efficiency improvements
-4. **Documentation**: Better explanations and tutorials
-
-## 📄 License
-
-MIT License - Feel free to use for educational and research purposes.
-
----
-
-**AlphaTanks** - *Demonstrating the future of autonomous AI research through engaging tank evolution*
-
-*"Like AlphaGo's Move 37 that revealed unexpected strategic insights invisible to human players, our AI-discovered tank strategies demonstrate emergent design principles that systematically surpass human intuition."*
+### Research Papers
+- **ASI-ARCH**: Artificial Superintelligence for AI Research methodology
+- **Red Queen Race**: Competitive coevolution dynamics
+- **Genetic Algorithms**: Evolutionary computation principles
